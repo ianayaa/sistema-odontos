@@ -46,3 +46,24 @@ export const isAdmin = (req: Request, res: Response, next: NextFunction) => {
   }
   next();
 };
+
+export const isDentist = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.user || (req.user.role !== 'DENTIST' && req.user.role !== 'ADMIN')) {
+    return res.status(403).json({ error: 'Acceso denegado. Se requieren privilegios de odontólogo' });
+  }
+  next();
+};
+
+export const isAssistant = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.user || (req.user.role !== 'ASSISTANT' && req.user.role !== 'ADMIN')) {
+    return res.status(403).json({ error: 'Acceso denegado. Se requieren privilegios de asistente' });
+  }
+  next();
+};
+
+export const isPatient = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.user || (req.user.role !== 'PATIENT' && req.user.role !== 'ADMIN')) {
+    return res.status(403).json({ error: 'Acceso denegado. Se requieren privilegios de paciente' });
+  }
+  next();
+};
