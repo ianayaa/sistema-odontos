@@ -1,0 +1,136 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  password     String
+  name         String
+  role         Role          @default(USER)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  appointments Appointment[]
+  patients     Patient[]
+}
+
+model Patient {
+  id             String          @id @default(uuid())
+  name           String
+  email          String?
+  phone          String?
+  birthDate      DateTime?
+  address        String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  userId         String
+  appointments   Appointment[]
+  consultations  Consultation[]
+  medicalHistory MedicalHistory?
+  odontogram     odontogram?
+  user           User            @relation(fields: [userId], references: [id])
+  payments       Payment[]
+}
+
+model MedicalHistory {
+  id                        String   @id @default(uuid())
+  patientId                 String   @unique
+  notes                     String?
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+  alergias                  String?
+  antecedentesNoPatologicos String?
+  antecedentesPatologicos   String?
+  consentimiento            String?
+  diagnostico               String?
+  enfermedades              String?
+  exploracionBucal          String?
+  exploracionFisica         String?
+  interrogatorio            String?
+  medicamentos              String?
+  motivo                    String?
+  padecimientoActual        String?
+  planTratamiento           String?
+  pronostico                String?
+  patient                   Patient  @relation(fields: [patientId], references: [id])
+}
+
+model Appointment {
+  id        String            @id @default(uuid())
+  patientId String
+  userId    String
+  date      DateTime
+  status    AppointmentStatus @default(SCHEDULED)
+  notes     String?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  patient   Patient           @relation(fields: [patientId], references: [id])
+  user      User              @relation(fields: [userId], references: [id])
+}
+
+model Payment {
+  id          String        @id @default(uuid())
+  patientId   String
+  amount      Float
+  method      PaymentMethod
+  status      PaymentStatus @default(PENDING)
+  description String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  patient     Patient       @relation(fields: [patientId], references: [id])
+}
+
+model Consultation {
+  id            String   @id @default(uuid())
+  patientId     String
+  date          DateTime @default(now())
+  motivo        String?
+  diagnostico   String?
+  tratamiento   String?
+  observaciones String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  patient       Patient  @relation(fields: [patientId], references: [id])
+}
+
+model odontogram {
+  id           String   @id @default(uuid())
+  patientId    String   @unique
+  patient      Patient  @relation(fields: [patientId], references: [id])
+  data         Json     // Estados de los dientes
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+}
+
+enum Role {
+  ADMIN
+  DENTIST
+  ASSISTANT
+  USER
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  TRANSFER
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
