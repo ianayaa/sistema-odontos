@@ -92,13 +92,18 @@ exports.updatePatient = updatePatient;
 const deletePatient = async (req, res) => {
     try {
         const { id } = req.params;
-        await prisma.patient.delete({
-            where: { id }
-        });
+        // Eliminar datos relacionados primero
+        await prisma.appointment.deleteMany({ where: { patientId: id } });
+        await prisma.payment.deleteMany({ where: { patientId: id } });
+        await prisma.consultation.deleteMany({ where: { patientId: id } });
+        await prisma.medicalHistory.deleteMany({ where: { patientId: id } });
+        await prisma.odontogram.deleteMany({ where: { patientId: id } });
+        // Finalmente, eliminar el paciente
+        await prisma.patient.delete({ where: { id } });
         res.status(204).send();
     }
     catch (error) {
-        res.status(500).json({ error: 'Error al eliminar paciente' });
+        res.status(500).json({ error: 'Error al eliminar paciente y sus datos relacionados' });
     }
 };
 exports.deletePatient = deletePatient;
