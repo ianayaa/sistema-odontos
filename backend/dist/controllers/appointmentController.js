@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getPatientAppointments = exports.cancelAppointment = exports.updateAppointment = exports.getAppointments = exports.createAppointment = void 0;
+exports.upsertDentistSchedule = exports.getDentistSchedule = exports.deleteAppointment = exports.getPatientAppointments = exports.cancelAppointment = exports.updateAppointment = exports.getAppointments = exports.createAppointment = void 0;
 const client_1 = require("@prisma/client");
 const notificationService_1 = require("../services/notificationService");
 const prisma = new client_1.PrismaClient();
@@ -21,16 +21,17 @@ const createAppointment = async (req, res) => {
             }
         });
         // Enviar notificación de confirmación
+        console.log('Datos de la cita agendada:', appointment);
         if (appointment.patient.phone) {
             await (0, notificationService_1.sendAppointmentReminder)({
                 ...appointment,
                 patient: { ...appointment.patient, phone: appointment.patient.phone || '' }
             });
         }
-        res.status(201).json(appointment);
+        return res.status(201).json(appointment);
     }
     catch (error) {
-        res.status(500).json({ error: 'Error al crear cita' });
+        return res.status(500).json({ error: 'Error al crear cita' });
     }
 };
 exports.createAppointment = createAppointment;
@@ -53,10 +54,10 @@ const getAppointments = async (req, res) => {
                 date: 'asc'
             }
         });
-        res.json(appointments);
+        return res.json(appointments);
     }
     catch (error) {
-        res.status(500).json({ error: 'Error al obtener citas' });
+        return res.status(500).json({ error: 'Error al obtener citas' });
     }
 };
 exports.getAppointments = getAppointments;
@@ -83,10 +84,10 @@ const updateAppointment = async (req, res) => {
                 patient: { ...appointment.patient, phone: appointment.patient.phone || '' }
             });
         }
-        res.json(appointment);
+        return res.json(appointment);
     }
     catch (error) {
-        res.status(500).json({ error: 'Error al actualizar cita' });
+        return res.status(500).json({ error: 'Error al actualizar cita' });
     }
 };
 exports.updateAppointment = updateAppointment;
@@ -112,10 +113,10 @@ const cancelAppointment = async (req, res) => {
                 patient: { ...appointment.patient, phone: appointment.patient.phone || '' }
             });
         }
-        res.json(appointment);
+        return res.json(appointment);
     }
     catch (error) {
-        res.status(500).json({ error: 'Error al cancelar cita' });
+        return res.status(500).json({ error: 'Error al cancelar cita' });
     }
 };
 exports.cancelAppointment = cancelAppointment;
@@ -135,10 +136,58 @@ const getPatientAppointments = async (req, res) => {
                 date: 'desc'
             }
         });
-        res.json(appointments);
+        return res.json(appointments);
     }
     catch (error) {
-        res.status(500).json({ error: 'Error al obtener citas del paciente' });
+        return res.status(500).json({ error: 'Error al obtener citas del paciente' });
     }
 };
 exports.getPatientAppointments = getPatientAppointments;
+const deleteAppointment = async (req, res) => {
+    try {
+        const { id } = req.params;
+        console.log('Intentando eliminar cita:', id, 'por usuario:', req.user?.id);
+        // Busca la cita y verifica que sea del usuario autenticado
+        const appointment = await prisma.appointment.findFirst({ where: { id, userId: req.user.id } });
+        if (!appointment) {
+            return res.status(404).json({ error: 'Cita no encontrada o no tienes permiso para eliminarla' });
+        }
+        await prisma.appointment.delete({ where: { id } });
+        return res.status(204).send();
+    }
+    catch (error) {
+        return res.status(500).json({ error: 'Error al eliminar cita' });
+    }
+};
+exports.deleteAppointment = deleteAppointment;
+// Obtener la configuración de horarios/bloqueos del dentista autenticado
+const getDentistSchedule = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const schedule = await prisma.dentistSchedule.findUnique({
+            where: { userId },
+        });
+        return res.json(schedule);
+    }
+    catch (error) {
+        return res.status(500).json({ error: 'Error al obtener la configuración de horarios' });
+    }
+};
+exports.getDentistSchedule = getDentistSchedule;
+// Actualizar o crear la configuración de horarios/bloqueos del dentista autenticado
+const upsertDentistSchedule = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { workingDays, startTime, endTime, blockedHours } = req.body;
+        const schedule = await prisma.dentistSchedule.upsert({
+            where: { userId },
+            update: { workingDays, startTime, endTime, blockedHours },
+            create: { userId, workingDays, startTime, endTime, blockedHours },
+        });
+        return res.json(schedule);
+    }
+    catch (error) {
+        return res.status(500).json({ error: 'Error al guardar la configuración de horarios' });
+    }
+};
+exports.upsertDentistSchedule = upsertDentistSchedule;

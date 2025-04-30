@@ -22,8 +22,13 @@ router.get('/me', auth_1.authenticateToken, (req, res) => {
 router.use(auth_1.authenticateToken);
 // Rutas de administración
 router.use(auth_1.isAdmin);
-router.post('/', userController_1.createUser);
-router.get('/', userController_1.getUsers);
-router.put('/:id', userController_1.updateUser);
-router.delete('/:id', userController_1.deleteUser);
+router.post('/', wrapAsync(userController_1.createUser));
+router.get('/', wrapAsync(userController_1.getUsers));
+router.put('/:id', wrapAsync(userController_1.updateUser));
+router.delete('/:id', wrapAsync(userController_1.deleteUser));
+function wrapAsync(fn) {
+    return function (req, res, next) {
+        Promise.resolve(fn(req, res, next)).catch(next);
+    };
+}
 exports.default = router;

@@ -20,14 +20,16 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
   const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
-    return res.status(401).json({ error: 'Token no proporcionado' });
+    res.status(401).json({ error: 'Token no proporcionado' });
+    return;
   }
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload | string;
     // Asegúrate de que req.user siempre sea un objeto con id, email y role
     if (typeof decoded === 'string') {
-      return res.status(403).json({ error: 'Token inválido' });
+      res.status(403).json({ error: 'Token inválido' });
+      return;
     }
     req.user = {
       id: decoded.id,
@@ -36,34 +38,39 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
     };
     next();
   } catch (error) {
-    return res.status(403).json({ error: 'Token inválido' });
+    res.status(403).json({ error: 'Token inválido' });
+    return;
   }
 };
 
 export const isAdmin = (req: Request, res: Response, next: NextFunction) => {
   if (!req.user || req.user.role !== 'ADMIN') {
-    return res.status(403).json({ error: 'Acceso denegado. Se requieren privilegios de administrador' });
+    res.status(403).json({ error: 'Acceso denegado. Se requieren privilegios de administrador' });
+    return;
   }
   next();
 };
 
 export const isDentist = (req: Request, res: Response, next: NextFunction) => {
   if (!req.user || (req.user.role !== 'DENTIST' && req.user.role !== 'ADMIN')) {
-    return res.status(403).json({ error: 'Acceso denegado. Se requieren privilegios de odontólogo' });
+    res.status(403).json({ error: 'Acceso denegado. Se requieren privilegios de odontólogo' });
+    return;
   }
   next();
 };
 
 export const isAssistant = (req: Request, res: Response, next: NextFunction) => {
   if (!req.user || (req.user.role !== 'ASSISTANT' && req.user.role !== 'ADMIN')) {
-    return res.status(403).json({ error: 'Acceso denegado. Se requieren privilegios de asistente' });
+    res.status(403).json({ error: 'Acceso denegado. Se requieren privilegios de asistente' });
+    return;
   }
   next();
 };
 
 export const isPatient = (req: Request, res: Response, next: NextFunction) => {
   if (!req.user || (req.user.role !== 'PATIENT' && req.user.role !== 'ADMIN')) {
-    return res.status(403).json({ error: 'Acceso denegado. Se requieren privilegios de paciente' });
+    res.status(403).json({ error: 'Acceso denegado. Se requieren privilegios de paciente' });
+    return;
   }
   next();
 };

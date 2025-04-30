@@ -13,8 +13,7 @@ const userRoutes_1 = __importDefault(require("./routes/userRoutes"));
 const medicalHistoryRoutes_1 = __importDefault(require("./routes/medicalHistoryRoutes"));
 const paymentRoutes_1 = __importDefault(require("./routes/paymentRoutes"));
 const odontogramRoutes_1 = __importDefault(require("./routes/odontogramRoutes"));
-const cronofyTokenRoute_1 = __importDefault(require("./routes/cronofyTokenRoute"));
-const cronofyOAuthRoutes_1 = __importDefault(require("./routes/cronofyOAuthRoutes"));
+const twilioTestRoutes_1 = __importDefault(require("./routes/twilioTestRoutes"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const prisma = new client_1.PrismaClient();
@@ -27,8 +26,7 @@ app.use('/api/appointments', appointmentRoutes_1.default);
 app.use('/api/medical-history', medicalHistoryRoutes_1.default);
 app.use('/api/payments', paymentRoutes_1.default);
 app.use('/api/odontogram', odontogramRoutes_1.default);
-app.use('/api/cronofy-token', cronofyTokenRoute_1.default);
-app.use('/api/cronofy-oauth', cronofyOAuthRoutes_1.default);
+app.use('/api/twilio-test', twilioTestRoutes_1.default);
 // Ruta básica
 app.get('/', (req, res) => {
     res.json({ message: 'API del Sistema Dental' });

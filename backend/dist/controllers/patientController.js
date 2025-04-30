@@ -5,10 +5,12 @@ const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
 const createPatient = async (req, res) => {
     try {
-        const { name, email, phone, birthDate, address } = req.body;
+        const { name, lastNamePaterno, lastNameMaterno, email, phone, birthDate, address } = req.body;
         const patient = await prisma.patient.create({
             data: {
                 name,
+                lastNamePaterno,
+                lastNameMaterno,
                 email,
                 phone,
                 birthDate: birthDate ? new Date(birthDate) : null,
@@ -67,11 +69,13 @@ exports.getPatientById = getPatientById;
 const updatePatient = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, email, phone, birthDate, address } = req.body;
+        const { name, lastNamePaterno, lastNameMaterno, email, phone, birthDate, address } = req.body;
         const patient = await prisma.patient.update({
             where: { id },
             data: {
                 name,
+                lastNamePaterno,
+                lastNameMaterno,
                 email,
                 phone,
                 birthDate: birthDate ? new Date(birthDate) : null,

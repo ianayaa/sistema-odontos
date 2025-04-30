@@ -4,18 +4,32 @@ import {
   getAppointments,
   updateAppointment,
   cancelAppointment,
-  getPatientAppointments
+  getPatientAppointments,
+  deleteAppointment,
+  getDentistSchedule,
+  upsertDentistSchedule
 } from '../controllers/appointmentController';
-import { authenticateToken } from '../middleware/auth';
+import { authenticateToken, isDentist } from '../middleware/auth';
 
 const router = express.Router();
 
 router.use(authenticateToken as any);
 
-router.post('/', createAppointment);
-router.get('/', getAppointments);
-router.put('/:id', updateAppointment);
-router.post('/:id/cancel', cancelAppointment);
-router.get('/patient/:patientId', getPatientAppointments);
+router.post('/', wrapAsync(createAppointment));
+router.get('/', wrapAsync(getAppointments));
+router.put('/:id', wrapAsync(updateAppointment));
+router.post('/:id/cancel', wrapAsync(cancelAppointment));
+router.get('/patient/:patientId', wrapAsync(getPatientAppointments));
+router.delete('/:id', wrapAsync(deleteAppointment));
 
-export default router; 
+// Rutas para configuración de horarios/bloqueos del dentista autenticado
+router.get('/schedule', isDentist, wrapAsync(getDentistSchedule));
+router.post('/schedule', isDentist, wrapAsync(upsertDentistSchedule));
+
+function wrapAsync(fn: any) {
+  return function(req: any, res: any, next: any) {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
+}
+
+export default router;

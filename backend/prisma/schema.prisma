@@ -21,11 +21,14 @@ model User {
   license      String?       // Para odontólogos
   phone        String?       // Para asistentes
   isActive     Boolean       @default(true)
+  schedules    DentistSchedule[]
 }
 
 model Patient {
   id             String          @id @default(uuid())
   name           String
+  lastNamePaterno String?
+  lastNameMaterno String?
   email          String?
   phone          String?
   birthDate      DateTime?
@@ -109,6 +112,18 @@ model odontogram {
   data         Json     // Estados de los dientes
   updatedAt    DateTime @updatedAt
   createdAt    DateTime @default(now())
+}
+
+model DentistSchedule {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id])
+  workingDays  Json     // Ejemplo: [1,2,3,4,5]
+  startTime    String   // Ejemplo: '08:00'
+  endTime      String   // Ejemplo: '20:00'
+  blockedHours Json     // Ejemplo: [{ day: 1, start: '13:00', end: '15:00' }]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 enum Role {

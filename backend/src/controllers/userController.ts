@@ -125,6 +125,11 @@ export const updateUser = async (req: Request, res: Response) => {
 export const deleteUser = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    // Verificar si el usuario es ADMIN
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (user?.role === 'ADMIN') {
+      return res.status(403).json({ error: 'No se puede eliminar el usuario administrador.' });
+    }
     await prisma.user.delete({
       where: { id }
     });

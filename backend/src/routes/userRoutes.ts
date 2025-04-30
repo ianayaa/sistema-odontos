@@ -29,9 +29,15 @@ router.use(authenticateToken as any);
 
 // Rutas de administración
 router.use(isAdmin as any);
-router.post('/', createUser as any);
-router.get('/', getUsers);
-router.put('/:id', updateUser);
-router.delete('/:id', deleteUser);
+router.post('/', wrapAsync(createUser));
+router.get('/', wrapAsync(getUsers));
+router.put('/:id', wrapAsync(updateUser));
+router.delete('/:id', wrapAsync(deleteUser));
+
+function wrapAsync(fn: any) {
+  return function(req: any, res: any, next: any) {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
+}
 
 export default router;

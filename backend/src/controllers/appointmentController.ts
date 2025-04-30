@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, DentistSchedule } from '@prisma/client';
 import { sendAppointmentReminder } from '../services/notificationService';
 
 const prisma = new PrismaClient();
@@ -22,6 +22,7 @@ export const createAppointment = async (req: Request, res: Response) => {
     });
 
     // Enviar notificación de confirmación
+    console.log('Datos de la cita agendada:', appointment);
     if (appointment.patient.phone) {
       await sendAppointmentReminder({
         ...appointment,
@@ -29,9 +30,9 @@ export const createAppointment = async (req: Request, res: Response) => {
       });
     }
 
-    res.status(201).json(appointment);
+    return res.status(201).json(appointment);
   } catch (error) {
-    res.status(500).json({ error: 'Error al crear cita' });
+    return res.status(500).json({ error: 'Error al crear cita' });
   }
 };
 
@@ -54,9 +55,9 @@ export const getAppointments = async (req: Request, res: Response) => {
         date: 'asc'
       }
     });
-    res.json(appointments);
+    return res.json(appointments);
   } catch (error) {
-    res.status(500).json({ error: 'Error al obtener citas' });
+    return res.status(500).json({ error: 'Error al obtener citas' });
   }
 };
 
@@ -86,9 +87,9 @@ export const updateAppointment = async (req: Request, res: Response) => {
       });
     }
 
-    res.json(appointment);
+    return res.json(appointment);
   } catch (error) {
-    res.status(500).json({ error: 'Error al actualizar cita' });
+    return res.status(500).json({ error: 'Error al actualizar cita' });
   }
 };
 
@@ -117,9 +118,9 @@ export const cancelAppointment = async (req: Request, res: Response) => {
       });
     }
 
-    res.json(appointment);
+    return res.json(appointment);
   } catch (error) {
-    res.status(500).json({ error: 'Error al cancelar cita' });
+    return res.status(500).json({ error: 'Error al cancelar cita' });
   }
 };
 
@@ -139,8 +140,53 @@ export const getPatientAppointments = async (req: Request, res: Response) => {
         date: 'desc'
       }
     });
-    res.json(appointments);
+    return res.json(appointments);
   } catch (error) {
-    res.status(500).json({ error: 'Error al obtener citas del paciente' });
+    return res.status(500).json({ error: 'Error al obtener citas del paciente' });
   }
-}; 
+};
+
+export const deleteAppointment = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    console.log('Intentando eliminar cita:', id, 'por usuario:', req.user?.id);
+    // Busca la cita y verifica que sea del usuario autenticado
+    const appointment = await prisma.appointment.findFirst({ where: { id, userId: req.user!.id } });
+    if (!appointment) {
+      return res.status(404).json({ error: 'Cita no encontrada o no tienes permiso para eliminarla' });
+    }
+    await prisma.appointment.delete({ where: { id } });
+    return res.status(204).send();
+  } catch (error) {
+    return res.status(500).json({ error: 'Error al eliminar cita' });
+  }
+};
+
+// Obtener la configuración de horarios/bloqueos del dentista autenticado
+export const getDentistSchedule = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const schedule = await prisma.dentistSchedule.findUnique({
+      where: { userId },
+    });
+    return res.json(schedule);
+  } catch (error) {
+    return res.status(500).json({ error: 'Error al obtener la configuración de horarios' });
+  }
+};
+
+// Actualizar o crear la configuración de horarios/bloqueos del dentista autenticado
+export const upsertDentistSchedule = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { workingDays, startTime, endTime, blockedHours } = req.body;
+    const schedule = await prisma.dentistSchedule.upsert({
+      where: { userId },
+      update: { workingDays, startTime, endTime, blockedHours },
+      create: { userId, workingDays, startTime, endTime, blockedHours },
+    });
+    return res.json(schedule);
+  } catch (error) {
+    return res.status(500).json({ error: 'Error al guardar la configuración de horarios' });
+  }
+};

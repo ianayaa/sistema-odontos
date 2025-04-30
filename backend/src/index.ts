@@ -8,6 +8,7 @@ import userRoutes from './routes/userRoutes';
 import medicalHistoryRoutes from './routes/medicalHistoryRoutes';
 import paymentRoutes from './routes/paymentRoutes';
 import odontogramRoutes from './routes/odontogramRoutes';
+import twilioTestRoutes from './routes/twilioTestRoutes';
 
 dotenv.config();
 
@@ -24,6 +25,7 @@ app.use('/api/appointments', appointmentRoutes);
 app.use('/api/medical-history', medicalHistoryRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/odontogram', odontogramRoutes);
+app.use('/api/twilio-test', twilioTestRoutes);
 
 // Ruta básica
 app.get('/', (req, res) => {

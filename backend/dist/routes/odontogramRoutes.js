@@ -9,26 +9,26 @@ const auth_1 = require("../middleware/auth");
 const router = express_1.default.Router();
 const prisma = new client_1.PrismaClient();
 // Obtener odontograma de un paciente
-router.get('/patient/:patientId', auth_1.authenticateToken, async (req, res, next) => {
+router.get('/patient/:patientId', auth_1.authenticateToken, async (req, res) => {
     try {
         const { patientId } = req.params;
         console.log(`[ODONTOGRAM][GET] patientId: ${patientId}`);
-        // Forzamos el tipado manual
         const odontogram = await prisma.odontogram.findUnique({ where: { patientId } });
         if (!odontogram) {
             console.log(`[ODONTOGRAM][GET] No odontogram found for patientId: ${patientId}`);
-            return res.status(404).json({ error: 'Odontograma no encontrado' });
+            res.status(404).json({ error: 'Odontograma no encontrado' });
+            return;
         }
         console.log(`[ODONTOGRAM][GET] Odontogram found for patientId: ${patientId}`);
-        return res.json(odontogram);
+        res.json(odontogram);
     }
     catch (error) {
         console.error(`[ODONTOGRAM][GET][ERROR]`, error);
-        next(error);
+        res.status(500).json({ error: 'Error al obtener odontograma' });
     }
 });
 // Crear o actualizar odontograma de un paciente
-router.put('/patient/:patientId', auth_1.authenticateToken, async (req, res, next) => {
+router.put('/patient/:patientId', auth_1.authenticateToken, async (req, res) => {
     try {
         const { patientId } = req.params;
         const { data } = req.body;
@@ -41,20 +41,18 @@ router.put('/patient/:patientId', auth_1.authenticateToken, async (req, res, nex
                     data,
                 },
             });
-            console.log(`[ODONTOGRAM][PUT] Created new odontogram for patientId: ${patientId}`);
         }
         else {
             odontogram = await prisma.odontogram.update({
                 where: { patientId },
                 data: { data },
             });
-            console.log(`[ODONTOGRAM][PUT] Updated odontogram for patientId: ${patientId}`);
         }
-        return res.json(odontogram);
+        res.json(odontogram);
     }
     catch (error) {
         console.error(`[ODONTOGRAM][PUT][ERROR]`, error);
-        next(error);
+        res.status(500).json({ error: 'Error al crear/actualizar odontograma' });
     }
 });
 exports.default = router;
