@@ -16,7 +16,7 @@ model User {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   appointments Appointment[]
-  patients     Patient[]
+  patient      Patient?
   speciality   String?       // Para odontólogos
   license      String?       // Para odontólogos
   phone        String?       // Para asistentes
@@ -35,12 +35,12 @@ model Patient {
   address        String?
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
-  userId         String
+  userId         String          @unique
   appointments   Appointment[]
   consultations  Consultation[]
   medicalHistory MedicalHistory?
   odontogram     odontogram?
-  user           User            @relation(fields: [userId], references: [id])
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   payments       Payment[]
 }
 
@@ -78,6 +78,8 @@ model Appointment {
   updatedAt DateTime          @updatedAt
   patient   Patient           @relation(fields: [patientId], references: [id])
   user      User              @relation(fields: [userId], references: [id])
+  duration  Int?              // Duración en minutos
+  endDate   DateTime?         // Hora de fin de la cita
 }
 
 model Payment {
@@ -124,6 +126,18 @@ model DentistSchedule {
   blockedHours Json     // Ejemplo: [{ day: 1, start: '13:00', end: '15:00' }]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+}
+
+model ClinicConfig {
+  id             String   @id @default(uuid())
+  nombreClinica  String
+  telefono       String
+  direccion      String
+  correo         String
+  horario        String
+  colorPrincipal String
+  logoUrl        String?
+  updatedAt      DateTime @updatedAt
 }
 
 enum Role {

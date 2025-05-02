@@ -4,24 +4,30 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendCampaign = exports.sendBulkNotifications = exports.sendPaymentReminder = exports.sendAppointmentReminder = exports.sendNotification = void 0;
+exports.sendSMS = sendSMS;
+exports.sendWhatsApp = sendWhatsApp;
 const twilio_1 = __importDefault(require("twilio"));
-const twilioClient = (0, twilio_1.default)(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+const twilioPhone = process.env.TWILIO_PHONE_NUMBER;
+const twilioWhatsApp = process.env.TWILIO_WHATSAPP_NUMBER;
+const client = (0, twilio_1.default)(accountSid, authToken);
 const sendNotification = async (options) => {
     try {
         console.log('Enviando notificación:', options);
         if (options.type === 'SMS') {
-            const result = await twilioClient.messages.create({
+            const result = await client.messages.create({
                 body: options.message,
-                from: process.env.TWILIO_PHONE_NUMBER,
+                from: twilioPhone,
                 to: options.to
             });
             console.log('Resultado SMS:', result.sid);
         }
         else if (options.type === 'WHATSAPP') {
             console.log('Intentando enviar WhatsApp a:', `whatsapp:${options.to}`);
-            const result = await twilioClient.messages.create({
+            const result = await client.messages.create({
                 body: options.message,
-                from: process.env.TWILIO_WHATSAPP_NUMBER,
+                from: twilioWhatsApp,
                 to: `whatsapp:${options.to}`,
                 persistentAction: [
                     'reply:Confirmar',
@@ -43,7 +49,7 @@ const sendAppointmentReminder = async (appointment) => {
     const fecha = new Date(date).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
     const hora = new Date(date).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
     const nombrePaciente = patient.name || 'Paciente';
-    // Mensaje bonito para WhatsApp
+    // Mensaje para WhatsApp
     const mensajeWhatsApp = `Odontos Dental Office\n\nHola ${nombrePaciente}, tu cita ha sido agendada exitosamente.\n\n📅 Fecha: ${fecha}\n🕘 Hora: ${hora}\n📍 Dirección: Av. Manuel Lepe Macedo 208, Plaza Kobá, Local 17 Planta Baja, Guadalupe Victoria, 48317 Puerto Vallarta, Jal.\n\n✅ Por favor, responde a este mensaje para confirmar tu asistencia.\nTe pedimos llegar 10 minutos antes de tu cita.\n\n❗ Si necesitas cambiar o cancelar tu cita, contáctanos aquí mismo.\n\n¡Gracias por confiar en Odontos Dental Office!`;
     // Mensaje plano para SMS (acortado para Twilio trial)
     const mensajeSMS = `Odontos: ${nombrePaciente}, cita ${fecha} ${hora}. Responde OK para confirmar.`;
@@ -107,3 +113,17 @@ const sendCampaign = async (patients, message, type = 'SMS') => {
     }
 };
 exports.sendCampaign = sendCampaign;
+async function sendSMS(to, message) {
+    return client.messages.create({
+        body: message,
+        from: twilioPhone,
+        to
+    });
+}
+async function sendWhatsApp(to, message) {
+    return client.messages.create({
+        body: message,
+        from: twilioWhatsApp,
+        to: `whatsapp:${to}`
+    });
+}

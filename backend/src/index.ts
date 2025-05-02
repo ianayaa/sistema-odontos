@@ -9,11 +9,21 @@ import medicalHistoryRoutes from './routes/medicalHistoryRoutes';
 import paymentRoutes from './routes/paymentRoutes';
 import odontogramRoutes from './routes/odontogramRoutes';
 import twilioTestRoutes from './routes/twilioTestRoutes';
+import clinicConfigRoutes from './routes/clinicConfigRoutes';
 
 dotenv.config();
 
 const app = express();
 const prisma = new PrismaClient();
+
+// Manejo de errores no capturados
+process.on('uncaughtException', (error) => {
+  console.error('Error no capturado:', error);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Promesa rechazada no manejada:', reason);
+});
 
 app.use(cors());
 app.use(express.json());
@@ -26,6 +36,7 @@ app.use('/api/medical-history', medicalHistoryRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/odontogram', odontogramRoutes);
 app.use('/api/twilio-test', twilioTestRoutes);
+app.use('/api/config', clinicConfigRoutes);
 
 // Ruta básica
 app.get('/', (req, res) => {
@@ -34,6 +45,23 @@ app.get('/', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Servidor corriendo en puerto ${PORT}`);
+});
+
+// Manejo de señales de terminación
+process.on('SIGTERM', () => {
+  console.log('Recibida señal SIGTERM, cerrando servidor...');
+  server.close(() => {
+    console.log('Servidor cerrado');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('Recibida señal SIGINT, cerrando servidor...');
+  server.close(() => {
+    console.log('Servidor cerrado');
+    process.exit(0);
+  });
 }); 

@@ -1,20 +1,24 @@
 import { Request, Response } from 'express';
-import { PrismaClient, DentistSchedule } from '@prisma/client';
+import { PrismaClient, DentistSchedule, Appointment } from '@prisma/client';
 import { sendAppointmentReminder } from '../services/notificationService';
 
 const prisma = new PrismaClient();
 
 export const createAppointment = async (req: Request, res: Response) => {
   try {
-    const { patientId, date, notes } = req.body;
+    console.log('BODY:', req.body);
+    const { patientId, date, endDate, duration, notes, status } = req.body;
+    const data: any = {
+      patientId,
+      userId: req.user!.id,
+      date: new Date(date),
+      notes,
+      status: status || 'SCHEDULED'
+    };
+    if (endDate) data.endDate = new Date(endDate);
+    if (duration !== undefined) data.duration = duration;
     const appointment = await prisma.appointment.create({
-      data: {
-        patientId,
-        userId: req.user!.id,
-        date: new Date(date),
-        notes,
-        status: 'SCHEDULED'
-      },
+      data,
       include: {
         patient: true,
         user: true
@@ -23,7 +27,7 @@ export const createAppointment = async (req: Request, res: Response) => {
 
     // Enviar notificación de confirmación
     console.log('Datos de la cita agendada:', appointment);
-    if (appointment.patient.phone) {
+    if (appointment.patient && appointment.patient.phone) {
       await sendAppointmentReminder({
         ...appointment,
         patient: { ...appointment.patient, phone: appointment.patient.phone || '' }
@@ -64,15 +68,17 @@ export const getAppointments = async (req: Request, res: Response) => {
 export const updateAppointment = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { date, status, notes } = req.body;
+    const { date, endDate, duration, status, notes } = req.body;
     
+    const updateData: any = {};
+    if (date) updateData.date = new Date(date);
+    if (endDate) updateData.endDate = new Date(endDate);
+    if (duration !== undefined) updateData.duration = duration;
+    if (status) updateData.status = status;
+    if (notes !== undefined) updateData.notes = notes;
     const appointment = await prisma.appointment.update({
       where: { id },
-      data: {
-        date: date ? new Date(date) : undefined,
-        status,
-        notes
-      },
+      data: updateData,
       include: {
         patient: true,
         user: true
@@ -80,7 +86,7 @@ export const updateAppointment = async (req: Request, res: Response) => {
     });
 
     // Si se cambió la fecha o el estado, enviar notificación
-    if ((date || status) && appointment.patient.phone) {
+    if ((date || status) && appointment.patient && appointment.patient.phone) {
       await sendAppointmentReminder({
         ...appointment,
         patient: { ...appointment.patient, phone: appointment.patient.phone || '' }
@@ -111,7 +117,7 @@ export const cancelAppointment = async (req: Request, res: Response) => {
     });
 
     // Enviar notificación de cancelación
-    if (appointment.patient.phone) {
+    if (appointment.patient && appointment.patient.phone) {
       await sendAppointmentReminder({
         ...appointment,
         patient: { ...appointment.patient, phone: appointment.patient.phone || '' }

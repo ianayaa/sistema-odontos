@@ -1,10 +1,12 @@
 import twilio from 'twilio';
 import { Appointment, Payment } from '@prisma/client';
 
-const twilioClient = twilio(
-  process.env.TWILIO_ACCOUNT_SID,
-  process.env.TWILIO_AUTH_TOKEN
-);
+const accountSid = process.env.TWILIO_ACCOUNT_SID!;
+const authToken = process.env.TWILIO_AUTH_TOKEN!;
+const twilioPhone = process.env.TWILIO_PHONE_NUMBER!;
+const twilioWhatsApp = process.env.TWILIO_WHATSAPP_NUMBER!;
+
+const client = twilio(accountSid, authToken);
 
 interface NotificationOptions {
   type: 'SMS' | 'WHATSAPP';
@@ -16,17 +18,17 @@ export const sendNotification = async (options: NotificationOptions) => {
   try {
     console.log('Enviando notificación:', options);
     if (options.type === 'SMS') {
-      const result = await twilioClient.messages.create({
+      const result = await client.messages.create({
         body: options.message,
-        from: process.env.TWILIO_PHONE_NUMBER,
+        from: twilioPhone,
         to: options.to
       });
       console.log('Resultado SMS:', result.sid);
     } else if (options.type === 'WHATSAPP') {
       console.log('Intentando enviar WhatsApp a:', `whatsapp:${options.to}`);
-      const result = await twilioClient.messages.create({
+      const result = await client.messages.create({
         body: options.message,
-        from: process.env.TWILIO_WHATSAPP_NUMBER,
+        from: twilioWhatsApp,
         to: `whatsapp:${options.to}`,
         persistentAction: [
           'reply:Confirmar',
@@ -48,7 +50,7 @@ export const sendAppointmentReminder = async (appointment: Appointment & { patie
   const hora = new Date(date).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
   const nombrePaciente = patient.name || 'Paciente';
 
-  // Mensaje bonito para WhatsApp
+  // Mensaje para WhatsApp
   const mensajeWhatsApp = `Odontos Dental Office\n\nHola ${nombrePaciente}, tu cita ha sido agendada exitosamente.\n\n📅 Fecha: ${fecha}\n🕘 Hora: ${hora}\n📍 Dirección: Av. Manuel Lepe Macedo 208, Plaza Kobá, Local 17 Planta Baja, Guadalupe Victoria, 48317 Puerto Vallarta, Jal.\n\n✅ Por favor, responde a este mensaje para confirmar tu asistencia.\nTe pedimos llegar 10 minutos antes de tu cita.\n\n❗ Si necesitas cambiar o cancelar tu cita, contáctanos aquí mismo.\n\n¡Gracias por confiar en Odontos Dental Office!`;
 
   // Mensaje plano para SMS (acortado para Twilio trial)
@@ -122,4 +124,20 @@ export const sendCampaign = async (
     console.error('Error al enviar campaña:', error);
     return { success: false, message: 'Error al enviar campaña' };
   }
-}; 
+};
+
+export async function sendSMS(to: string, message: string) {
+  return client.messages.create({
+    body: message,
+    from: twilioPhone,
+    to
+  });
+}
+
+export async function sendWhatsApp(to: string, message: string) {
+  return client.messages.create({
+    body: message,
+    from: twilioWhatsApp,
+    to: `whatsapp:${to}`
+  });
+} 
