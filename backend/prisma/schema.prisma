@@ -8,40 +8,40 @@ datasource db {
 }
 
 model User {
-  id           String        @id @default(uuid())
-  email        String        @unique
+  id           String            @id @default(uuid())
+  email        String            @unique
   password     String
   name         String
-  role         Role          @default(PATIENT)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  role         Role              @default(PATIENT)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
   appointments Appointment[]
   patient      Patient?
-  speciality   String?       // Para odontólogos
-  license      String?       // Para odontólogos
-  phone        String?       // Para asistentes
-  isActive     Boolean       @default(true)
+  speciality   String? // Para odontólogos
+  license      String? // Para odontólogos
+  phone        String? // Para asistentes
+  isActive     Boolean           @default(true)
   schedules    DentistSchedule[]
 }
 
 model Patient {
-  id             String          @id @default(uuid())
-  name           String
+  id              String          @id @default(uuid())
+  name            String
   lastNamePaterno String?
   lastNameMaterno String?
-  email          String?
-  phone          String?
-  birthDate      DateTime?
-  address        String?
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  userId         String          @unique
-  appointments   Appointment[]
-  consultations  Consultation[]
-  medicalHistory MedicalHistory?
-  odontogram     odontogram?
-  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  payments       Payment[]
+  email           String?
+  phone           String?
+  birthDate       DateTime?
+  address         String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  userId          String?         @unique
+  appointments    Appointment[]
+  consultations   Consultation[]
+  medicalHistory  MedicalHistory?
+  odontogram      odontogram?
+  user            User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments        Payment[]
 }
 
 model MedicalHistory {
@@ -78,8 +78,8 @@ model Appointment {
   updatedAt DateTime          @updatedAt
   patient   Patient           @relation(fields: [patientId], references: [id])
   user      User              @relation(fields: [userId], references: [id])
-  duration  Int?              // Duración en minutos
-  endDate   DateTime?         // Hora de fin de la cita
+  duration  Int? // Duración en minutos
+  endDate   DateTime? // Hora de fin de la cita
 }
 
 model Payment {
@@ -108,22 +108,22 @@ model Consultation {
 }
 
 model odontogram {
-  id           String   @id @default(uuid())
-  patientId    String   @unique
-  patient      Patient  @relation(fields: [patientId], references: [id])
-  data         Json     // Estados de los dientes
-  updatedAt    DateTime @updatedAt
-  createdAt    DateTime @default(now())
+  id        String   @id @default(uuid())
+  patientId String   @unique
+  patient   Patient  @relation(fields: [patientId], references: [id])
+  data      Json // Estados de los dientes
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
 }
 
 model DentistSchedule {
   id           String   @id @default(uuid())
   userId       String   @unique
   user         User     @relation(fields: [userId], references: [id])
-  workingDays  Json     // Ejemplo: [1,2,3,4,5]
-  startTime    String   // Ejemplo: '08:00'
-  endTime      String   // Ejemplo: '20:00'
-  blockedHours Json     // Ejemplo: [{ day: 1, start: '13:00', end: '15:00' }]
+  workingDays  Json // Ejemplo: [1,2,3,4,5]
+  startTime    String // Ejemplo: '08:00'
+  endTime      String // Ejemplo: '20:00'
+  blockedHours Json // Ejemplo: [{ day: 1, start: '13:00', end: '15:00' }]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }

@@ -45,14 +45,17 @@ const sendNotification = async (options) => {
 };
 exports.sendNotification = sendNotification;
 const sendAppointmentReminder = async (appointment) => {
-    const { patient, date } = appointment;
+    const { patient, date, endDate, duration, user } = appointment;
     const fecha = new Date(date).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
     const hora = new Date(date).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
     const nombrePaciente = patient.name || 'Paciente';
+    const nombreDoctor = user?.name || 'Tu dentista';
+    const duracion = duration ? `${duration} min` : endDate ? `${Math.round((new Date(endDate).getTime() - new Date(date).getTime()) / 60000)} min` : '---';
+    const direccion = 'Av. Manuel Lepe Macedo 208, Plaza Kobá, Local 17 Planta Baja, Guadalupe Victoria, 48317 Puerto Vallarta, Jal.';
     // Mensaje para WhatsApp
-    const mensajeWhatsApp = `Odontos Dental Office\n\nHola ${nombrePaciente}, tu cita ha sido agendada exitosamente.\n\n📅 Fecha: ${fecha}\n🕘 Hora: ${hora}\n📍 Dirección: Av. Manuel Lepe Macedo 208, Plaza Kobá, Local 17 Planta Baja, Guadalupe Victoria, 48317 Puerto Vallarta, Jal.\n\n✅ Por favor, responde a este mensaje para confirmar tu asistencia.\nTe pedimos llegar 10 minutos antes de tu cita.\n\n❗ Si necesitas cambiar o cancelar tu cita, contáctanos aquí mismo.\n\n¡Gracias por confiar en Odontos Dental Office!`;
-    // Mensaje plano para SMS (acortado para Twilio trial)
-    const mensajeSMS = `Odontos: ${nombrePaciente}, cita ${fecha} ${hora}. Responde OK para confirmar.`;
+    const mensajeWhatsApp = `Odontos Dental Office\n\nHola ${nombrePaciente}, tu cita ha sido agendada exitosamente.\n\n📅 Fecha: ${fecha}\n🕘 Hora: ${hora}\n⏳ Duración: ${duracion}\n👨‍⚕️ Doctor: ${nombreDoctor}\n📍 Dirección: ${direccion}\n\n✅ Por favor, responde a este mensaje para confirmar tu asistencia.\nTe pedimos llegar 10 minutos antes de tu cita.\n\n❗ Si necesitas cambiar o cancelar tu cita, contáctanos aquí mismo.\n\n¡Gracias por confiar en Odontos Dental Office!`;
+    // Mensaje mejorado para SMS
+    const mensajeSMS = `Odontos: ${nombrePaciente}, tu cita es el ${fecha} a las ${hora} (${duracion}) con ${nombreDoctor}. Dirección: ${direccion}. Responde OK para confirmar.`;
     console.log('Preparando SMS:', mensajeSMS);
     await (0, exports.sendNotification)({
         type: 'SMS',

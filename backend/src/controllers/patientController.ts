@@ -17,22 +17,7 @@ export const createPatient = async (req: Request, res: Response) => {
   try {
     const { name, lastNamePaterno, lastNameMaterno, email, phone, birthDate, address } = req.body;
 
-    // Generar contraseña temporal
-    const tempPassword = randomBytes(8).toString('hex');
-    const hashedPassword = await bcrypt.hash(tempPassword, 10);
-
-    // Crear usuario paciente
-    const user = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        name,
-        role: 'PATIENT',
-        isActive: true
-      }
-    });
-
-    // Crear paciente y asociar con el usuario
+    // Crear paciente directamente, sin usuario
     const patient = await prisma.patient.create({
       data: {
         name,
@@ -41,23 +26,11 @@ export const createPatient = async (req: Request, res: Response) => {
         email,
         phone,
         birthDate: birthDate ? new Date(birthDate) : null,
-        address,
-        userId: user.id
+        address
       }
     });
 
-    // Enviar contraseña temporal por SMS y WhatsApp si hay teléfono
-    if (phone) {
-      const msg = `Bienvenido a Odontos. Tu usuario es: ${email} y tu contraseña temporal es: ${tempPassword}`;
-      try {
-        await sendSMS(phone, msg);
-        await sendWhatsApp(phone, msg);
-      } catch (err) {
-        console.error('Error enviando SMS/WhatsApp:', err);
-      }
-    }
-
-    res.status(201).json({ patient: formatPatientDate(patient), tempPassword });
+    res.status(201).json({ patient: formatPatientDate(patient) });
   } catch (error) {
     res.status(500).json({ error: 'Error al crear paciente' });
   }
@@ -152,8 +125,10 @@ export const deletePatient = async (req: Request, res: Response): Promise<void> 
     await prisma.odontogram.deleteMany({ where: { patientId: id } });
     // Eliminar el paciente
     await prisma.patient.delete({ where: { id } });
-    // Eliminar el usuario relacionado
-    await prisma.user.delete({ where: { id: patient.userId } });
+    // Eliminar el usuario relacionado solo si existe userId
+    if (patient.userId) {
+      await prisma.user.delete({ where: { id: patient.userId } });
+    }
     res.status(204).send();
   } catch (error) {
     res.status(500).json({ error: 'Error al eliminar paciente y usuario relacionado' });

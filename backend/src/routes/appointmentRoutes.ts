@@ -7,11 +7,15 @@ import {
   getPatientAppointments,
   deleteAppointment,
   getDentistSchedule,
-  upsertDentistSchedule
+  upsertDentistSchedule,
+  publicConfirmAppointment
 } from '../controllers/appointmentController';
 import { authenticateToken, isDentist } from '../middleware/auth';
 
 const router = express.Router();
+
+// Ruta pública para confirmar cita
+router.post('/:id/confirm', wrapAsync(publicConfirmAppointment));
 
 router.use(authenticateToken as any);
 

@@ -1,5 +1,6 @@
 import twilio from 'twilio';
 import { Appointment, Payment } from '@prisma/client';
+import axios from 'axios';
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID!;
 const authToken = process.env.TWILIO_AUTH_TOKEN!;
@@ -44,31 +45,39 @@ export const sendNotification = async (options: NotificationOptions) => {
   }
 };
 
-export const sendAppointmentReminder = async (appointment: Appointment & { patient: { phone: string, name: string } }) => {
-  const { patient, date } = appointment;
-  const fecha = new Date(date).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
+export const sendAppointmentReminder = async (appointment: Appointment & { patient: { phone: string, name: string }, user?: { name?: string } }) => {
+  const { patient, date, endDate, duration, user } = appointment;
+  const fecha = new Date(date).toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric' });
   const hora = new Date(date).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
   const nombrePaciente = patient.name || 'Paciente';
+  const nombreDoctor = user?.name || 'Tu dentista';
+  const duracion = duration ? `${duration} min` : endDate ? `${Math.round((new Date(endDate).getTime() - new Date(date).getTime())/60000)} min` : '---';
+  const direccion = 'Av. Manuel Lepe Macedo 208, Plaza Kobá, Local 17 Planta Baja, Guadalupe Victoria, 48317 Puerto Vallarta, Jal.';
 
-  // Mensaje para WhatsApp
-  const mensajeWhatsApp = `Odontos Dental Office\n\nHola ${nombrePaciente}, tu cita ha sido agendada exitosamente.\n\n📅 Fecha: ${fecha}\n🕘 Hora: ${hora}\n📍 Dirección: Av. Manuel Lepe Macedo 208, Plaza Kobá, Local 17 Planta Baja, Guadalupe Victoria, 48317 Puerto Vallarta, Jal.\n\n✅ Por favor, responde a este mensaje para confirmar tu asistencia.\nTe pedimos llegar 10 minutos antes de tu cita.\n\n❗ Si necesitas cambiar o cancelar tu cita, contáctanos aquí mismo.\n\n¡Gracias por confiar en Odontos Dental Office!`;
-
-  // Mensaje plano para SMS (acortado para Twilio trial)
-  const mensajeSMS = `Odontos: ${nombrePaciente}, cita ${fecha} ${hora}. Responde OK para confirmar.`;
-
+  // Enlace largo
+  const enlaceLargo = `https://odontosdentaloffice.com/confirmar-cita/${appointment.id}`;
+  // Obtener enlace corto
+  let enlaceConfirmacion = enlaceLargo;
+  try {
+    const res = await axios.post(`${process.env.SHORTENER_API_URL || 'http://localhost:3000/api/shortener'}`, { url: enlaceLargo });
+    enlaceConfirmacion = res.data.short;
+  } catch (e) {
+    // Si falla, usa el largo
+  }
+  const mensajeSMS = `Odontos Dental Office: ${nombrePaciente}, tu cita es el ${fecha} ${hora}. Confirma: ${enlaceConfirmacion}`;
   console.log('Preparando SMS:', mensajeSMS);
   await sendNotification({
     type: 'SMS',
     to: patient.phone,
     message: mensajeSMS
   });
-  console.log('SMS enviado, preparando WhatsApp:', mensajeWhatsApp);
-  await sendNotification({
-    type: 'WHATSAPP',
-    to: patient.phone,
-    message: mensajeWhatsApp
-  });
-  console.log('WhatsApp enviado');
+  // WhatsApp desactivado temporalmente
+  // await sendNotification({
+  //   type: 'WHATSAPP',
+  //   to: patient.phone,
+  //   message: mensajeWhatsApp
+  // });
+  // console.log('WhatsApp enviado');
 };
 
 export const sendPaymentReminder = async (payment: Payment & { patient: { phone: string } }) => {

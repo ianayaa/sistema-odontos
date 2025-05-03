@@ -17,6 +17,36 @@ export const createAppointment = async (req: Request, res: Response) => {
     };
     if (endDate) data.endDate = new Date(endDate);
     if (duration !== undefined) data.duration = duration;
+
+    // Validar traslape de citas (dos pasos para evitar errores de linter)
+    const start = new Date(date);
+    const end = endDate ? new Date(endDate) : new Date(start.getTime() + (duration || 60) * 60000);
+    // 1. Buscar traslape con citas que SÍ tienen endDate
+    const overlapWithEnd = await prisma.appointment.findFirst({
+      where: {
+        userId: req.user!.id,
+        status: { not: 'CANCELLED' },
+        endDate: { not: null },
+        date: { lt: end },
+        // Prisma no permite dos veces endDate, así que usamos AND
+        AND: [
+          { endDate: { gt: start } }
+        ]
+      }
+    });
+    // 2. Buscar traslape con citas que NO tienen endDate (por compatibilidad)
+    const overlapWithoutEnd = await prisma.appointment.findFirst({
+      where: {
+        userId: req.user!.id,
+        status: { not: 'CANCELLED' },
+        endDate: null,
+        date: { lt: end }
+      }
+    });
+    if (overlapWithEnd || overlapWithoutEnd) {
+      return res.status(400).json({ error: 'Ya existe una cita en ese horario.' });
+    }
+
     const appointment = await prisma.appointment.create({
       data,
       include: {
@@ -194,5 +224,28 @@ export const upsertDentistSchedule = async (req: Request, res: Response) => {
     return res.json(schedule);
   } catch (error) {
     return res.status(500).json({ error: 'Error al guardar la configuración de horarios' });
+  }
+};
+
+export const publicConfirmAppointment = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const appointment = await prisma.appointment.findUnique({ where: { id } });
+    if (!appointment) {
+      return res.status(404).json({ error: 'Cita no encontrada' });
+    }
+    if (appointment.status === 'CONFIRMED') {
+      return res.status(400).json({ error: 'La cita ya está confirmada.' });
+    }
+    if (appointment.status === 'CANCELLED') {
+      return res.status(400).json({ error: 'La cita fue cancelada.' });
+    }
+    await prisma.appointment.update({
+      where: { id },
+      data: { status: 'CONFIRMED' }
+    });
+    return res.json({ success: true });
+  } catch (error) {
+    return res.status(500).json({ error: 'Error al confirmar cita' });
   }
 };

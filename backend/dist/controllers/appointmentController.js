@@ -19,6 +19,34 @@ const createAppointment = async (req, res) => {
             data.endDate = new Date(endDate);
         if (duration !== undefined)
             data.duration = duration;
+        // Validar traslape de citas (dos pasos para evitar errores de linter)
+        const start = new Date(date);
+        const end = endDate ? new Date(endDate) : new Date(start.getTime() + (duration || 60) * 60000);
+        // 1. Buscar traslape con citas que SÍ tienen endDate
+        const overlapWithEnd = await prisma.appointment.findFirst({
+            where: {
+                userId: req.user.id,
+                status: { not: 'CANCELLED' },
+                endDate: { not: null },
+                date: { lt: end },
+                // Prisma no permite dos veces endDate, así que usamos AND
+                AND: [
+                    { endDate: { gt: start } }
+                ]
+            }
+        });
+        // 2. Buscar traslape con citas que NO tienen endDate (por compatibilidad)
+        const overlapWithoutEnd = await prisma.appointment.findFirst({
+            where: {
+                userId: req.user.id,
+                status: { not: 'CANCELLED' },
+                endDate: null,
+                date: { lt: end }
+            }
+        });
+        if (overlapWithEnd || overlapWithoutEnd) {
+            return res.status(400).json({ error: 'Ya existe una cita en ese horario.' });
+        }
         const appointment = await prisma.appointment.create({
             data,
             include: {

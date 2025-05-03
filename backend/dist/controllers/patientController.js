@@ -1,13 +1,7 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deletePatient = exports.updatePatient = exports.getPatientById = exports.getPatients = exports.createPatient = void 0;
 const client_1 = require("@prisma/client");
-const bcryptjs_1 = __importDefault(require("bcryptjs"));
-const crypto_1 = require("crypto");
-const notificationService_1 = require("../services/notificationService");
 const prisma = new client_1.PrismaClient();
 function formatPatientDate(patient) {
     return {
@@ -18,20 +12,7 @@ function formatPatientDate(patient) {
 const createPatient = async (req, res) => {
     try {
         const { name, lastNamePaterno, lastNameMaterno, email, phone, birthDate, address } = req.body;
-        // Generar contraseña temporal
-        const tempPassword = (0, crypto_1.randomBytes)(8).toString('hex');
-        const hashedPassword = await bcryptjs_1.default.hash(tempPassword, 10);
-        // Crear usuario paciente
-        const user = await prisma.user.create({
-            data: {
-                email,
-                password: hashedPassword,
-                name,
-                role: 'PATIENT',
-                isActive: true
-            }
-        });
-        // Crear paciente y asociar con el usuario
+        // Crear paciente directamente, sin usuario
         const patient = await prisma.patient.create({
             data: {
                 name,
@@ -40,22 +21,10 @@ const createPatient = async (req, res) => {
                 email,
                 phone,
                 birthDate: birthDate ? new Date(birthDate) : null,
-                address,
-                userId: user.id
+                address
             }
         });
-        // Enviar contraseña temporal por SMS y WhatsApp si hay teléfono
-        if (phone) {
-            const msg = `Bienvenido a Odontos. Tu usuario es: ${email} y tu contraseña temporal es: ${tempPassword}`;
-            try {
-                await (0, notificationService_1.sendSMS)(phone, msg);
-                await (0, notificationService_1.sendWhatsApp)(phone, msg);
-            }
-            catch (err) {
-                console.error('Error enviando SMS/WhatsApp:', err);
-            }
-        }
-        res.status(201).json({ patient: formatPatientDate(patient), tempPassword });
+        res.status(201).json({ patient: formatPatientDate(patient) });
     }
     catch (error) {
         res.status(500).json({ error: 'Error al crear paciente' });
@@ -156,8 +125,10 @@ const deletePatient = async (req, res) => {
         await prisma.odontogram.deleteMany({ where: { patientId: id } });
         // Eliminar el paciente
         await prisma.patient.delete({ where: { id } });
-        // Eliminar el usuario relacionado
-        await prisma.user.delete({ where: { id: patient.userId } });
+        // Eliminar el usuario relacionado solo si existe userId
+        if (patient.userId) {
+            await prisma.user.delete({ where: { id: patient.userId } });
+        }
         res.status(204).send();
     }
     catch (error) {
