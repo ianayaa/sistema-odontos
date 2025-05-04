@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Backend para sistema de gestión dental",
   "main": "dist/index.js",
-  "type": "module",
   "scripts": {
     "start": "node dist/index.js",
     "dev": "nodemon src/index.ts",
