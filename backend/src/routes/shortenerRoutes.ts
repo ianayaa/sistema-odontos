@@ -1,5 +1,5 @@
 import express from 'express';
-import { nanoid } from 'nanoid';
+import { nanoid } from 'nanoid/non-secure';
 
 const router = express.Router();
 

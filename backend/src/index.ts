@@ -44,18 +44,23 @@ app.use('/api/shortener', shortenerRoutes);
 app.use('/api/services', serviceRoutes);
 
 // Servir archivos estáticos del frontend
-app.use(express.static(path.join(__dirname, '../../frontend/build')));
+app.use(express.static(path.join(__dirname, '../public')));
 
 // Para cualquier ruta que no sea API, servir el index.html del frontend
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {
-    res.sendFile(path.join(__dirname, '../../frontend/build', 'index.html'));
+    res.sendFile(path.join(__dirname, '../public', 'index.html'));
   }
 });
 
 // Ruta básica
 app.get('/', (req, res) => {
   res.json({ message: 'API del Sistema Dental' });
+});
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
 });
 
 const PORT = process.env.PORT || 3000;

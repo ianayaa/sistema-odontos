@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const nanoid_1 = require("nanoid");
+const non_secure_1 = require("nanoid/non-secure");
 const router = express_1.default.Router();
 // Almacenamiento temporal en memoria (puedes migrar a DB después)
 const urlMap = {};
@@ -15,7 +15,7 @@ const createShortUrl = (req, res) => {
         res.status(400).json({ error: 'URL inválida' });
         return;
     }
-    const code = (0, nanoid_1.nanoid)(7);
+    const code = (0, non_secure_1.nanoid)(7);
     urlMap[code] = url;
     res.json({ short: `${process.env.SHORTENER_BASE_URL || 'https://odontosdentaloffice.com/s'}/${code}` });
 };
