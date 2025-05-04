@@ -218,14 +218,43 @@ export const upsertDentistSchedule = async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
     const { workingDays, startTime, endTime, blockedHours } = req.body;
+    
+    console.log('Guardando horario para usuario:', userId);
+    console.log('Datos recibidos:', { workingDays, startTime, endTime, blockedHours });
+
+    // Validar datos requeridos
+    if (!workingDays || !startTime || !endTime) {
+      return res.status(400).json({ 
+        error: 'Faltan datos requeridos',
+        details: { workingDays, startTime, endTime }
+      });
+    }
+
     const schedule = await prisma.dentistSchedule.upsert({
       where: { userId },
-      update: { workingDays, startTime, endTime, blockedHours },
-      create: { userId, workingDays, startTime, endTime, blockedHours },
+      update: { 
+        workingDays: workingDays,
+        startTime: startTime,
+        endTime: endTime,
+        blockedHours: blockedHours || []
+      },
+      create: { 
+        userId, 
+        workingDays, 
+        startTime, 
+        endTime, 
+        blockedHours: blockedHours || []
+      },
     });
+
+    console.log('Horario guardado exitosamente:', schedule);
     return res.json(schedule);
   } catch (error) {
-    return res.status(500).json({ error: 'Error al guardar la configuración de horarios' });
+    console.error('Error al guardar horario:', error);
+    return res.status(500).json({ 
+      error: 'Error al guardar la configuración de horarios',
+      details: error instanceof Error ? error.message : 'Error desconocido'
+    });
   }
 };
 
