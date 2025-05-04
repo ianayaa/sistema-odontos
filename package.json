@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "prepare": "npm install --legacy-peer-deps",
     "start": "node backend/dist/index.js",
-    "heroku-postbuild": "cd frontend && npm install && npm run build",
+    "heroku-postbuild": "cd frontend && npm install --legacy-peer-deps && npm run build",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
