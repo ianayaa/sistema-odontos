@@ -13,4 +13,5 @@ router.get('/', patientController_1.getPatients);
 router.get('/:id', patientController_1.getPatientById);
 router.put('/:id', patientController_1.updatePatient);
 router.delete('/:id', patientController_1.deletePatient);
+router.post('/fix-mexican-phones', patientController_1.fixMexicanPhones);
 exports.default = router;

@@ -4,7 +4,8 @@ import {
   getPatients,
   getPatientById,
   updatePatient,
-  deletePatient
+  deletePatient,
+  fixMexicanPhones
 } from '../controllers/patientController';
 import { authenticateToken } from '../middleware/auth';
 
@@ -17,5 +18,6 @@ router.get('/', getPatients);
 router.get('/:id', getPatientById as any);
 router.put('/:id', updatePatient);
 router.delete('/:id', deletePatient);
+router.post('/fix-mexican-phones', fixMexicanPhones);
 
 export default router; 

@@ -10,7 +10,7 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const prisma = new client_1.PrismaClient();
 const createUser = async (req, res) => {
     try {
-        const { email, password, name, role } = req.body;
+        const { email, password, name, lastNamePaterno, lastNameMaterno, role } = req.body;
         // Verificar si el usuario ya existe
         const existingUser = await prisma.user.findUnique({
             where: { email }
@@ -26,6 +26,8 @@ const createUser = async (req, res) => {
                     email,
                     password: hashedPassword,
                     name,
+                    lastNamePaterno,
+                    lastNameMaterno,
                     role
                 }
             });
@@ -85,6 +87,8 @@ const getUsers = async (req, res) => {
                 id: true,
                 email: true,
                 name: true,
+                lastNamePaterno: true,
+                lastNameMaterno: true,
                 role: true,
                 createdAt: true
             }
@@ -99,17 +103,21 @@ exports.getUsers = getUsers;
 const updateUser = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, role } = req.body;
+        const { name, lastNamePaterno, lastNameMaterno, role } = req.body;
         const user = await prisma.user.update({
             where: { id },
             data: {
                 name,
+                lastNamePaterno,
+                lastNameMaterno,
                 role
             },
             select: {
                 id: true,
                 email: true,
                 name: true,
+                lastNamePaterno: true,
+                lastNameMaterno: true,
                 role: true,
                 createdAt: true
             }

@@ -7,19 +7,37 @@ exports.sendCampaign = exports.sendBulkNotifications = exports.sendPaymentRemind
 exports.sendSMS = sendSMS;
 exports.sendWhatsApp = sendWhatsApp;
 const twilio_1 = __importDefault(require("twilio"));
+const axios_1 = __importDefault(require("axios"));
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const twilioPhone = process.env.TWILIO_PHONE_NUMBER;
 const twilioWhatsApp = process.env.TWILIO_WHATSAPP_NUMBER;
 const client = (0, twilio_1.default)(accountSid, authToken);
+// Normaliza el número de teléfono al formato internacional E.164 (soporta cualquier país)
+function normalizePhoneNumber(phone) {
+    // Elimina todos los caracteres que no sean dígitos
+    let cleaned = phone.replace(/\D/g, '');
+    // Si ya empieza con + y el resto son dígitos, está en formato internacional
+    if (phone.startsWith('+') && /^\+\d{11,15}$/.test(phone))
+        return phone;
+    // Si es un número local de México (10 dígitos), agrega +52
+    if (/^\d{10}$/.test(cleaned))
+        return '+52' + cleaned;
+    // Si es un número internacional (11-15 dígitos), agrega +
+    if (/^\d{11,15}$/.test(cleaned))
+        return '+' + cleaned;
+    // Si no, lanza un error claro
+    throw new Error(`Número de teléfono inválido: ${phone}. Debe ser de 10 dígitos (México) o formato internacional E.164.`);
+}
 const sendNotification = async (options) => {
     try {
         console.log('Enviando notificación:', options);
         if (options.type === 'SMS') {
+            const to = normalizePhoneNumber(options.to);
             const result = await client.messages.create({
                 body: options.message,
                 from: twilioPhone,
-                to: options.to
+                to
             });
             console.log('Resultado SMS:', result.sid);
         }
@@ -46,29 +64,37 @@ const sendNotification = async (options) => {
 exports.sendNotification = sendNotification;
 const sendAppointmentReminder = async (appointment) => {
     const { patient, date, endDate, duration, user } = appointment;
-    const fecha = new Date(date).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
+    const fecha = new Date(date).toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric' });
     const hora = new Date(date).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
     const nombrePaciente = patient.name || 'Paciente';
     const nombreDoctor = user?.name || 'Tu dentista';
     const duracion = duration ? `${duration} min` : endDate ? `${Math.round((new Date(endDate).getTime() - new Date(date).getTime()) / 60000)} min` : '---';
     const direccion = 'Av. Manuel Lepe Macedo 208, Plaza Kobá, Local 17 Planta Baja, Guadalupe Victoria, 48317 Puerto Vallarta, Jal.';
-    // Mensaje para WhatsApp
-    const mensajeWhatsApp = `Odontos Dental Office\n\nHola ${nombrePaciente}, tu cita ha sido agendada exitosamente.\n\n📅 Fecha: ${fecha}\n🕘 Hora: ${hora}\n⏳ Duración: ${duracion}\n👨‍⚕️ Doctor: ${nombreDoctor}\n📍 Dirección: ${direccion}\n\n✅ Por favor, responde a este mensaje para confirmar tu asistencia.\nTe pedimos llegar 10 minutos antes de tu cita.\n\n❗ Si necesitas cambiar o cancelar tu cita, contáctanos aquí mismo.\n\n¡Gracias por confiar en Odontos Dental Office!`;
-    // Mensaje mejorado para SMS
-    const mensajeSMS = `Odontos: ${nombrePaciente}, tu cita es el ${fecha} a las ${hora} (${duracion}) con ${nombreDoctor}. Dirección: ${direccion}. Responde OK para confirmar.`;
+    // Enlace largo
+    const enlaceLargo = `https://odontosdentaloffice.com/confirmar-cita/${appointment.id}`;
+    // Obtener enlace corto
+    let enlaceConfirmacion = enlaceLargo;
+    try {
+        const res = await axios_1.default.post(`${process.env.SHORTENER_API_URL || 'http://localhost:3000/api/shortener'}`, { url: enlaceLargo });
+        enlaceConfirmacion = res.data.short;
+    }
+    catch (e) {
+        // Si falla, usa el largo
+    }
+    const mensajeSMS = `Odontos Dental Office: ${nombrePaciente}, tu cita es el ${fecha} ${hora}. Confirma: ${enlaceConfirmacion}`;
     console.log('Preparando SMS:', mensajeSMS);
     await (0, exports.sendNotification)({
         type: 'SMS',
         to: patient.phone,
         message: mensajeSMS
     });
-    console.log('SMS enviado, preparando WhatsApp:', mensajeWhatsApp);
-    await (0, exports.sendNotification)({
-        type: 'WHATSAPP',
-        to: patient.phone,
-        message: mensajeWhatsApp
-    });
-    console.log('WhatsApp enviado');
+    // WhatsApp desactivado temporalmente
+    // await sendNotification({
+    //   type: 'WHATSAPP',
+    //   to: patient.phone,
+    //   message: mensajeWhatsApp
+    // });
+    // console.log('WhatsApp enviado');
 };
 exports.sendAppointmentReminder = sendAppointmentReminder;
 const sendPaymentReminder = async (payment) => {

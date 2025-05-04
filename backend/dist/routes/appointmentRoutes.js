@@ -7,6 +7,8 @@ const express_1 = __importDefault(require("express"));
 const appointmentController_1 = require("../controllers/appointmentController");
 const auth_1 = require("../middleware/auth");
 const router = express_1.default.Router();
+// Ruta pública para confirmar cita
+router.post('/:id/confirm', wrapAsync(appointmentController_1.publicConfirmAppointment));
 router.use(auth_1.authenticateToken);
 router.post('/', wrapAsync(appointmentController_1.createAppointment));
 router.get('/', wrapAsync(appointmentController_1.getAppointments));

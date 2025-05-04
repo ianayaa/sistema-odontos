@@ -1,4 +1,4 @@
-import express from 'express';
+import * as express from 'express';
 import { nanoid } from 'nanoid';
 
 const router = express.Router();
@@ -6,25 +6,30 @@ const router = express.Router();
 // Almacenamiento temporal en memoria (puedes migrar a DB después)
 const urlMap: Record<string, string> = {};
 
-// Crear enlace corto
-router.post('/', (req, res) => {
+// Handler para crear enlace corto
+const createShortUrl = (req: express.Request, res: express.Response) => {
   const { url } = req.body;
   if (!url || typeof url !== 'string') {
-    return res.status(400).json({ error: 'URL inválida' });
+    res.status(400).json({ error: 'URL inválida' });
+    return;
   }
   const code = nanoid(7);
   urlMap[code] = url;
   res.json({ short: `${process.env.SHORTENER_BASE_URL || 'https://odontosdentaloffice.com/s'}/${code}` });
-});
+};
 
-// Redireccionar enlace corto
-router.get('/:code', (req, res) => {
+// Handler para obtener enlace largo
+const getLongUrl = (req: express.Request, res: express.Response) => {
   const { code } = req.params;
   const url = urlMap[code];
   if (!url) {
-    return res.status(404).send('Enlace no encontrado');
+    res.status(404).json({ error: 'No encontrado' });
+    return;
   }
   res.redirect(url);
-});
+};
+
+router.post('/', createShortUrl);
+router.get('/:code', getLongUrl);
 
 export default router; 

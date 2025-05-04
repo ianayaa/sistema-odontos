@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { PrismaClient, DentistSchedule, Appointment } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { sendAppointmentReminder } from '../services/notificationService';
 
 const prisma = new PrismaClient();
@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 export const createAppointment = async (req: Request, res: Response) => {
   try {
     console.log('BODY:', req.body);
-    const { patientId, date, endDate, duration, notes, status } = req.body;
+    const { patientId, date, endDate, duration, notes, status, serviceId } = req.body;
     const data: any = {
       patientId,
       userId: req.user!.id,
@@ -17,6 +17,7 @@ export const createAppointment = async (req: Request, res: Response) => {
     };
     if (endDate) data.endDate = new Date(endDate);
     if (duration !== undefined) data.duration = duration;
+    if (serviceId) data.serviceId = serviceId;
 
     // Validar traslape de citas (dos pasos para evitar errores de linter)
     const start = new Date(date);
@@ -83,7 +84,8 @@ export const getAppointments = async (req: Request, res: Response) => {
       },
       include: {
         patient: true,
-        user: true
+        user: true,
+        service: true
       },
       orderBy: {
         date: 'asc'

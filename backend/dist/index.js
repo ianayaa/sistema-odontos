@@ -15,6 +15,8 @@ const paymentRoutes_1 = __importDefault(require("./routes/paymentRoutes"));
 const odontogramRoutes_1 = __importDefault(require("./routes/odontogramRoutes"));
 const twilioTestRoutes_1 = __importDefault(require("./routes/twilioTestRoutes"));
 const clinicConfigRoutes_1 = __importDefault(require("./routes/clinicConfigRoutes"));
+const shortenerRoutes_1 = __importDefault(require("./routes/shortenerRoutes"));
+const serviceRoutes_1 = __importDefault(require("./routes/serviceRoutes"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const prisma = new client_1.PrismaClient();
@@ -36,6 +38,8 @@ app.use('/api/payments', paymentRoutes_1.default);
 app.use('/api/odontogram', odontogramRoutes_1.default);
 app.use('/api/twilio-test', twilioTestRoutes_1.default);
 app.use('/api/config', clinicConfigRoutes_1.default);
+app.use('/api/shortener', shortenerRoutes_1.default);
+app.use('/api/services', serviceRoutes_1.default);
 // Ruta básica
 app.get('/', (req, res) => {
     res.json({ message: 'API del Sistema Dental' });

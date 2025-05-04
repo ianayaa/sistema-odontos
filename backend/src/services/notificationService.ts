@@ -1,5 +1,4 @@
 import twilio from 'twilio';
-import { Appointment, Payment } from '@prisma/client';
 import axios from 'axios';
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID!;
@@ -15,14 +14,29 @@ interface NotificationOptions {
   message: string;
 }
 
+// Normaliza el número de teléfono al formato internacional E.164 (soporta cualquier país)
+function normalizePhoneNumber(phone: string): string {
+  // Elimina todos los caracteres que no sean dígitos
+  let cleaned = phone.replace(/\D/g, '');
+  // Si ya empieza con + y el resto son dígitos, está en formato internacional
+  if (phone.startsWith('+') && /^\+\d{11,15}$/.test(phone)) return phone;
+  // Si es un número local de México (10 dígitos), agrega +52
+  if (/^\d{10}$/.test(cleaned)) return '+52' + cleaned;
+  // Si es un número internacional (11-15 dígitos), agrega +
+  if (/^\d{11,15}$/.test(cleaned)) return '+' + cleaned;
+  // Si no, lanza un error claro
+  throw new Error(`Número de teléfono inválido: ${phone}. Debe ser de 10 dígitos (México) o formato internacional E.164.`);
+}
+
 export const sendNotification = async (options: NotificationOptions) => {
   try {
     console.log('Enviando notificación:', options);
     if (options.type === 'SMS') {
+      const to = normalizePhoneNumber(options.to);
       const result = await client.messages.create({
         body: options.message,
         from: twilioPhone,
-        to: options.to
+        to
       });
       console.log('Resultado SMS:', result.sid);
     } else if (options.type === 'WHATSAPP') {
@@ -45,7 +59,7 @@ export const sendNotification = async (options: NotificationOptions) => {
   }
 };
 
-export const sendAppointmentReminder = async (appointment: Appointment & { patient: { phone: string, name: string }, user?: { name?: string } }) => {
+export const sendAppointmentReminder = async (appointment: any & { patient: { phone: string, name: string }, user?: { name?: string } }) => {
   const { patient, date, endDate, duration, user } = appointment;
   const fecha = new Date(date).toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric' });
   const hora = new Date(date).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
@@ -80,7 +94,7 @@ export const sendAppointmentReminder = async (appointment: Appointment & { patie
   // console.log('WhatsApp enviado');
 };
 
-export const sendPaymentReminder = async (payment: Payment & { patient: { phone: string } }) => {
+export const sendPaymentReminder = async (payment: any & { patient: { phone: string } }) => {
   const { patient, amount, status } = payment;
   const formattedAmount = new Intl.NumberFormat('es-MX', {
     style: 'currency',

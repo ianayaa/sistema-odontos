@@ -3,7 +3,10 @@ import {
   createPayment,
   getPayments,
   updatePaymentStatus,
-  getPaymentSummary
+  getPaymentSummary,
+  createDentistPayment,
+  getDentistPayments,
+  getDentistPaymentsSummary
 } from '../controllers/paymentController';
 import { authenticateToken } from '../middleware/auth';
 
@@ -15,5 +18,8 @@ router.post('/', createPayment);
 router.get('/', getPayments);
 router.put('/:id/status', updatePaymentStatus);
 router.get('/summary', getPaymentSummary);
+router.post('/dentist', createDentistPayment);
+router.get('/dentist', getDentistPayments);
+router.get('/dentist/summary', getDentistPaymentsSummary);
 
 export default router; 

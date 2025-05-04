@@ -11,6 +11,7 @@ import odontogramRoutes from './routes/odontogramRoutes';
 import twilioTestRoutes from './routes/twilioTestRoutes';
 import clinicConfigRoutes from './routes/clinicConfigRoutes';
 import shortenerRoutes from './routes/shortenerRoutes';
+import serviceRoutes from './routes/serviceRoutes';
 
 dotenv.config();
 
@@ -39,6 +40,7 @@ app.use('/api/odontogram', odontogramRoutes);
 app.use('/api/twilio-test', twilioTestRoutes);
 app.use('/api/config', clinicConfigRoutes);
 app.use('/api/shortener', shortenerRoutes);
+app.use('/api/services', serviceRoutes);
 
 // Ruta básica
 app.get('/', (req, res) => {

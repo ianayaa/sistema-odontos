@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deletePatient = exports.updatePatient = exports.getPatientById = exports.getPatients = exports.createPatient = void 0;
+exports.fixMexicanPhones = exports.deletePatient = exports.updatePatient = exports.getPatientById = exports.getPatients = exports.createPatient = void 0;
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
 function formatPatientDate(patient) {
@@ -136,3 +136,39 @@ const deletePatient = async (req, res) => {
     }
 };
 exports.deletePatient = deletePatient;
+// Endpoint temporal para corregir teléfonos de pacientes mexicanos
+const fixMexicanPhones = async (req, res) => {
+    try {
+        const patients = await prisma.patient.findMany();
+        let updated = 0;
+        for (const patient of patients) {
+            if (patient.phone) {
+                let phone = patient.phone.trim();
+                // Si ya tiene +52, no hacer nada
+                if (phone.startsWith('+52'))
+                    continue;
+                // Si empieza con 52 pero sin +
+                if (phone.startsWith('52')) {
+                    phone = '+52' + phone.slice(2);
+                }
+                else if (phone.length === 10 && phone.match(/^\d{10}$/)) {
+                    // Si es un número de 10 dígitos, agregar +52
+                    phone = '+52' + phone;
+                }
+                else if (phone.length === 12 && phone.match(/^52\d{10}$/)) {
+                    // Si es 52 seguido de 10 dígitos, agregar +
+                    phone = '+52' + phone.slice(2);
+                }
+                if (phone !== patient.phone) {
+                    await prisma.patient.update({ where: { id: patient.id }, data: { phone } });
+                    updated++;
+                }
+            }
+        }
+        res.json({ message: `Teléfonos corregidos: ${updated}` });
+    }
+    catch (error) {
+        res.status(500).json({ error: 'Error al corregir teléfonos' });
+    }
+};
+exports.fixMexicanPhones = fixMexicanPhones;

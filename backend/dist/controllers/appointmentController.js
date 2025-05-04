@@ -1,13 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.upsertDentistSchedule = exports.getDentistSchedule = exports.deleteAppointment = exports.getPatientAppointments = exports.cancelAppointment = exports.updateAppointment = exports.getAppointments = exports.createAppointment = void 0;
+exports.publicConfirmAppointment = exports.upsertDentistSchedule = exports.getDentistSchedule = exports.deleteAppointment = exports.getPatientAppointments = exports.cancelAppointment = exports.updateAppointment = exports.getAppointments = exports.createAppointment = void 0;
 const client_1 = require("@prisma/client");
 const notificationService_1 = require("../services/notificationService");
 const prisma = new client_1.PrismaClient();
 const createAppointment = async (req, res) => {
     try {
         console.log('BODY:', req.body);
-        const { patientId, date, endDate, duration, notes, status } = req.body;
+        const { patientId, date, endDate, duration, notes, status, serviceId } = req.body;
         const data = {
             patientId,
             userId: req.user.id,
@@ -19,6 +19,8 @@ const createAppointment = async (req, res) => {
             data.endDate = new Date(endDate);
         if (duration !== undefined)
             data.duration = duration;
+        if (serviceId)
+            data.serviceId = serviceId;
         // Validar traslape de citas (dos pasos para evitar errores de linter)
         const start = new Date(date);
         const end = endDate ? new Date(endDate) : new Date(start.getTime() + (duration || 60) * 60000);
@@ -82,7 +84,8 @@ const getAppointments = async (req, res) => {
             },
             include: {
                 patient: true,
-                user: true
+                user: true,
+                service: true
             },
             orderBy: {
                 date: 'asc'
@@ -232,3 +235,27 @@ const upsertDentistSchedule = async (req, res) => {
     }
 };
 exports.upsertDentistSchedule = upsertDentistSchedule;
+const publicConfirmAppointment = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const appointment = await prisma.appointment.findUnique({ where: { id } });
+        if (!appointment) {
+            return res.status(404).json({ error: 'Cita no encontrada' });
+        }
+        if (appointment.status === 'CONFIRMED') {
+            return res.status(400).json({ error: 'La cita ya está confirmada.' });
+        }
+        if (appointment.status === 'CANCELLED') {
+            return res.status(400).json({ error: 'La cita fue cancelada.' });
+        }
+        await prisma.appointment.update({
+            where: { id },
+            data: { status: 'CONFIRMED' }
+        });
+        return res.json({ success: true });
+    }
+    catch (error) {
+        return res.status(500).json({ error: 'Error al confirmar cita' });
+    }
+};
+exports.publicConfirmAppointment = publicConfirmAppointment;

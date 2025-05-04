@@ -12,4 +12,7 @@ router.post('/', paymentController_1.createPayment);
 router.get('/', paymentController_1.getPayments);
 router.put('/:id/status', paymentController_1.updatePaymentStatus);
 router.get('/summary', paymentController_1.getPaymentSummary);
+router.post('/dentist', paymentController_1.createDentistPayment);
+router.get('/dentist', paymentController_1.getDentistPayments);
+router.get('/dentist/summary', paymentController_1.getDentistPaymentsSummary);
 exports.default = router;

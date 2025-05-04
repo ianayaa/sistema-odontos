@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 
 export const createUser = async (req: Request, res: Response) => {
   try {
-    const { email, password, name, role } = req.body;
+    const { email, password, name, lastNamePaterno, lastNameMaterno, role } = req.body;
     
     // Verificar si el usuario ya existe
     const existingUser = await prisma.user.findUnique({
@@ -25,6 +25,8 @@ export const createUser = async (req: Request, res: Response) => {
           email,
           password: hashedPassword,
           name,
+          lastNamePaterno,
+          lastNameMaterno,
           role
         }
       });
@@ -94,6 +96,8 @@ export const getUsers = async (req: Request, res: Response) => {
         id: true,
         email: true,
         name: true,
+        lastNamePaterno: true,
+        lastNameMaterno: true,
         role: true,
         createdAt: true
       }
@@ -107,18 +111,22 @@ export const getUsers = async (req: Request, res: Response) => {
 export const updateUser = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, role } = req.body;
+    const { name, lastNamePaterno, lastNameMaterno, role } = req.body;
 
     const user = await prisma.user.update({
       where: { id },
       data: {
         name,
+        lastNamePaterno,
+        lastNameMaterno,
         role
       },
       select: {
         id: true,
         email: true,
         name: true,
+        lastNamePaterno: true,
+        lastNameMaterno: true,
         role: true,
         createdAt: true
       }

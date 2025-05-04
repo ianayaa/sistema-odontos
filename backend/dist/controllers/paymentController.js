@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getPaymentSummary = exports.updatePaymentStatus = exports.getPayments = exports.createPayment = void 0;
+exports.getDentistPaymentsSummary = exports.getDentistPayments = exports.createDentistPayment = exports.getPaymentSummary = exports.updatePaymentStatus = exports.getPayments = exports.createPayment = void 0;
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
 const createPayment = async (req, res) => {
@@ -90,3 +90,59 @@ const getPaymentSummary = async (req, res) => {
     }
 };
 exports.getPaymentSummary = getPaymentSummary;
+// --- PAGOS A ODONTÓLOGOS ---
+const createDentistPayment = async (req, res) => {
+    try {
+        const { dentistId, period, baseSalary, commission, deductions, total, status, paymentDate } = req.body;
+        const payment = await prisma.dentistPayment.create({
+            data: {
+                dentistId,
+                period,
+                baseSalary: parseFloat(baseSalary),
+                commission: parseFloat(commission),
+                deductions: parseFloat(deductions),
+                total: parseFloat(total),
+                status,
+                paymentDate: new Date(paymentDate)
+            },
+            include: { dentist: true }
+        });
+        res.status(201).json(payment);
+    }
+    catch (error) {
+        res.status(500).json({ error: 'Error al crear pago a odontólogo' });
+    }
+};
+exports.createDentistPayment = createDentistPayment;
+const getDentistPayments = async (req, res) => {
+    try {
+        const payments = await prisma.dentistPayment.findMany({
+            include: { dentist: true },
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json(payments);
+    }
+    catch (error) {
+        res.status(500).json({ error: 'Error al obtener pagos a odontólogos' });
+    }
+};
+exports.getDentistPayments = getDentistPayments;
+const getDentistPaymentsSummary = async (req, res) => {
+    try {
+        const payments = await prisma.dentistPayment.findMany();
+        const totalPaid = payments.filter(p => p.status === 'paid').reduce((sum, p) => sum + p.total, 0);
+        const totalPending = payments.filter(p => p.status === 'pending').reduce((sum, p) => sum + p.total, 0);
+        const totalCommission = payments.reduce((sum, p) => sum + p.commission, 0);
+        const avgCommission = payments.length > 0 ? (payments.reduce((sum, p) => sum + p.commission, 0) / payments.length) : 0;
+        res.json({
+            totalPaid,
+            totalPending,
+            totalCommission,
+            avgCommission
+        });
+    }
+    catch (error) {
+        res.status(500).json({ error: 'Error al obtener resumen de pagos a odontólogos' });
+    }
+};
+exports.getDentistPaymentsSummary = getDentistPaymentsSummary;

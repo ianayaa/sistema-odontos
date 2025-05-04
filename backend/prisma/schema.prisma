@@ -12,6 +12,8 @@ model User {
   email        String            @unique
   password     String
   name         String
+  lastNamePaterno String?
+  lastNameMaterno String?
   role         Role              @default(PATIENT)
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
@@ -22,6 +24,7 @@ model User {
   phone        String? // Para asistentes
   isActive     Boolean           @default(true)
   schedules    DentistSchedule[]
+  dentistPayments DentistPayment[]
 }
 
 model Patient {
@@ -47,24 +50,87 @@ model Patient {
 model MedicalHistory {
   id                        String   @id @default(uuid())
   patientId                 String   @unique
+  patient                   Patient  @relation(fields: [patientId], references: [id])
   notes                     String?
   createdAt                 DateTime @default(now())
   updatedAt                 DateTime @updatedAt
+  // Datos generales
+  nombreCompleto            String?
+  apellidoPaterno           String?
+  apellidoMaterno           String?
+  empleoProfesion           String?
+  sexo                      String?
+  edad                      Int?
+  estadoCivil               String?
+  fechaNacimiento           DateTime?
+  lugarNacimiento           String?
+  domicilio                 String?
+  telefonoDomicilio         String?
+  telefonoOficina           String?
+  escolaridad               String?
+  ocupacion                 String?
+  interrogatorioTipo        String? // directo/indirecto
+  nombreInformante          String?
+  parentescoInformante      String?
+  respuesta                 String?
+  temperatura               String?
+  presionArterial           String?
+  frecuenciaCardiaca        String?
+  // Antecedentes preliminares
+  urgencia                  String?
+  compania                  String?
+  motivoConsulta            String?
+  fechaUltimaConsultaMedica DateTime?
+  motivoUltimaConsultaMedica String?
+  padecimientoOdontologicoActual String?
+  tipoSanguineo             String?
+  rh                        String?
+  hepatitisA                Boolean?
+  hepatitisB                Boolean?
+  hepatitisC                Boolean?
+  hepatitisD                Boolean?
+  vih                       Boolean?
+  herpes                    Boolean?
   alergias                  String?
-  antecedentesNoPatologicos String?
-  antecedentesPatologicos   String?
-  consentimiento            String?
-  diagnostico               String?
-  enfermedades              String?
-  exploracionBucal          String?
-  exploracionFisica         String?
-  interrogatorio            String?
-  medicamentos              String?
-  motivo                    String?
-  padecimientoActual        String?
-  planTratamiento           String?
-  pronostico                String?
-  patient                   Patient  @relation(fields: [patientId], references: [id])
+  terapeuticaEmpleada       String?
+  saludGeneral              String?
+  nerviosismoDental         Boolean?
+  convulsiones              Boolean?
+  // Antecedentes médicos
+  asma                      Boolean?
+  bronquitis                Boolean?
+  enfisema                  Boolean?
+  fuma                      Boolean?
+  cigarrillosPorDia         Int?
+  taquicardia               Boolean?
+  bradicardia               Boolean?
+  hipertension              Boolean?
+  hipotension               Boolean?
+  doloresPecho              Boolean?
+  infarto                   Boolean?
+  angina                    Boolean?
+  fiebreReumatica           Boolean?
+  edadFiebreReumatica       Int?
+  sangrado                  String?
+  extracciones              Boolean?
+  sangradoNasal             Boolean?
+  cortaduras                Boolean?
+  periodoMenstrual          String?
+  fum                       DateTime?
+  embarazo                  Boolean?
+  mesesEmbarazo             Int?
+  padecimientosGastricos    String?
+  diabetes                  Boolean?
+  diabetesControlMedico     Boolean?
+  hipotiroidismo            Boolean?
+  hipertiroidismo           Boolean?
+  hepatitisHigado           Boolean?
+  cirrosis                  Boolean?
+  problemasRinonUrinarias   Boolean?
+  medicamentosActuales      String?
+  otrasCondicionesMedicas   String?
+  procesosQuirurgicos       String?
+  tratamientosHormonales    String?
 }
 
 model Appointment {
@@ -80,6 +146,8 @@ model Appointment {
   user      User              @relation(fields: [userId], references: [id])
   duration  Int? // Duración en minutos
   endDate   DateTime? // Hora de fin de la cita
+  serviceId String?
+  service   Service?          @relation(fields: [serviceId], references: [id])
 }
 
 model Payment {
@@ -138,6 +206,34 @@ model ClinicConfig {
   colorPrincipal String
   logoUrl        String?
   updatedAt      DateTime @updatedAt
+}
+
+model Service {
+  id                String   @id @default(uuid())
+  name              String
+  type              String
+  duration          Int
+  price             Float
+  description       String
+  color             String?   // Color personalizado para el servicio
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  appointments      Appointment[]
+}
+
+model DentistPayment {
+  id           String   @id @default(uuid())
+  dentistId    String
+  dentist      User     @relation(fields: [dentistId], references: [id])
+  period       String
+  baseSalary   Float
+  commission   Float
+  deductions   Float
+  total        Float
+  status       String   // 'pending', 'paid', 'cancelled'
+  paymentDate  DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 enum Role {
