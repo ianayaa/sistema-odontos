@@ -105,7 +105,7 @@
 /* Mejorar separación de celdas */
 .react-datepicker__day, .react-datepicker__day-name {
   margin: 2px;
-}
+} 
 
 /* Fondo azul leve para el día actual en el calendario grande (FullCalendar) */
 .fc-timegrid-col.fc-day-today, .fc-daygrid-day.fc-day-today {

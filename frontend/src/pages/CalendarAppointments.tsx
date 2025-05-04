@@ -195,20 +195,20 @@ const CalendarAppointments: React.FC = () => {
   const handleBusinessHoursChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     try {
-      setBusinessHours(prev => {
-        const updated = { ...prev, [name]: value };
-        saveDentistSchedule({
-          startTime: updated.startTime,
-          endTime: updated.endTime,
-          workingDays: updated.workingDays,
-          blockedHours: updated.blockedHours
+    setBusinessHours(prev => {
+      const updated = { ...prev, [name]: value };
+      saveDentistSchedule({
+        startTime: updated.startTime,
+        endTime: updated.endTime,
+        workingDays: updated.workingDays,
+        blockedHours: updated.blockedHours
         }).catch(error => {
           console.error('Error al guardar horario:', error);
           alert('Error al guardar el horario. Por favor intenta nuevamente.');
-        });
-        return updated;
       });
-      setCalendarKey(k => k + 1);
+      return updated;
+    });
+    setCalendarKey(k => k + 1);
     } catch (error) {
       console.error('Error al actualizar horario:', error);
       alert('Error al actualizar el horario. Por favor intenta nuevamente.');
@@ -218,26 +218,26 @@ const CalendarAppointments: React.FC = () => {
   // Manejar días laborables
   const handleWorkingDaysChange = async (day: number) => {
     try {
-      setBusinessHours(prev => {
-        const newWorkingDays = prev.workingDays.includes(day)
-          ? prev.workingDays.filter(d => d !== day)
-          : [...prev.workingDays, day].sort((a, b) => a - b);
-        
-        const updated = {
-          ...prev,
-          workingDays: newWorkingDays
-        };
-        saveDentistSchedule({
-          startTime: updated.startTime,
-          endTime: updated.endTime,
-          workingDays: updated.workingDays,
-          blockedHours: updated.blockedHours
+    setBusinessHours(prev => {
+      const newWorkingDays = prev.workingDays.includes(day)
+        ? prev.workingDays.filter(d => d !== day)
+        : [...prev.workingDays, day].sort((a, b) => a - b);
+      
+      const updated = {
+        ...prev,
+        workingDays: newWorkingDays
+      };
+      saveDentistSchedule({
+        startTime: updated.startTime,
+        endTime: updated.endTime,
+        workingDays: updated.workingDays,
+        blockedHours: updated.blockedHours
         }).catch(error => {
           console.error('Error al guardar días laborables:', error);
           alert('Error al guardar los días laborables. Por favor intenta nuevamente.');
-        });
-        return updated;
       });
+      return updated;
+    });
     } catch (error) {
       console.error('Error al actualizar días laborables:', error);
       alert('Error al actualizar los días laborables. Por favor intenta nuevamente.');

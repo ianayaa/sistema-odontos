@@ -22,9 +22,9 @@ export const getDentistSchedule = async () => {
 export const saveDentistSchedule = async (data: any) => {
   try {
     console.log('Guardando horario:', data);
-    const res = await api.post('/appointments/schedule', data);
+  const res = await api.post('/appointments/schedule', data);
     console.log('Horario guardado exitosamente:', res.data);
-    return res.data;
+  return res.data;
   } catch (error) {
     console.error('Error al guardar horario:', error);
     throw error;
