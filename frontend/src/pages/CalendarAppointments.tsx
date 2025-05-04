@@ -651,7 +651,7 @@ const CalendarAppointments: React.FC = () => {
         }));
       }
     });
-  }, [user, refresh]);
+  }, [user, refresh, getDentistSchedule]);
 
   useEffect(() => {
     setCurrentDate(new Date());
@@ -669,13 +669,15 @@ const CalendarAppointments: React.FC = () => {
     const observer = new window.ResizeObserver(() => {
       try {
         calendarRef.current?.getApi().updateSize();
-      } catch (e) {}
+      } catch (e) {
+        console.error('Error al actualizar el tamaño del calendario:', e);
+      }
     });
     observer.observe(calendarContainerRef.current);
     return () => {
       observer.disconnect();
     };
-  }, []);
+  }, [calendarRef]);
 
   return (
     <div className="flex gap-4 h-full" style={{ minHeight: 'calc(100vh - 120px)' }}>
