@@ -19,6 +19,11 @@ dotenv.config();
 const app = express();
 const prisma = new PrismaClient();
 
+// Health check endpoint (debe ir antes de cualquier middleware o ruta)
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 // Manejo de errores no capturados
 process.on('uncaughtException', (error) => {
   console.error('Error no capturado:', error);
@@ -56,11 +61,6 @@ app.get('*', (req, res) => {
 // Ruta básica
 app.get('/', (req, res) => {
   res.json({ message: 'API del Sistema Dental' });
-});
-
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
 });
 
 const PORT = Number(process.env.PORT) || 3000;
