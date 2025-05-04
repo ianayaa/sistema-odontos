@@ -19,7 +19,7 @@ dotenv.config();
 const app = express();
 const prisma = new PrismaClient();
 
-// Health check endpoint (debe ir antes de cualquier middleware o ruta)
+// Endpoint de healthcheck para Railway
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
@@ -49,12 +49,12 @@ app.use('/api/shortener', shortenerRoutes);
 app.use('/api/services', serviceRoutes);
 
 // Servir archivos estáticos del frontend
-app.use(express.static(path.join(__dirname, '../public')));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Para cualquier ruta que no sea API, servir el index.html del frontend
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {
-    res.sendFile(path.join(__dirname, '../public', 'index.html'));
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
   }
 });
 

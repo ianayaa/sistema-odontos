@@ -21,6 +21,10 @@ const path_1 = __importDefault(require("path"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const prisma = new client_1.PrismaClient();
+// Endpoint de healthcheck para Railway
+app.get('/api/health', (req, res) => {
+    res.status(200).json({ status: 'ok' });
+});
 // Manejo de errores no capturados
 process.on('uncaughtException', (error) => {
     console.error('Error no capturado:', error);
@@ -42,19 +46,19 @@ app.use('/api/config', clinicConfigRoutes_js_1.default);
 app.use('/api/shortener', shortenerRoutes_js_1.default);
 app.use('/api/services', serviceRoutes_js_1.default);
 // Servir archivos estáticos del frontend
-app.use(express_1.default.static(path_1.default.join(__dirname, '../../frontend/build')));
+app.use(express_1.default.static(path_1.default.join(__dirname, 'public')));
 // Para cualquier ruta que no sea API, servir el index.html del frontend
 app.get('*', (req, res) => {
     if (!req.path.startsWith('/api')) {
-        res.sendFile(path_1.default.join(__dirname, '../../frontend/build', 'index.html'));
+        res.sendFile(path_1.default.join(__dirname, 'public', 'index.html'));
     }
 });
 // Ruta básica
 app.get('/', (req, res) => {
     res.json({ message: 'API del Sistema Dental' });
 });
-const PORT = process.env.PORT || 3000;
-const server = app.listen(PORT, () => {
+const PORT = Number(process.env.PORT) || 3000;
+const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`Servidor corriendo en puerto ${PORT}`);
 });
 // Manejo de señales de terminación

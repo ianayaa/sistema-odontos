@@ -81,7 +81,7 @@ const sendAppointmentReminder = async (appointment) => {
     catch (e) {
         // Si falla, usa el largo
     }
-    const mensajeSMS = `Odontos Dental Office: ${nombrePaciente}, tu cita es el ${fecha} ${hora}. Confirma: ${enlaceConfirmacion}`;
+    const mensajeSMS = `Odontos Dental Office: ${nombrePaciente}, tu cita es el ${fecha} ${hora}. Te esperamos en la clínica.`;
     console.log('Preparando SMS:', mensajeSMS);
     await (0, exports.sendNotification)({
         type: 'SMS',
