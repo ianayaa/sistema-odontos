@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import { ChartBar, CurrencyDollar, User } from 'phosphor-react';
 import api from '../services/api';
@@ -42,24 +42,7 @@ const Reports: React.FC = () => {
     pacientes: true,
   });
 
-  useEffect(() => {
-    fetchReport(); // para exportar
-    // eslint-disable-next-line
-  }, [reportType, dateRange]);
-
-  useEffect(() => {
-    fetchAppointments();
-  }, [appointmentsRange]);
-
-  useEffect(() => {
-    fetchIncome();
-  }, [incomeRange]);
-
-  useEffect(() => {
-    fetchPatients();
-  }, [patientsRange]);
-
-  const fetchAppointments = async () => {
+  const fetchAppointments = useCallback(async () => {
     setLoading(true);
     try {
       const params: any = {};
@@ -72,9 +55,9 @@ const Reports: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [appointmentsRange]);
 
-  const fetchIncome = async () => {
+  const fetchIncome = useCallback(async () => {
     setLoading(true);
     try {
       const params: any = {};
@@ -87,9 +70,9 @@ const Reports: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [incomeRange]);
 
-  const fetchPatients = async () => {
+  const fetchPatients = useCallback(async () => {
     setLoading(true);
     try {
       const params: any = {};
@@ -102,9 +85,9 @@ const Reports: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [patientsRange]);
 
-  const fetchReport = async () => {
+  const fetchReport = useCallback(async () => {
     setLoading(true);
     try {
       if (reportType === 'appointments') {
@@ -131,7 +114,23 @@ const Reports: React.FC = () => {
       // Aquí puedes poner un toast o alerta
     }
     setLoading(false);
-  };
+  }, [reportType, dateRange]);
+
+  useEffect(() => {
+    fetchReport(); // para exportar
+  }, [reportType, dateRange, fetchReport]);
+
+  useEffect(() => {
+    fetchAppointments();
+  }, [appointmentsRange, fetchAppointments]);
+
+  useEffect(() => {
+    fetchIncome();
+  }, [incomeRange, fetchIncome]);
+
+  useEffect(() => {
+    fetchPatients();
+  }, [patientsRange, fetchPatients]);
 
   // Utilidades para transformar datos
   const getAppointmentChartData = () => {
