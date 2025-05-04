@@ -1,0 +1,113 @@
+/* Encabezados de días en azul elegante y mayúsculas */
+.react-datepicker__day-name {
+  color: #2563eb;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+}
+
+/* Mes y año en azul oscuro, elegante y semibold */
+.react-datepicker__current-month {
+  color: #1e3a8a;
+  font-weight: 700;
+  font-size: 1.18rem;
+  margin-bottom: 0.7rem;
+  letter-spacing: 0.02em;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+}
+
+/* Días fuera del mes en gris claro y opacos */
+.react-datepicker__day--outside-month {
+  color: #d1d5db !important;
+  opacity: 0.5;
+  background: transparent !important;
+}
+
+/* Días normales: círculos, transición suave, fuente elegante */
+.react-datepicker__day {
+  border-radius: 50%;
+  width: 2.2em;
+  height: 2.2em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: #1e3a8a;
+  background: transparent;
+  margin: 3px;
+  transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+  cursor: pointer;
+  border: none;
+}
+
+/* Día actual: borde azul elegante y sombra */
+.react-datepicker__day--today {
+  border: 2px solid #2563eb;
+  box-shadow: 0 2px 8px #2563eb20;
+  color: #1e3a8a;
+  background: #eff6ff;
+  font-weight: 700;
+}
+
+/* Día seleccionado: fondo azul intenso y texto blanco */
+.react-datepicker__day--selected {
+  background: linear-gradient(135deg, #2563eb 60%, #60a5fa 100%) !important;
+  color: #fff !important;
+  font-weight: 800;
+  box-shadow: 0 4px 16px #2563eb40;
+  border: 2.5px solid #1e3a8a;
+  z-index: 2;
+}
+
+/* Semana seleccionada: fondo azul suave tipo píldora */
+.week-pill {
+  background: #c7e0fa !important;
+  color: #1e3a8a !important;
+  border-radius: 0 !important;
+  z-index: 0;
+}
+.week-pill-start {
+  border-top-left-radius: 999px !important;
+  border-bottom-left-radius: 999px !important;
+}
+.week-pill-end {
+  border-top-right-radius: 999px !important;
+  border-bottom-right-radius: 999px !important;
+}
+
+/* Hover: fondo azul claro y transición */
+.react-datepicker__day:hover {
+  background: #dbeafe;
+  color: #2563eb;
+  box-shadow: 0 2px 8px #2563eb20;
+}
+
+/* Quitar fondo azul por defecto al enfocar */
+.react-datepicker__day:focus {
+  outline: none;
+  background: #dbeafe;
+}
+
+/* Sombra y bordes suaves al calendario */
+.mini-calendar-custom {
+  box-shadow: 0 8px 32px 0 #2563eb20, 0 2px 8px #0001;
+  border-radius: 1.5rem;
+  border: 2px solid #e0e7ef;
+  padding: 0.7rem 0.7rem 1rem 0.7rem;
+  background: #fff;
+  transition: box-shadow 0.18s;
+}
+
+/* Mejorar separación de celdas */
+.react-datepicker__day, .react-datepicker__day-name {
+  margin: 2px;
+}
+
+/* Fondo azul leve para el día actual en el calendario grande (FullCalendar) */
+.fc-timegrid-col.fc-day-today, .fc-daygrid-day.fc-day-today {
+  background-color: #e0f2fe !important;
+} 

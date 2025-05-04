@@ -1,0 +1,25 @@
+/* Estilos personalizados para react-datepicker */
+.react-datepicker__input-container input {
+  @apply rounded-xl border border-gray-200 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-100 bg-white text-gray-700 text-sm shadow-sm transition-all w-full px-3 py-2;
+}
+.react-datepicker {
+  @apply rounded-xl shadow-xl border border-gray-100 !important;
+  font-family: inherit;
+  font-size: 1rem;
+}
+.react-datepicker__header {
+  @apply bg-yellow-50 border-b border-yellow-100 rounded-t-xl;
+}
+.react-datepicker__time-container .react-datepicker__time {
+  @apply bg-white rounded-b-xl;
+}
+.react-datepicker__time-list-item--selected,
+.react-datepicker__time-list-item--keyboard-selected {
+  @apply bg-yellow-500 text-white font-semibold;
+}
+.react-datepicker__time-list-item:hover {
+  @apply bg-yellow-100 text-yellow-700;
+}
+.react-datepicker__close-icon::after {
+  @apply text-red-400;
+} 
