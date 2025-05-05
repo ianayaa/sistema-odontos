@@ -369,8 +369,6 @@ const CalendarAppointments: React.FC = () => {
         classNames: [
           style.border,
           style.text,
-          'p-2',
-          'rounded-lg',
           'shadow-sm',
           'hover:shadow-md',
           'transition-all',
@@ -552,14 +550,10 @@ const CalendarAppointments: React.FC = () => {
     const { extendedProps } = eventInfo.event;
     if (extendedProps.isBlocked) {
       return (
-        <div className="w-full h-full flex items-center justify-center text-xs text-gray-500 font-semibold">
-          Horario bloqueado
-        </div>
+        <span className="text-xs font-semibold">Horario bloqueado</span>
       );
     }
     const appt = eventInfo.event.extendedProps as Appointment & { service?: { name?: string; color?: string } };
-    const bgColor = (appt as any).service?.color || '#f3f4f6';
-    const textColor = getContrastTextColor(bgColor);
     let horaInicio = '';
     let horaFin = '';
     if (appt.date) {
@@ -580,35 +574,35 @@ const CalendarAppointments: React.FC = () => {
       appt.patient?.lastNameMaterno
     ].filter(Boolean).join(' ');
 
-    // Detectar alto del evento
-    let isLarge = true;
-    if (eventInfo.el && eventInfo.el.offsetHeight < 40) {
-      isLarge = false;
+    // Calcular duración en minutos
+    let duracionMin = 30;
+    if (appt.endDate) {
+      duracionMin = Math.round((new Date(appt.endDate).getTime() - new Date(appt.date).getTime()) / 60000);
+    } else if (appt.duration) {
+      duracionMin = appt.duration;
+    }
+    const esCorta = duracionMin <= 15;
+
+    // Si es evento corto, truncar el nombre si es muy largo
+    let nombreTruncado = nombreCompleto;
+    if (esCorta && nombreCompleto.length > 15) {
+      nombreTruncado = nombreCompleto.slice(0, 12) + '...';
     }
 
-    if (!isLarge) {
-      // Evento pequeño: solo nombre truncado
-      return (
-        <div className="w-full h-full flex items-center overflow-hidden">
-          <span
-            className="font-semibold w-full truncate whitespace-nowrap overflow-hidden"
-            style={{ color: textColor, fontSize: '11px' }}
-            title={nombreCompleto}
-          >
-            {nombreCompleto}
-          </span>
-        </div>
-      );
-    }
-    // Evento grande: mostrar todos los detalles
     return (
-      <div className="w-full h-full flex flex-col justify-center overflow-hidden" style={{ fontSize: '12px' }}>
-        <span className="font-semibold truncate w-full whitespace-nowrap overflow-hidden" style={{ color: textColor }}>{nombreCompleto}</span>
-        {appt.service?.name && (
-          <span className="truncate w-full whitespace-nowrap overflow-hidden" style={{ color: textColor }}>{appt.service.name}</span>
+      <span
+        className="w-full whitespace-pre-line overflow-hidden"
+        title={nombreCompleto}
+        style={{ fontSize: '12px', textOverflow: 'ellipsis', overflow: 'hidden', display: 'block', whiteSpace: esCorta ? 'nowrap' : 'pre-line' }}
+      >
+        <span style={{ fontWeight: 600 }}>{nombreTruncado}</span>
+        {!esCorta && appt.service?.name && (
+          <><br />{appt.service.name}</>
         )}
-        <span className="truncate w-full whitespace-nowrap overflow-hidden" style={{ color: textColor }}>{horaInicio} {horaFin && <span>- {horaFin}</span>}</span>
-      </div>
+        {!esCorta && (
+          <><br />{horaInicio} {horaFin && `- ${horaFin}`}</>
+        )}
+      </span>
     );
   };
 
@@ -1168,11 +1162,27 @@ const CalendarAppointments: React.FC = () => {
             return text.charAt(0).toUpperCase() + text.slice(1);
           }}
           dayMaxEvents={true}
-          moreLinkText="+%d más"
+          moreLinkText={(n) => `+${n} más`}
           moreLinkClick="popover"
           eventMaxStack={2}
           eventOrder="start,-duration,title"
           eventDidMount={(info) => {
+            // Forzar color solo en la vista de mes
+            if (info.view.type === 'dayGridMonth' && info.event.extendedProps && info.event.extendedProps.service && info.event.extendedProps.service.color) {
+              info.el.style.backgroundColor = info.event.extendedProps.service.color;
+              // Calcular color de texto adecuado
+              const bgColor = info.event.extendedProps.service.color;
+              let textColor = '#fff';
+              if (bgColor.startsWith('#')) {
+                const hex = bgColor.replace('#', '');
+                const r = parseInt(hex.substring(0, 2), 16);
+                const g = parseInt(hex.substring(2, 4), 16);
+                const b = parseInt(hex.substring(4, 6), 16);
+                const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+                textColor = luminance > 0.6 ? '#222' : '#fff';
+              }
+              info.el.style.color = textColor;
+            }
             const paciente = [
               info.event.extendedProps.patient?.name,
               info.event.extendedProps.patient?.lastNamePaterno,
