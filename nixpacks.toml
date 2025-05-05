@@ -1,0 +1,14 @@
+[phases.setup]
+nixPkgs = ["nodejs_18"]
+
+[phases.install]
+cmds = []
+
+[phases.build]
+cmds = [
+  "cd backend && npm install --legacy-peer-deps && npx prisma generate && npm run build",
+  "cd frontend && npm install --legacy-peer-deps && npm run build"
+]
+
+[start]
+cmd = "cd backend && npm start" 
