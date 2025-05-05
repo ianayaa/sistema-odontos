@@ -12,7 +12,12 @@ interface Payment {
   amount: number;
   method: string;
   status: 'pending' | 'completed' | 'failed' | 'refunded';
-  patient: { id: string; name: string };
+  patient: {
+    id: string;
+    name: string;
+    lastNamePaterno?: string;
+    lastNameMaterno?: string;
+  };
   date: string;
   reference: string;
   description?: string;
@@ -141,16 +146,11 @@ const Payments: React.FC = () => {
     }
   }, [startDate, endDate, patientId, method, status, showFilterModal]);
 
-  const handleCreatePayment = async (data: any) => {
-    try {
-      await api.post('/payments', data);
-      setShowModal(false);
-      fetchPayments();
-      fetchSummary();
-      fetchMonthStats();
-    } catch (err) {
-      alert('Error al registrar el pago');
-    }
+  const handleCreatePayment = () => {
+    setShowModal(false);
+    fetchPayments();
+    fetchSummary();
+    fetchMonthStats();
   };
 
   const handleDeletePayment = async () => {
@@ -352,7 +352,13 @@ const Payments: React.FC = () => {
             ) : (
               filteredPayments.map(payment => (
                 <tr key={payment.id} className="hover:bg-red-50 transition-all border-b border-gray-100 last:border-0 group">
-                  <td className="px-6 py-4 font-medium text-gray-900">{payment.patient?.name || '-'}</td>
+                  <td className="px-6 py-4 font-medium text-gray-900">{
+                    payment.patient
+                      ? [payment.patient.name, payment.patient.lastNamePaterno, payment.patient.lastNameMaterno]
+                          .filter(Boolean)
+                          .join(' ')
+                      : '-'
+                  }</td>
                   <td className="px-6 py-4 text-gray-600">{payment.reference}</td>
                   <td className="px-6 py-4">{payment.date ? (new Date(payment.date).toLocaleDateString('es-MX')) : '-'}</td>
                   <td className="px-6 py-4">
@@ -425,7 +431,13 @@ const Payments: React.FC = () => {
               <div className="flex flex-col gap-2">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-500 font-medium">Paciente:</span>
-                  <span className="font-semibold text-gray-800">{selectedPayment.patient?.name || '-'}</span>
+                  <span className="font-semibold text-gray-800">{
+                    selectedPayment.patient
+                      ? [selectedPayment.patient.name, selectedPayment.patient.lastNamePaterno, selectedPayment.patient.lastNameMaterno]
+                          .filter(Boolean)
+                          .join(' ')
+                      : '-'
+                  }</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-500 font-medium">Referencia:</span>

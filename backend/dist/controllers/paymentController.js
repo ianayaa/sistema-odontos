@@ -31,7 +31,14 @@ const getPayments = async (req, res) => {
                 patientId: patientId
             },
             include: {
-                patient: true
+                patient: {
+                    select: {
+                        id: true,
+                        name: true,
+                        lastNamePaterno: true,
+                        lastNameMaterno: true
+                    }
+                }
             },
             orderBy: {
                 createdAt: 'desc'

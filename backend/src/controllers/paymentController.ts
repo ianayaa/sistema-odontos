@@ -34,7 +34,14 @@ export const getPayments = async (req: Request, res: Response) => {
         patientId: patientId as string
       },
       include: {
-        patient: true
+        patient: {
+          select: {
+            id: true,
+            name: true,
+            lastNamePaterno: true,
+            lastNameMaterno: true
+          }
+        }
       },
       orderBy: {
         createdAt: 'desc'

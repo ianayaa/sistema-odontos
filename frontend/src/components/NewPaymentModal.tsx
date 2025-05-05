@@ -6,7 +6,7 @@ import PatientSelect from './PatientSelect';
 interface Props {
   open: boolean;
   onClose: () => void;
-  onCreate: (data: any) => void;
+  onCreate: () => void;
 }
 
 const paymentMethods = [
@@ -70,7 +70,7 @@ const NewPaymentModal: React.FC<Props> = ({ open, onClose, onCreate }) => {
         description,
         appointmentId: activeAppointment?.id || null,
       });
-      onCreate && onCreate({ patientId, amount: parseFloat(amount), method, description, appointmentId: activeAppointment?.id || null });
+      onCreate && onCreate();
       onClose();
     } catch (err: any) {
       let msg = 'Error al registrar el pago';
