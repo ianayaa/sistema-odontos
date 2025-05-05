@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { X, CurrencyDollar, User, Calendar, CreditCard, Bank, Money } from 'phosphor-react';
-import { getPatientsWithActiveAppointments, getPatientAppointments } from '../services/api';
+import api, { getPatientsWithActiveAppointments, getPatientAppointments } from '../services/api';
 import PatientSelect from './PatientSelect';
 
 interface Props {
@@ -10,9 +10,9 @@ interface Props {
 }
 
 const paymentMethods = [
-  { value: 'credit_card', label: 'Tarjeta de Crédito', icon: <CreditCard size={18} className="text-blue-500" /> },
-  { value: 'transfer', label: 'Transferencia', icon: <Bank size={18} className="text-green-500" /> },
-  { value: 'cash', label: 'Efectivo', icon: <Money size={18} className="text-yellow-600" /> },
+  { value: 'CARD', label: 'Tarjeta de Crédito', icon: <CreditCard size={18} className="text-blue-500" /> },
+  { value: 'TRANSFER', label: 'Transferencia', icon: <Bank size={18} className="text-green-500" /> },
+  { value: 'CASH', label: 'Efectivo', icon: <Money size={18} className="text-yellow-600" /> },
 ];
 
 const NewPaymentModal: React.FC<Props> = ({ open, onClose, onCreate }) => {
@@ -21,9 +21,10 @@ const NewPaymentModal: React.FC<Props> = ({ open, onClose, onCreate }) => {
   const [appointments, setAppointments] = useState<any[]>([]);
   const [activeAppointment, setActiveAppointment] = useState<any | null>(null);
   const [amount, setAmount] = useState('');
-  const [method, setMethod] = useState('cash');
+  const [method, setMethod] = useState('CASH');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -32,8 +33,9 @@ const NewPaymentModal: React.FC<Props> = ({ open, onClose, onCreate }) => {
       setAppointments([]);
       setActiveAppointment(null);
       setAmount('');
-      setMethod('cash');
+      setMethod('CASH');
       setDescription('');
+      setError(null);
     }
   }, [open]);
 
@@ -57,25 +59,27 @@ const NewPaymentModal: React.FC<Props> = ({ open, onClose, onCreate }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     if (!patientId || !amount || !method) return;
     setLoading(true);
     try {
-      const res = await fetch('/api/payments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          patientId,
-          amount: parseFloat(amount),
-          method,
-          description,
-          appointmentId: activeAppointment?.id || null,
-        })
+      await api.post('/payments', {
+        patientId,
+        amount: parseFloat(amount),
+        method,
+        description,
+        appointmentId: activeAppointment?.id || null,
       });
-      if (!res.ok) throw new Error('Error al registrar el pago');
       onCreate && onCreate({ patientId, amount: parseFloat(amount), method, description, appointmentId: activeAppointment?.id || null });
       onClose();
-    } catch (err) {
-      alert('Error al registrar el pago');
+    } catch (err: any) {
+      let msg = 'Error al registrar el pago';
+      if (err.response && err.response.data && err.response.data.error) {
+        msg += `: ${err.response.data.error}`;
+      } else if (err.message) {
+        msg += `: ${err.message}`;
+      }
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -104,6 +108,11 @@ const NewPaymentModal: React.FC<Props> = ({ open, onClose, onCreate }) => {
           </button>
         </div>
         <form onSubmit={handleSubmit} className="px-8 py-7 space-y-4">
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg border border-red-300 text-center font-semibold">
+              {error}
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Paciente</label>
             <PatientSelect

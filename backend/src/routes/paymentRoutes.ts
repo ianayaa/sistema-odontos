@@ -6,7 +6,8 @@ import {
   getPaymentSummary,
   createDentistPayment,
   getDentistPayments,
-  getDentistPaymentsSummary
+  getDentistPaymentsSummary,
+  deletePayment
 } from '../controllers/paymentController';
 import { authenticateToken } from '../middleware/auth';
 
@@ -16,6 +17,7 @@ router.use(authenticateToken as any);
 
 router.post('/', createPayment);
 router.get('/', getPayments);
+router.delete('/:id', deletePayment as any);
 router.put('/:id/status', updatePaymentStatus);
 router.get('/summary', getPaymentSummary);
 router.post('/dentist', createDentistPayment);

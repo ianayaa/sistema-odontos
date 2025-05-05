@@ -20,6 +20,7 @@ export const createPayment = async (req: Request, res: Response) => {
 
     res.status(201).json(payment);
   } catch (error) {
+    console.error('Error al crear pago:', error);
     res.status(500).json({ error: 'Error al crear pago' });
   }
 };
@@ -146,5 +147,19 @@ export const getDentistPaymentsSummary = async (req: Request, res: Response) => 
     });
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener resumen de pagos a odontólogos' });
+  }
+};
+
+export const deletePayment = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const payment = await prisma.payment.findUnique({ where: { id } });
+    if (!payment) {
+      return res.status(404).json({ error: 'Pago no encontrado' });
+    }
+    await prisma.payment.delete({ where: { id } });
+    return res.status(204).send();
+  } catch (error) {
+    return res.status(500).json({ error: 'Error al eliminar pago' });
   }
 }; 

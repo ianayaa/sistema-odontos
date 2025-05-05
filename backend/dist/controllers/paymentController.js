@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getDentistPaymentsSummary = exports.getDentistPayments = exports.createDentistPayment = exports.getPaymentSummary = exports.updatePaymentStatus = exports.getPayments = exports.createPayment = void 0;
+exports.deletePayment = exports.getDentistPaymentsSummary = exports.getDentistPayments = exports.createDentistPayment = exports.getPaymentSummary = exports.updatePaymentStatus = exports.getPayments = exports.createPayment = void 0;
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
 const createPayment = async (req, res) => {
@@ -18,6 +18,7 @@ const createPayment = async (req, res) => {
         res.status(201).json(payment);
     }
     catch (error) {
+        console.error('Error al crear pago:', error);
         res.status(500).json({ error: 'Error al crear pago' });
     }
 };
@@ -146,3 +147,18 @@ const getDentistPaymentsSummary = async (req, res) => {
     }
 };
 exports.getDentistPaymentsSummary = getDentistPaymentsSummary;
+const deletePayment = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const payment = await prisma.payment.findUnique({ where: { id } });
+        if (!payment) {
+            return res.status(404).json({ error: 'Pago no encontrado' });
+        }
+        await prisma.payment.delete({ where: { id } });
+        return res.status(204).send();
+    }
+    catch (error) {
+        return res.status(500).json({ error: 'Error al eliminar pago' });
+    }
+};
+exports.deletePayment = deletePayment;

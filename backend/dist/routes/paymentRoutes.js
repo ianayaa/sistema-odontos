@@ -10,6 +10,7 @@ const router = express_1.default.Router();
 router.use(auth_1.authenticateToken);
 router.post('/', paymentController_1.createPayment);
 router.get('/', paymentController_1.getPayments);
+router.delete('/:id', paymentController_1.deletePayment);
 router.put('/:id/status', paymentController_1.updatePaymentStatus);
 router.get('/summary', paymentController_1.getPaymentSummary);
 router.post('/dentist', paymentController_1.createDentistPayment);
