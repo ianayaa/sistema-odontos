@@ -2,6 +2,10 @@ import React, { useState } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import { ChatCircleText } from 'phosphor-react';
 import { Gear } from 'phosphor-react';
+import { Modal, Select, Input, Radio, Button, message as antdMessage } from 'antd';
+import { getPatients } from '../services/api';
+import api from '../services/api';
+import PatientSelect from '../components/PatientSelect';
 
 interface Message {
   id: string;
@@ -12,6 +16,8 @@ interface Message {
   status: 'sent' | 'pending' | 'failed';
 }
 
+const { Option } = Select;
+
 const PatientCommunication: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [search, setSearch] = useState('');
@@ -19,11 +25,80 @@ const PatientCommunication: React.FC = () => {
   const [showConfig, setShowConfig] = useState(false);
   const [smsApiKey, setSmsApiKey] = useState('');
   const [whatsappApiKey, setWhatsappApiKey] = useState('');
+  const [nuevoModal, setNuevoModal] = useState(false);
+  const [tipoEnvio, setTipoEnvio] = useState<'individual' | 'masivo'>('individual');
+  const [pacientes, setPacientes] = useState<any[]>([]);
+  const [destinatario, setDestinatario] = useState<string | null>(null);
+  const [canal, setCanal] = useState<'sms' | 'whatsapp'>('sms');
+  const [mensaje, setMensaje] = useState('');
+  const [enviando, setEnviando] = useState(false);
+  const [smsSegmentCost, setSmsSegmentCost] = useState(() => {
+    const stored = localStorage.getItem('sms-segment-cost');
+    return stored ? parseFloat(stored) : 0.1511;
+  });
 
   const filteredMessages = messages.filter(message => 
     message.patientName.toLowerCase().includes(search.toLowerCase()) ||
     message.subject.toLowerCase().includes(search.toLowerCase())
   );
+
+  React.useEffect(() => {
+    if (showModal) {
+      getPatients().then(setPacientes);
+    }
+  }, [showModal]);
+
+  const handleEnviar = async () => {
+    setEnviando(true);
+    try {
+      if (tipoEnvio === 'individual' && destinatario) {
+        await api.post('/messages/send', {
+          to: destinatario,
+          channel: canal,
+          message: mensaje,
+        });
+      } else if (tipoEnvio === 'masivo') {
+        await api.post('/messages/send-bulk', {
+          channel: canal,
+          message: mensaje,
+        });
+      }
+      antdMessage.success('Mensaje enviado correctamente');
+      setMensaje('');
+      setDestinatario(null);
+      setShowModal(false);
+    } catch (e) {
+      antdMessage.error('Error al enviar el mensaje');
+    }
+    setEnviando(false);
+  };
+
+  // Función para detectar encoding y calcular segmentos
+  function getMessageEncodingAndSegments(text: string) {
+    // GSM 7-bit chars
+    const gsm7 =
+      '@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞ\u0020!"#¤%&' +
+      "()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà";
+    let isGsm7 = true;
+    for (let i = 0; i < text.length; i++) {
+      if (!gsm7.includes(text[i])) {
+        isGsm7 = false;
+        break;
+      }
+    }
+    let encoding = isGsm7 ? 'GSM7' : 'UCS2';
+    let perSegment = isGsm7 ? 160 : 70;
+    let perSegmentExtra = isGsm7 ? 153 : 67;
+    let segments = 1;
+    if (text.length > perSegment) {
+      segments = Math.ceil((text.length - perSegment) / perSegmentExtra) + 1;
+    }
+    return { encoding, segments };
+  }
+
+  const { encoding, segments } = getMessageEncodingAndSegments(mensaje);
+  const destinatariosCount = tipoEnvio === 'masivo' ? pacientes.length : destinatario ? 1 : 0;
+  const totalCost = segments * smsSegmentCost * destinatariosCount;
 
   return (
     <DashboardLayout>
@@ -147,6 +222,20 @@ const PatientCommunication: React.FC = () => {
                   onChange={e => setWhatsappApiKey(e.target.value)}
                 />
               </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Costo por segmento SMS (USD)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.0001"
+                  className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-red-100 focus:border-red-400"
+                  value={smsSegmentCost}
+                  onChange={e => {
+                    setSmsSegmentCost(parseFloat(e.target.value));
+                    localStorage.setItem('sms-segment-cost', e.target.value);
+                  }}
+                />
+              </div>
               <div className="flex justify-end gap-2 pt-4">
                 <button
                   type="button"
@@ -158,10 +247,107 @@ const PatientCommunication: React.FC = () => {
                 <button
                   type="button"
                   className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                  // Aquí deberías guardar la config en el backend
-                  onClick={() => { setShowConfig(false); alert('Configuración guardada (simulado)'); }}
+                  onClick={() => { setShowConfig(false); antdMessage.success('Configuración guardada'); }}
                 >
                   Guardar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de nuevo mensaje personalizado */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-0 relative overflow-hidden animate-fadeInUp">
+            <div className="flex items-center gap-3 bg-gradient-to-r from-red-100 to-red-50 px-8 py-6 border-b border-red-100">
+              <div className="bg-red-200 text-red-600 rounded-full p-3">
+                <ChatCircleText size={30} weight="duotone" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-gray-800">Nuevo Mensaje</h3>
+                <div className="text-gray-400 text-sm">Envía un mensaje personalizado a uno o varios pacientes</div>
+              </div>
+              <button
+                className="ml-auto text-gray-400 hover:text-red-600 text-2xl font-bold p-1 rounded-full transition-colors focus:outline-none"
+                onClick={() => setShowModal(false)}
+                aria-label="Cerrar"
+                type="button"
+              >
+                <svg width="28" height="28" fill="none" stroke="#e11d48" strokeWidth="2.2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+              </button>
+            </div>
+            <form onSubmit={e => { e.preventDefault(); handleEnviar(); }} className="space-y-4 px-8 py-7">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Tipo de envío</label>
+                <div className="flex gap-3">
+                  <button type="button" onClick={() => setTipoEnvio('individual')} className={`px-4 py-2 rounded-xl border text-base font-semibold transition-all ${tipoEnvio === 'individual' ? 'bg-red-100 text-red-700 border-red-400' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>A un paciente</button>
+                  <button type="button" onClick={() => setTipoEnvio('masivo')} className={`px-4 py-2 rounded-xl border text-base font-semibold transition-all ${tipoEnvio === 'masivo' ? 'bg-red-100 text-red-700 border-red-400' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>A todos los pacientes</button>
+                </div>
+              </div>
+              {tipoEnvio === 'individual' && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Paciente</label>
+                  <PatientSelect
+                    value={destinatario || ''}
+                    onChange={setDestinatario}
+                    patients={pacientes}
+                    disabled={enviando}
+                  />
+                </div>
+              )}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Canal</label>
+                <div className="flex gap-3">
+                  <button type="button" onClick={() => setCanal('sms')} className={`px-4 py-2 rounded-xl border text-base font-semibold transition-all ${canal === 'sms' ? 'bg-red-100 text-red-700 border-red-400' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>SMS</button>
+                  <button type="button" onClick={() => setCanal('whatsapp')} className={`px-4 py-2 rounded-xl border text-base font-semibold transition-all ${canal === 'whatsapp' ? 'bg-red-100 text-red-700 border-red-400' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}>WhatsApp</button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Mensaje</label>
+                <textarea
+                  rows={4}
+                  placeholder="Escribe tu mensaje. Puedes usar {nombre} para personalizar."
+                  value={mensaje}
+                  onChange={e => setMensaje(e.target.value)}
+                  className="w-full rounded-xl border border-gray-300 px-4 py-2 text-base focus:border-red-400 focus:ring-2 focus:ring-red-100"
+                  style={{ minHeight: 90 }}
+                  disabled={enviando}
+                />
+                <div className="text-xs text-gray-500 mb-2">Puedes usar <b>{'{nombre}'}</b> para personalizar el mensaje con el nombre del paciente.</div>
+              </div>
+              {mensaje && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4 mt-2 mb-2 text-sm flex items-center gap-4 shadow-sm">
+                  <div className="bg-red-100 text-red-600 rounded-full p-2 flex items-center justify-center" style={{height: 40, width: 40}}>
+                    <ChatCircleText size={24} weight="duotone" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="mb-1 font-semibold text-gray-700">Detalles del mensaje:</div>
+                    <div><b>Encoding:</b> {encoding}</div>
+                    <div><b>Segmentos:</b> {segments}</div>
+                    <div><b>Destinatarios:</b> {destinatariosCount}</div>
+                    <div><b>Costo por segmento:</b> ${smsSegmentCost.toFixed(4)} USD</div>
+                    <div className="text-red-600 font-bold mt-1">Costo total estimado: ${totalCost.toFixed(4)} USD</div>
+                    {encoding === 'UCS2' && <div className="text-yellow-600 mt-1">Advertencia: El mensaje contiene caracteres especiales y usará UCS2 (mayor costo por segmento).</div>}
+                  </div>
+                </div>
+              )}
+              <div className="flex justify-end gap-2 mt-4">
+                <button
+                  type="button"
+                  className="bg-gray-200 text-gray-700 rounded-lg px-6 py-2 text-base font-semibold hover:bg-gray-300 border-none"
+                  onClick={() => setShowModal(false)}
+                  disabled={enviando}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="bg-red-600 hover:bg-red-700 text-white rounded-lg px-6 py-2 text-base font-bold border-none"
+                  disabled={!mensaje || (tipoEnvio === 'individual' && !destinatario) || enviando}
+                >
+                  {enviando ? 'Enviando...' : 'Enviar'}
                 </button>
               </div>
             </form>

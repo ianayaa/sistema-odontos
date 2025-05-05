@@ -156,7 +156,12 @@ const Reports: React.FC = () => {
 
   const getPatientTableData = () => {
     if (!patients || !Array.isArray(patients)) return [];
-    return patients.map((p: any) => ({ name: p.name, email: p.email, phone: p.phone, createdAt: p.createdAt }));
+    return patients.map((p: any) => ({ 
+      name: `${p.name} ${p.lastNamePaterno || ''} ${p.lastNameMaterno || ''}`.trim(),
+      email: p.email, 
+      phone: p.phone, 
+      createdAt: p.createdAt 
+    }));
   };
 
   const formatDateRange = (start: Date | null, end: Date | null) => {
@@ -330,7 +335,11 @@ const Reports: React.FC = () => {
             />
           </div>
           <div className="flex items-end h-full">
-            <Dropdown overlay={exportMenu} trigger={['click']} placement="bottomRight">
+            <Dropdown menu={{ items: [
+              { key: 'csv', label: 'Exportar CSV', onClick: () => handleExport('csv') },
+              { key: 'pdf', label: 'Exportar PDF', onClick: () => handleExport('pdf') },
+              { key: 'config', label: 'Configuración...', onClick: () => setExportConfigVisible(true) }
+            ]}} trigger={['click']} placement="bottomRight">
               <Button
                 className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-all duration-200 shadow-md ml-2 whitespace-nowrap text-base flex items-center"
                 icon={<ExportOutlined />}
@@ -500,7 +509,7 @@ const Reports: React.FC = () => {
                       row.phone?.toLowerCase().includes(q)
                     );
                   }).map((row, idx) => (
-                    <tr key={row.email} className="hover:bg-red-50 transition-all border-b border-gray-100">
+                    <tr key={`${row.name}-${idx}`} className="hover:bg-red-50 transition-all border-b border-gray-100">
                       <td className="px-6 py-4 text-sm text-gray-700">{row.name}</td>
                       <td className="px-6 py-4 text-sm text-gray-700">{row.email}</td>
                       <td className="px-6 py-4 text-sm text-gray-700">{row.phone}</td>

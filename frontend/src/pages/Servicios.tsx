@@ -78,12 +78,15 @@ const Servicios: React.FC = () => {
       dataIndex: 'name',
       key: 'name',
       render: (_: any, record: ServiceItem) => (
-        <span className="flex items-center gap-2">
-          {record.color && (
-            <span className="inline-block w-4 h-4 rounded-full border border-gray-200" style={{ background: record.color }}></span>
-          )}
-          {record.name}
-        </span>
+        <div className="flex items-center gap-4 min-h-[56px]">
+          <span
+            className="bg-red-100 rounded-full flex items-center justify-center"
+            style={{ width: 44, height: 44, minWidth: 44, minHeight: 44 }}
+          >
+            <FirstAid size={24} weight="duotone" className="text-red-600" />
+          </span>
+          <span className="font-semibold text-gray-900 text-base leading-snug">{record.name}</span>
+        </div>
       )
     },
     {
@@ -226,11 +229,16 @@ const Servicios: React.FC = () => {
             <tbody>
               {filteredItems.map(item => (
                 <tr key={item.id} className="hover:bg-red-50 transition-all border-b border-gray-100 last:border-0 group">
-                  <td className="px-6 py-4 flex items-center gap-3 font-medium text-gray-900">
-                    <div className="bg-red-100 rounded-full h-10 w-10 flex items-center justify-center text-red-600 font-bold text-lg shadow-sm">
-                      <FirstAid size={24} weight="duotone" />
+                  <td className="px-6 py-2 align-middle">
+                    <div className="flex items-center gap-4 min-h-[56px]">
+                      <span
+                        className="bg-red-100 rounded-full flex items-center justify-center"
+                        style={{ width: 44, height: 44, minWidth: 44, minHeight: 44 }}
+                      >
+                        <FirstAid size={24} weight="duotone" className="text-red-600" />
+                      </span>
+                      <span>{item.name}</span>
                     </div>
-                    <span>{item.name}</span>
                   </td>
                   <td className="px-6 py-4">{item.type}</td>
                   <td className="px-6 py-4">{item.duration} min</td>

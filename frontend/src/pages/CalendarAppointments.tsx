@@ -362,12 +362,11 @@ const CalendarAppointments: React.FC = () => {
         title: '',
         start: appt.date,
         end,
-        backgroundColor: 'transparent',
+        backgroundColor: bgColor,
         borderColor: 'transparent',
         textColor: textColor,
         extendedProps: appt,
         classNames: [
-          style.bg,
           style.border,
           style.text,
           'p-2',
@@ -547,7 +546,8 @@ const CalendarAppointments: React.FC = () => {
   // Renderiza el contenido de los eventos
   const renderEventContent = (eventInfo: { 
     event: { extendedProps: any },
-    timeText: string 
+    timeText: string,
+    el?: HTMLElement
   }) => {
     const { extendedProps } = eventInfo.event;
     if (extendedProps.isBlocked) {
@@ -579,24 +579,35 @@ const CalendarAppointments: React.FC = () => {
       appt.patient?.lastNamePaterno,
       appt.patient?.lastNameMaterno
     ].filter(Boolean).join(' ');
-    return (
-      <div
-        className="w-full h-full rounded-md relative flex flex-col justify-center overflow-hidden"
-        style={{ minHeight: '24px', height: '100%', padding: 0, background: bgColor, border: '1px solid #e5e7eb' }}
-      >
-        <div className="px-1 py-0.5 flex flex-col justify-center h-full">
-          <div className="flex items-center gap-1 w-full">
-            <span className="font-semibold text-xs truncate w-full" title={nombreCompleto} style={{ color: textColor }}>{nombreCompleto}</span>
-          </div>
-          {appt.service?.name && (
-            <div className="text-[11px] font-medium truncate w-full" style={{ color: textColor }}>
-              {appt.service.name}
-            </div>
-          )}
-          <div className="text-[11px] leading-tight truncate w-full" style={{ color: textColor }}>
-            {horaInicio} {horaFin && <span>- {horaFin}</span>}
-          </div>
+
+    // Detectar alto del evento
+    let isLarge = true;
+    if (eventInfo.el && eventInfo.el.offsetHeight < 40) {
+      isLarge = false;
+    }
+
+    if (!isLarge) {
+      // Evento pequeño: solo nombre truncado
+      return (
+        <div className="w-full h-full flex items-center overflow-hidden">
+          <span
+            className="font-semibold w-full truncate whitespace-nowrap overflow-hidden"
+            style={{ color: textColor, fontSize: '11px' }}
+            title={nombreCompleto}
+          >
+            {nombreCompleto}
+          </span>
         </div>
+      );
+    }
+    // Evento grande: mostrar todos los detalles
+    return (
+      <div className="w-full h-full flex flex-col justify-center overflow-hidden" style={{ fontSize: '12px' }}>
+        <span className="font-semibold truncate w-full whitespace-nowrap overflow-hidden" style={{ color: textColor }}>{nombreCompleto}</span>
+        {appt.service?.name && (
+          <span className="truncate w-full whitespace-nowrap overflow-hidden" style={{ color: textColor }}>{appt.service.name}</span>
+        )}
+        <span className="truncate w-full whitespace-nowrap overflow-hidden" style={{ color: textColor }}>{horaInicio} {horaFin && <span>- {horaFin}</span>}</span>
       </div>
     );
   };

@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { useAuth } from './context/AuthContext';
 
@@ -40,9 +40,45 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
 };
 
+const TITLES: Record<string, string> = {
+  '/dashboard': 'Dashboard',
+  '/pacientes': 'Pacientes',
+  '/pacientes/nuevo': 'Nuevo Paciente',
+  '/citas': 'Citas',
+  '/pagos': 'Pagos',
+  '/configuracion': 'Configuración',
+  '/consentimientos': 'Consentimientos',
+  '/servicios': 'Servicios',
+  '/reportes': 'Reportes',
+  '/comunicacion': 'Comunicación',
+  '/pagos-odontologos': 'Pagos Odontólogos',
+  '/login': 'Login',
+};
+
+const usePageTitle = () => {
+  const location = useLocation();
+  React.useEffect(() => {
+    let page = TITLES[location.pathname] || '';
+    // Manejo especial para rutas dinámicas
+    if (location.pathname.startsWith('/pacientes/') && location.pathname !== '/pacientes/nuevo') {
+      page = 'Perfil de Paciente';
+    }
+    if (location.pathname.startsWith('/confirmar-cita/')) {
+      page = 'Confirmar Cita';
+    }
+    document.title = `Odontos By Ana Valades${page ? ' - ' + page : ''}`;
+  }, [location.pathname]);
+};
+
+const PageTitleUpdater: React.FC = () => {
+  usePageTitle();
+  return null;
+};
+
 const App: React.FC = () => {
   return (
     <Router>
+      <PageTitleUpdater />
       <AuthProvider>
         <Suspense fallback={<LoadingSpinner />}>
           <Routes>

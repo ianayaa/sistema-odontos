@@ -4,7 +4,15 @@ import Sidebar from './Sidebar';
 export const SidebarCollapsedContext = createContext<{ isCollapsed: boolean; setIsCollapsed: (v: boolean) => void }>({ isCollapsed: false, setIsCollapsed: () => {} });
 
 const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = React.useState(() => {
+    const stored = localStorage.getItem('sidebar-collapsed');
+    return stored === 'true';
+  });
+
+  React.useEffect(() => {
+    localStorage.setItem('sidebar-collapsed', isCollapsed ? 'true' : 'false');
+  }, [isCollapsed]);
+
   return (
     <SidebarCollapsedContext.Provider value={{ isCollapsed, setIsCollapsed }}>
       <div className="min-h-screen flex bg-gray-50">

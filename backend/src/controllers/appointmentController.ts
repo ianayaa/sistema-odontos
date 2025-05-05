@@ -74,12 +74,22 @@ export const createAppointment = async (req: Request, res: Response) => {
 export const getAppointments = async (req: Request, res: Response) => {
   try {
     const { startDate, endDate } = req.query;
+    console.log('Query params:', { startDate, endDate });
+    
+    const startDateObj = startDate ? new Date(startDate as string) : undefined;
+    const endDateObj = endDate ? new Date(endDate as string) : undefined;
+    
+    console.log('Fechas convertidas:', {
+      startDateObj: startDateObj?.toISOString(),
+      endDateObj: endDateObj?.toISOString()
+    });
+
     const appointments = await prisma.appointment.findMany({
       where: {
         userId: req.user!.id,
         date: {
-          gte: startDate ? new Date(startDate as string) : undefined,
-          lte: endDate ? new Date(endDate as string) : undefined
+          gte: startDateObj,
+          lte: endDateObj
         }
       },
       include: {
@@ -91,8 +101,17 @@ export const getAppointments = async (req: Request, res: Response) => {
         date: 'asc'
       }
     });
+
+    console.log('Citas encontradas:', appointments.map(a => ({
+      id: a.id,
+      date: a.date.toISOString(),
+      patient: a.patient?.name,
+      status: a.status
+    })));
+
     return res.json(appointments);
   } catch (error) {
+    console.error('Error al obtener citas:', error);
     return res.status(500).json({ error: 'Error al obtener citas' });
   }
 };
