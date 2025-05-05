@@ -52,7 +52,11 @@ const durationOptions = [
 const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({ onClose, onSuccess, initialDate, initialDuration, initialHour, appointments, blockedHours = [] }) => {
   const [form, setForm] = useState({
     ...initialState,
-    date: initialDate ? new Date(initialDate) : null,
+    date: initialDate
+      ? (initialDate.length === 10
+          ? new Date(initialDate + 'T00:00:00')
+          : new Date(initialDate))
+      : null,
     serviceId: ''
   });
   const [patients, setPatients] = useState<Patient[]>([]);

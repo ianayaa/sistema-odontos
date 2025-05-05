@@ -457,6 +457,17 @@ const CalendarAppointments: React.FC = () => {
       return;
     }
 
+    // Si la vista es de mes, permitir agendar sin validar traslape
+    if (view === 'dayGridMonth') {
+      // Extraer solo la fecha en formato YYYY-MM-DD
+      const soloFecha = selectInfo.startStr.split('T')[0];
+      setNewDate(soloFecha);
+      setNewDuration(undefined);
+      setNewHour(undefined);
+      setShowModal(true);
+      return;
+    }
+
     // Validar traslape con citas existentes
     const hayTraslape = appointments.some(appt => {
       const apptStart = new Date(appt.date);
