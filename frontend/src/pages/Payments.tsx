@@ -182,6 +182,19 @@ const Payments: React.FC = () => {
     payment.reference.toLowerCase().includes(search.toLowerCase())
   );
 
+  const paymentMethodLabel = (method: string) => {
+    switch (method) {
+      case 'CASH':
+        return 'Efectivo';
+      case 'CARD':
+        return 'Tarjeta';
+      case 'TRANSFER':
+        return 'Transferencia';
+      default:
+        return method;
+    }
+  };
+
   return (
     <DashboardLayout>
       <NewPaymentModal open={showModal} onClose={() => setShowModal(false)} onCreate={handleCreatePayment} />
@@ -363,12 +376,11 @@ const Payments: React.FC = () => {
                   <td className="px-6 py-4">{payment.date ? (new Date(payment.date).toLocaleDateString('es-MX')) : '-'}</td>
                   <td className="px-6 py-4">
                     <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                      payment.method === 'credit_card' ? 'bg-blue-100 text-blue-600' :
-                      payment.method === 'transfer' ? 'bg-green-100 text-green-600' :
+                      payment.method === 'CARD' || payment.method === 'credit_card' ? 'bg-blue-100 text-blue-600' :
+                      payment.method === 'TRANSFER' || payment.method === 'transfer' ? 'bg-green-100 text-green-600' :
                       'bg-gray-100 text-gray-600'
                     }`}>
-                      {payment.method === 'credit_card' ? 'Tarjeta' :
-                       payment.method === 'transfer' ? 'Transferencia' : payment.method}
+                      {paymentMethodLabel(payment.method)}
                     </span>
                   </td>
                   <td className="px-6 py-4 font-semibold">${payment.amount.toLocaleString()}</td>
@@ -449,7 +461,7 @@ const Payments: React.FC = () => {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-500 font-medium">Método:</span>
-                  <span className="font-semibold text-gray-800">{selectedPayment.method}</span>
+                  <span className="font-semibold text-gray-800">{paymentMethodLabel(selectedPayment.method)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-500 font-medium">Monto:</span>

@@ -48,7 +48,8 @@ export const getPayments = async (req: Request, res: Response) => {
       }
     });
 
-    res.json(payments);
+    const paymentsWithDate = payments.map(p => ({ ...p, date: p.createdAt }));
+    res.json(paymentsWithDate);
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener pagos' });
   }
