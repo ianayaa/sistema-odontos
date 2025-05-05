@@ -47,9 +47,10 @@ const Dashboard: React.FC = () => {
         setTodayAppointments(appointmentsRes.data.length);
 
         // Próxima cita (de las de hoy, la más cercana en el futuro)
+        const nowTime = new Date();
         const nextAppt = appointmentsRes.data
           .map((appt: any) => ({ ...appt, dateObj: new Date(appt.date) }))
-          .filter((appt: any) => appt.dateObj > now)
+          .filter((appt: any) => appt.dateObj > nowTime)
           .sort((a: any, b: any) => a.dateObj.getTime() - b.dateObj.getTime())[0];
         setNextAppointment(nextAppt ? nextAppt.dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-');
 

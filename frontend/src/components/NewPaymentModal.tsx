@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { X, CurrencyDollar, User, Calendar, CreditCard, Bank, Money } from 'phosphor-react';
-import { getPatients, getPatientAppointments } from '../services/api';
+import { getPatientsWithActiveAppointments, getPatientAppointments } from '../services/api';
 import PatientSelect from './PatientSelect';
 
 interface Props {
@@ -27,7 +27,7 @@ const NewPaymentModal: React.FC<Props> = ({ open, onClose, onCreate }) => {
 
   useEffect(() => {
     if (open) {
-      getPatients().then(setPatients);
+      getPatientsWithActiveAppointments().then(setPatients);
       setPatientId('');
       setAppointments([]);
       setActiveAppointment(null);

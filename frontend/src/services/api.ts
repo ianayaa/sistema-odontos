@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: process.env.REACT_APP_API_URL || '/api',
 });
 
 api.interceptors.request.use(config => {
@@ -62,5 +62,10 @@ export const getPaymentSummary = async (params?: any) => {
 
 export const getServices = async () => {
   const res = await api.get('/services');
+  return res.data;
+};
+
+export const getPatientsWithActiveAppointments = async () => {
+  const res = await api.get('/patients/with-active-appointments');
   return res.data;
 };

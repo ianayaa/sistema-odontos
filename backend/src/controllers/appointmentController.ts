@@ -76,8 +76,19 @@ export const getAppointments = async (req: Request, res: Response) => {
     const { startDate, endDate } = req.query;
     console.log('Query params:', { startDate, endDate });
     
-    const startDateObj = startDate ? new Date(startDate as string) : undefined;
-    const endDateObj = endDate ? new Date(endDate as string) : undefined;
+    // Ajuste: Si la fecha viene como YYYY-MM-DD, asegúrate de cubrir todo el día
+    let startDateObj: Date | undefined = undefined;
+    let endDateObj: Date | undefined = undefined;
+    if (typeof startDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
+      startDateObj = new Date(startDate + 'T00:00:00.000Z');
+    } else if (startDate) {
+      startDateObj = new Date(startDate as string);
+    }
+    if (typeof endDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
+      endDateObj = new Date(endDate + 'T23:59:59.999Z');
+    } else if (endDate) {
+      endDateObj = new Date(endDate as string);
+    }
     
     console.log('Fechas convertidas:', {
       startDateObj: startDateObj?.toISOString(),
@@ -297,5 +308,32 @@ export const publicConfirmAppointment = async (req: Request, res: Response) => {
     return res.json({ success: true });
   } catch (error) {
     return res.status(500).json({ error: 'Error al confirmar cita' });
+  }
+};
+
+// Endpoint para obtener pacientes con cita activa
+export const getPatientsWithActiveAppointments = async (req: Request, res: Response) => {
+  try {
+    const now = new Date();
+    // Buscar citas activas (SCHEDULED o CONFIRMED y futura)
+    const activeAppointments = await prisma.appointment.findMany({
+      where: {
+        userId: req.user!.id,
+        status: { in: ['SCHEDULED', 'CONFIRMED'] },
+        date: { gte: now }
+      },
+      select: { patientId: true }
+    });
+    const patientIds = Array.from(new Set(activeAppointments.map(a => a.patientId)));
+    if (patientIds.length === 0) {
+      res.json([]);
+      return;
+    }
+    const patients = await prisma.patient.findMany({
+      where: { id: { in: patientIds } }
+    });
+    res.json(patients);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener pacientes con cita activa' });
   }
 };

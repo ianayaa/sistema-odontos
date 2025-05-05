@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.publicConfirmAppointment = exports.upsertDentistSchedule = exports.getDentistSchedule = exports.deleteAppointment = exports.getPatientAppointments = exports.cancelAppointment = exports.updateAppointment = exports.getAppointments = exports.createAppointment = void 0;
+exports.getPatientsWithActiveAppointments = exports.publicConfirmAppointment = exports.upsertDentistSchedule = exports.getDentistSchedule = exports.deleteAppointment = exports.getPatientAppointments = exports.cancelAppointment = exports.updateAppointment = exports.getAppointments = exports.createAppointment = void 0;
 const client_1 = require("@prisma/client");
 const notificationService_1 = require("../services/notificationService");
 const prisma = new client_1.PrismaClient();
@@ -74,12 +74,32 @@ exports.createAppointment = createAppointment;
 const getAppointments = async (req, res) => {
     try {
         const { startDate, endDate } = req.query;
+        console.log('Query params:', { startDate, endDate });
+        // Ajuste: Si la fecha viene como YYYY-MM-DD, asegúrate de cubrir todo el día
+        let startDateObj = undefined;
+        let endDateObj = undefined;
+        if (typeof startDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
+            startDateObj = new Date(startDate + 'T00:00:00.000Z');
+        }
+        else if (startDate) {
+            startDateObj = new Date(startDate);
+        }
+        if (typeof endDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
+            endDateObj = new Date(endDate + 'T23:59:59.999Z');
+        }
+        else if (endDate) {
+            endDateObj = new Date(endDate);
+        }
+        console.log('Fechas convertidas:', {
+            startDateObj: startDateObj?.toISOString(),
+            endDateObj: endDateObj?.toISOString()
+        });
         const appointments = await prisma.appointment.findMany({
             where: {
                 userId: req.user.id,
                 date: {
-                    gte: startDate ? new Date(startDate) : undefined,
-                    lte: endDate ? new Date(endDate) : undefined
+                    gte: startDateObj,
+                    lte: endDateObj
                 }
             },
             include: {
@@ -91,9 +111,16 @@ const getAppointments = async (req, res) => {
                 date: 'asc'
             }
         });
+        console.log('Citas encontradas:', appointments.map(a => ({
+            id: a.id,
+            date: a.date.toISOString(),
+            patient: a.patient?.name,
+            status: a.status
+        })));
         return res.json(appointments);
     }
     catch (error) {
+        console.error('Error al obtener citas:', error);
         return res.status(500).json({ error: 'Error al obtener citas' });
     }
 };
@@ -284,3 +311,31 @@ const publicConfirmAppointment = async (req, res) => {
     }
 };
 exports.publicConfirmAppointment = publicConfirmAppointment;
+// Endpoint para obtener pacientes con cita activa
+const getPatientsWithActiveAppointments = async (req, res) => {
+    try {
+        const now = new Date();
+        // Buscar citas activas (SCHEDULED o CONFIRMED y futura)
+        const activeAppointments = await prisma.appointment.findMany({
+            where: {
+                userId: req.user.id,
+                status: { in: ['SCHEDULED', 'CONFIRMED'] },
+                date: { gte: now }
+            },
+            select: { patientId: true }
+        });
+        const patientIds = Array.from(new Set(activeAppointments.map(a => a.patientId)));
+        if (patientIds.length === 0) {
+            res.json([]);
+            return;
+        }
+        const patients = await prisma.patient.findMany({
+            where: { id: { in: patientIds } }
+        });
+        res.json(patients);
+    }
+    catch (error) {
+        res.status(500).json({ error: 'Error al obtener pacientes con cita activa' });
+    }
+};
+exports.getPatientsWithActiveAppointments = getPatientsWithActiveAppointments;
