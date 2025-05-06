@@ -91,13 +91,25 @@
 .fc-event span {
   display: block;
   width: 100%;
-  white-space: pre-line;
+  white-space: nowrap !important;
   line-height: 1.2;
-  word-break: break-word;
+  word-break: break-all;
   max-width: 100%;
-  max-height: 60px;
+  max-height: 24px;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.fc-event .fc-event-details {
+  white-space: pre-line !important;
+  font-weight: 400;
+  font-size: 11px;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-height: 36px;
 }
 
 .fc-event:hover {

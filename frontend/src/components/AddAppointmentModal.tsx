@@ -65,6 +65,7 @@ const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({ onClose, onSu
   const [error, setError] = useState('');
   const [hour, setHour] = useState(initialHour || '');
   const [duration, setDuration] = useState(initialDuration || 60);
+  const [enviarMensaje, setEnviarMensaje] = useState(true);
   const timeOptions = generateTimeOptions();
 
   useEffect(() => {
@@ -106,6 +107,7 @@ const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({ onClose, onSu
         notes: form.notes,
         duration,
         serviceId: form.serviceId,
+        enviarMensaje,
       });
       onSuccess();
     } catch (err: any) {
@@ -300,6 +302,19 @@ const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({ onClose, onSu
                 disabled={loading}
               />
             </div>
+          </div>
+          <div className="flex items-center gap-2 mb-2">
+            <input
+              type="checkbox"
+              id="enviarMensaje"
+              checked={enviarMensaje}
+              onChange={e => setEnviarMensaje(e.target.checked)}
+              className="accent-red-500 w-4 h-4 rounded border-gray-300 focus:ring-red-400"
+              disabled={loading}
+            />
+            <label htmlFor="enviarMensaje" className="text-sm text-gray-700 select-none cursor-pointer">
+              Enviar mensaje de confirmación al paciente
+            </label>
           </div>
           {error && <div className="text-red-500 text-sm font-medium mt-2">{error}</div>}
           <button

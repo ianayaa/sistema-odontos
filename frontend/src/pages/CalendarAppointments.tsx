@@ -192,9 +192,8 @@ const CalendarAppointments: React.FC = () => {
   }
 
   // Configuración de horarios de trabajo
-  const handleBusinessHoursChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBusinessHoursChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    try {
     setBusinessHours(prev => {
       const updated = { ...prev, [name]: value };
       saveDentistSchedule({
@@ -209,15 +208,10 @@ const CalendarAppointments: React.FC = () => {
       return updated;
     });
     setCalendarKey(k => k + 1);
-    } catch (error) {
-      console.error('Error al actualizar horario:', error);
-      alert('Error al actualizar el horario. Por favor intenta nuevamente.');
-    }
   };
 
   // Manejar días laborables
   const handleWorkingDaysChange = async (day: number) => {
-    try {
     setBusinessHours(prev => {
       const newWorkingDays = prev.workingDays.includes(day)
         ? prev.workingDays.filter(d => d !== day)
@@ -238,10 +232,6 @@ const CalendarAppointments: React.FC = () => {
       });
       return updated;
     });
-    } catch (error) {
-      console.error('Error al actualizar días laborables:', error);
-      alert('Error al actualizar los días laborables. Por favor intenta nuevamente.');
-    }
   };
 
   // Verificar si un día está seleccionado
@@ -585,33 +575,85 @@ const CalendarAppointments: React.FC = () => {
       appt.patient?.lastNameMaterno
     ].filter(Boolean).join(' ');
 
-    // Calcular duración en minutos
-    let duracionMin = 30;
-    if (appt.endDate) {
-      duracionMin = Math.round((new Date(appt.endDate).getTime() - new Date(appt.date).getTime()) / 60000);
-    } else if (appt.duration) {
-      duracionMin = appt.duration;
-    }
-    const esCorta = duracionMin <= 15;
-
-    // Si es evento corto, truncar el nombre si es muy largo
+    // El nombre siempre se muestra en una sola línea con elipsis si es largo
     let nombreTruncado = nombreCompleto;
-    if (esCorta && nombreCompleto.length > 15) {
-      nombreTruncado = nombreCompleto.slice(0, 12) + '...';
+
+    // Detectar si el evento es "muy pequeño" (<= 20 minutos)
+    let mostrarSoloNombre = false;
+    if (appt.endDate) {
+      const start = new Date(appt.date).getTime();
+      const end = new Date(appt.endDate).getTime();
+      const duracionMin = Math.round((end - start) / 60000);
+      if (duracionMin <= 20) mostrarSoloNombre = true;
+    } else if (appt.duration && appt.duration <= 20) {
+      mostrarSoloNombre = true;
     }
 
+    // Render: 1 línea por detalle (nombre, servicio, hora)
     return (
       <span
-        className="w-full whitespace-pre-line overflow-hidden"
-        title={nombreCompleto}
-        style={{ fontSize: '12px', textOverflow: 'ellipsis', overflow: 'hidden', display: 'block', whiteSpace: esCorta ? 'nowrap' : 'pre-line' }}
+        style={{
+          display: 'block',
+          width: '100%',
+          maxWidth: '100%',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          fontSize: 12,
+          lineHeight: 1.2,
+          whiteSpace: 'normal',
+          wordBreak: 'break-word',
+          maxHeight: mostrarSoloNombre ? 18 : 40,
+        }}
+        title={nombreCompleto + (appt.service?.name ? ' - ' + appt.service.name : '')}
       >
-        <span style={{ fontWeight: 600 }}>{nombreTruncado}</span>
-        {!esCorta && appt.service?.name && (
-          <><br />{appt.service.name}</>
-        )}
-        {!esCorta && (
-          <><br />{horaInicio} {horaFin && `- ${horaFin}`}</>
+        {/* Nombre SIEMPRE en una sola línea con elipsis */}
+        <span
+          style={{
+            fontWeight: 600,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            display: 'block',
+            width: '100%',
+            maxWidth: '100%',
+          }}
+        >
+          {nombreTruncado}
+        </span>
+        {/* Si NO es muy pequeño, muestra servicio y hora, cada uno en su línea */}
+        {!mostrarSoloNombre && (
+          <>
+            {appt.service?.name && (
+              <span
+                style={{
+                  display: 'block',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  width: '100%',
+                  maxWidth: '100%',
+                  fontWeight: 400,
+                }}
+                title={appt.service.name}
+              >
+                {appt.service.name}
+              </span>
+            )}
+            <span
+              style={{
+                display: 'block',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                width: '100%',
+                maxWidth: '100%',
+                fontWeight: 400,
+              }}
+              title={horaInicio + (horaFin ? ` - ${horaFin}` : '')}
+            >
+              {horaInicio} {horaFin && `- ${horaFin}`}
+            </span>
+          </>
         )}
       </span>
     );
@@ -769,11 +811,6 @@ const CalendarAppointments: React.FC = () => {
                     borderTopRightRadius: 10,
                     borderBottomRightRadius: 10,
                   },
-                  '& .MuiPickersCalendarHeader-label': {
-                    fontSize: '1rem',
-                    fontWeight: 700,
-                    textTransform: 'capitalize',
-                  },
                   '& .MuiDayCalendar-weekContainer': {
                     justifyContent: 'flex-start',
                     display: 'flex',
@@ -841,12 +878,13 @@ const CalendarAppointments: React.FC = () => {
                           workingDays: updated.workingDays,
                           blockedHours: updated.blockedHours
                         }).catch(error => {
+                          console.error('Error al guardar horario:', error);
                           alert('Error al guardar el horario. Intenta de nuevo.');
-                        });
-                        return updated;
                       });
-                      setCalendarKey(k => k + 1);
-                    }}
+                      return updated;
+                    });
+                    setCalendarKey(k => k + 1);
+                  }}
                     showTimeSelect
                     showTimeSelectOnly
                     timeIntervals={15}
@@ -870,12 +908,13 @@ const CalendarAppointments: React.FC = () => {
                           workingDays: updated.workingDays,
                           blockedHours: updated.blockedHours
                         }).catch(error => {
+                          console.error('Error al guardar horario:', error);
                           alert('Error al guardar el horario. Intenta de nuevo.');
-                        });
-                        return updated;
                       });
-                      setCalendarKey(k => k + 1);
-                    }}
+                      return updated;
+                    });
+                    setCalendarKey(k => k + 1);
+                  }}
                     showTimeSelect
                     showTimeSelectOnly
                     timeIntervals={15}
@@ -931,54 +970,45 @@ const CalendarAppointments: React.FC = () => {
                   handleAddBlockedHour(blockModal.date, blockModal.start, blockModal.end);
                 }}
               >
-                <div className="flex flex-col gap-2 w-full">
-                  <div className="flex flex-col w-full">
-                    <label className="text-xs text-gray-600 mb-1">Fecha</label>
-                    <DatePicker
-                      selected={blockModal.date}
-                      onChange={(date: Date | null) => setBlockModal(prev => ({ ...prev, date }))}
-                      dateFormat="yyyy-MM-dd"
-                      className="w-full border-2 border-blue-200 rounded-xl px-3 py-2 bg-blue-50 text-gray-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
-                      placeholderText="Selecciona fecha"
-                    />
-                  </div>
-                  <div className="flex flex-col w-full">
-                    <label className="text-xs text-gray-600 mb-1">Hora inicio</label>
-                    <DatePicker
-                      selected={blockModal.start ? new Date(`1970-01-01T${blockModal.start}:00`) : null}
-                      onChange={(date: Date | null) => setBlockModal(prev => ({ ...prev, start: date ? format(date, 'HH:mm') : '' }))}
-                      showTimeSelect
-                      showTimeSelectOnly
-                      timeIntervals={15}
-                      timeCaption="Hora"
-                      dateFormat="h:mm aa"
-                      className="w-full border-2 border-blue-200 rounded-xl px-3 py-2 bg-blue-50 text-gray-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
-                      placeholderText="Selecciona hora"
-                    />
-                  </div>
-                  <span className="text-center text-gray-400 text-xs">a</span>
-                  <div className="flex flex-col w-full">
-                    <label className="text-xs text-gray-600 mb-1">Hora fin</label>
-                    <DatePicker
-                      selected={blockModal.end ? new Date(`1970-01-01T${blockModal.end}:00`) : null}
-                      onChange={(date: Date | null) => setBlockModal(prev => ({ ...prev, end: date ? format(date, 'HH:mm') : '' }))}
-                      showTimeSelect
-                      showTimeSelectOnly
-                      timeIntervals={15}
-                      timeCaption="Hora"
-                      dateFormat="h:mm aa"
-                      className="w-full border-2 border-blue-200 rounded-xl px-3 py-2 bg-blue-50 text-gray-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
-                      placeholderText="Selecciona hora"
-                    />
-                  </div>
+                <div className="flex flex-col w-full">
+                  <label className="text-xs text-gray-600 mb-1">Fecha</label>
+                  <DatePicker
+                    selected={blockModal.date}
+                    onChange={(date: Date | null) => setBlockModal(prev => ({ ...prev, date }))}
+                    dateFormat="yyyy-MM-dd"
+                    className="w-full border-2 border-blue-200 rounded-xl px-3 py-2 bg-blue-50 text-gray-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
+                    placeholderText="Selecciona fecha"
+                  />
                 </div>
-                <button
-                  type="submit"
-                  className="px-3 py-2 rounded-lg bg-yellow-500 text-white font-semibold text-sm hover:bg-yellow-600 transition-all w-full mt-1"
-                  disabled={!blockModal.date || !blockModal.start || !blockModal.end}
-                >
-                  Agregar
-                </button>
+                <div className="flex flex-col w-full">
+                  <label className="text-xs text-gray-600 mb-1">Hora inicio</label>
+                  <DatePicker
+                    selected={blockModal.start ? new Date(`1970-01-01T${blockModal.start}:00`) : null}
+                    onChange={(date: Date | null) => setBlockModal(prev => ({ ...prev, start: date ? format(date, 'HH:mm') : '' }))}
+                    showTimeSelect
+                    showTimeSelectOnly
+                    timeIntervals={15}
+                    timeCaption="Hora"
+                    dateFormat="h:mm aa"
+                    className="w-full border-2 border-blue-200 rounded-xl px-3 py-2 bg-blue-50 text-gray-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
+                    placeholderText="Selecciona hora"
+                  />
+                </div>
+                <span className="text-center text-gray-400 text-xs">a</span>
+                <div className="flex flex-col w-full">
+                  <label className="text-xs text-gray-600 mb-1">Hora fin</label>
+                  <DatePicker
+                    selected={blockModal.end ? new Date(`1970-01-01T${blockModal.end}:00`) : null}
+                    onChange={(date: Date | null) => setBlockModal(prev => ({ ...prev, end: date ? format(date, 'HH:mm') : '' }))}
+                    showTimeSelect
+                    showTimeSelectOnly
+                    timeIntervals={15}
+                    timeCaption="Hora"
+                    dateFormat="h:mm aa"
+                    className="w-full border-2 border-blue-200 rounded-xl px-3 py-2 bg-blue-50 text-gray-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
+                    placeholderText="Selecciona hora"
+                  />
+                </div>
               </form>
               <div className="mt-3">
                 <h5 className="text-xs font-semibold text-gray-700 mb-1">Horarios bloqueados</h5>
@@ -1207,42 +1237,66 @@ const CalendarAppointments: React.FC = () => {
               info.event.extendedProps.patient?.lastNamePaterno,
               info.event.extendedProps.patient?.lastNameMaterno
             ].filter(Boolean).join(' ');
+
             const servicio = info.event.extendedProps.service?.name || 'No especificado';
             const color = info.event.extendedProps.service?.color || '#f3f4f6';
             const telefono = info.event.extendedProps.patient?.phone || 'No registrado';
             const doctor = info.event.extendedProps.doctor || 'No asignado';
             const tratamiento = info.event.extendedProps.treatment || '';
             const notas = info.event.extendedProps.notes || 'Sin notas';
-            //tooltip
-            const tooltip = document.createElement('div');
-            tooltip.innerHTML = `
-              <div style="font-family: inherit; min-width:220px; max-width:320px; background: white; border-radius: 1rem; box-shadow: 0 4px 24px 0 #0002; border: 1px solid #eee; padding: 1rem;">
-                <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-                  <span style="display:inline-block; width:18px; height:18px; border-radius:50%; border:1px solid #eee; background:${color};"></span>
-                  <span style="font-weight:600; color:#e11d48;">${paciente}</span>
-                </div>
-                <div style="font-size:15px; color:#222; margin-bottom:4px;"><b>Servicio:</b> ${servicio}</div>
-                ${tratamiento ? `<div style='font-size:14px; color:#2563eb; margin-bottom:4px;'><b>Tratamiento:</b> ${tratamiento}</div>` : ''}
-                <div style="font-size:14px; color:#444; margin-bottom:2px;"><b>Teléfono:</b> ${telefono}</div>
-                <div style="font-size:14px; color:#444; margin-bottom:2px;"><b>Doctor:</b> ${doctor}</div>
-                <div style="font-size:14px; color:#444; margin-bottom:2px;"><b>Notas:</b> ${notas}</div>
-              </div>
-            `;
-            tooltip.style.position = 'absolute';
-            tooltip.style.zIndex = '9999';
-            tooltip.style.pointerEvents = 'none';
-            let timeout: any;
-            info.el.addEventListener('mouseenter', (e: MouseEvent) => {
-              document.body.appendChild(tooltip);
+
+            // Tooltip: Mejor manejo para evitar freezing
+            let tooltip: HTMLDivElement | null = null;
+            let hideTimeout: NodeJS.Timeout | null = null;
+            let showTimeout: NodeJS.Timeout | null = null;
+            const showTooltip = (e: MouseEvent) => {
+              if (hideTimeout) clearTimeout(hideTimeout);
+              if (!tooltip) {
+                tooltip = document.createElement('div');
+                tooltip.innerHTML = `
+                  <div style="font-family: inherit; min-width:220px; max-width:320px; background: white; border-radius: 1rem; box-shadow: 0 4px 24px 0 #0002; border: 1px solid #eee; padding: 1rem;">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                      <span style="display:inline-block; width:18px; height:18px; border-radius:50%; border:1px solid #eee; background:${color};"></span>
+                      <span style="font-weight:600; color:#e11d48;">${paciente}</span>
+                    </div>
+                    <div style="font-size:15px; color:#222; margin-bottom:4px;"><b>Servicio:</b> ${servicio}</div>
+                    ${tratamiento ? `<div style='font-size:14px; color:#2563eb; margin-bottom:4px;'><b>Tratamiento:</b> ${tratamiento}</div>` : ''}
+                    <div style="font-size:14px; color:#444; margin-bottom:2px;"><b>Teléfono:</b> ${telefono}</div>
+                    <div style="font-size:14px; color:#444; margin-bottom:2px;"><b>Doctor:</b> ${doctor}</div>
+                    <div style="font-size:14px; color:#444; margin-bottom:2px;"><b>Notas:</b> ${notas}</div>
+                  </div>
+                `;
+                tooltip.style.position = 'absolute';
+                tooltip.style.zIndex = '9999';
+                tooltip.style.pointerEvents = 'none';
+                tooltip.style.opacity = '0';
+                document.body.appendChild(tooltip);
+              }
               const rect = (e.target as HTMLElement).getBoundingClientRect();
               tooltip.style.top = `${rect.bottom + window.scrollY + 8}px`;
               tooltip.style.left = `${rect.left + window.scrollX}px`;
-              timeout = setTimeout(() => tooltip.style.opacity = '1', 100);
-            });
-            info.el.addEventListener('mouseleave', () => {
-              tooltip.remove();
-              clearTimeout(timeout);
-            });
+              showTimeout = setTimeout(() => {
+                if (tooltip) tooltip.style.opacity = '1';
+              }, 60); // Mostrar rápido pero no instantáneo
+            };
+            const hideTooltip = () => {
+              if (showTimeout) clearTimeout(showTimeout);
+              if (tooltip) {
+                tooltip.style.opacity = '0';
+                hideTimeout = setTimeout(() => {
+                  if (tooltip) {
+                    tooltip.remove();
+                    tooltip = null;
+                  }
+                }, 120); // Delay para evitar parpadeo al mover rápido el mouse
+              }
+            };
+            info.el.addEventListener('mouseenter', showTooltip);
+            info.el.addEventListener('mousemove', showTooltip);
+            info.el.addEventListener('mouseleave', hideTooltip);
+            // Limpieza para evitar fugas de memoria
+            info.el.addEventListener('mousedown', hideTooltip);
+            info.el.addEventListener('click', hideTooltip);
           }}
           key={`${calendarKey}-${isCollapsed}`}
         />

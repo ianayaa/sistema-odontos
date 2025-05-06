@@ -7,7 +7,7 @@ const prisma = new client_1.PrismaClient();
 const createAppointment = async (req, res) => {
     try {
         console.log('BODY:', req.body);
-        const { patientId, date, endDate, duration, notes, status, serviceId } = req.body;
+        const { patientId, date, endDate, duration, notes, status, serviceId, enviarMensaje } = req.body;
         const data = {
             patientId,
             userId: req.user.id,
@@ -24,20 +24,17 @@ const createAppointment = async (req, res) => {
         // Validar traslape de citas (dos pasos para evitar errores de linter)
         const start = new Date(date);
         const end = endDate ? new Date(endDate) : new Date(start.getTime() + (duration || 60) * 60000);
-        // 1. Buscar traslape con citas que SÍ tienen endDate
         const overlapWithEnd = await prisma.appointment.findFirst({
             where: {
                 userId: req.user.id,
                 status: { not: 'CANCELLED' },
                 endDate: { not: null },
                 date: { lt: end },
-                // Prisma no permite dos veces endDate, así que usamos AND
                 AND: [
                     { endDate: { gt: start } }
                 ]
             }
         });
-        // 2. Buscar traslape con citas que NO tienen endDate (por compatibilidad)
         const overlapWithoutEnd = await prisma.appointment.findFirst({
             where: {
                 userId: req.user.id,
@@ -56,9 +53,8 @@ const createAppointment = async (req, res) => {
                 user: true
             }
         });
-        // Enviar notificación de confirmación
-        console.log('Datos de la cita agendada:', appointment);
-        if (appointment.patient && appointment.patient.phone) {
+        // Solo enviar notificación si el usuario lo pidió
+        if (enviarMensaje && appointment.patient && appointment.patient.phone) {
             await (0, notificationService_1.sendAppointmentReminder)({
                 ...appointment,
                 patient: { ...appointment.patient, phone: appointment.patient.phone || '' }
@@ -128,18 +124,39 @@ exports.getAppointments = getAppointments;
 const updateAppointment = async (req, res) => {
     try {
         const { id } = req.params;
-        const { date, endDate, duration, status, notes } = req.body;
+        const { date, endDate, duration, status, notes, enviarMensaje } = req.body;
+        // Obtener la cita original para conocer su duración
+        const original = await prisma.appointment.findUnique({
+            where: { id },
+        });
+        if (!original) {
+            return res.status(404).json({ error: 'Cita no encontrada' });
+        }
         const updateData = {};
         if (date)
             updateData.date = new Date(date);
-        if (endDate)
-            updateData.endDate = new Date(endDate);
         if (duration !== undefined)
             updateData.duration = duration;
         if (status)
             updateData.status = status;
         if (notes !== undefined)
             updateData.notes = notes;
+        // Si se manda endDate explícitamente, úsalo
+        if (endDate) {
+            updateData.endDate = new Date(endDate);
+        }
+        else if (date && (original.duration || original.endDate)) {
+            // Si solo se mueve la cita, recalcula endDate
+            const dur = duration !== undefined ? duration : original.duration;
+            if (dur) {
+                updateData.endDate = new Date(new Date(date).getTime() + dur * 60000);
+            }
+            else if (original.endDate) {
+                // Si no hay duración pero sí endDate, conserva el mismo rango
+                const diff = new Date(original.endDate).getTime() - new Date(original.date).getTime();
+                updateData.endDate = new Date(new Date(date).getTime() + diff);
+            }
+        }
         const appointment = await prisma.appointment.update({
             where: { id },
             data: updateData,
@@ -149,7 +166,7 @@ const updateAppointment = async (req, res) => {
             }
         });
         // Si se cambió la fecha o el estado, enviar notificación
-        if ((date || status) && appointment.patient && appointment.patient.phone) {
+        if ((date || status) && appointment.patient && appointment.patient.phone && enviarMensaje) {
             await (0, notificationService_1.sendAppointmentReminder)({
                 ...appointment,
                 patient: { ...appointment.patient, phone: appointment.patient.phone || '' }
@@ -165,7 +182,7 @@ exports.updateAppointment = updateAppointment;
 const cancelAppointment = async (req, res) => {
     try {
         const { id } = req.params;
-        const { reason } = req.body;
+        const { reason, enviarMensaje } = req.body;
         const appointment = await prisma.appointment.update({
             where: { id },
             data: {
@@ -178,7 +195,7 @@ const cancelAppointment = async (req, res) => {
             }
         });
         // Enviar notificación de cancelación
-        if (appointment.patient && appointment.patient.phone) {
+        if (appointment.patient && appointment.patient.phone && enviarMensaje) {
             await (0, notificationService_1.sendAppointmentReminder)({
                 ...appointment,
                 patient: { ...appointment.patient, phone: appointment.patient.phone || '' }
