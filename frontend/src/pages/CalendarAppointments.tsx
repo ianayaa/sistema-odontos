@@ -1122,9 +1122,17 @@ const CalendarAppointments: React.FC = () => {
             const start = selectInfo.start;
             const end = selectInfo.end;
             const dateStr = format(start, 'yyyy-MM-dd');
+            const bloqueosFecha = businessHours.blockedHours.filter(b => b.date === dateStr);
+
+            // Si estás en la vista de mes, solo bloquea si el día está completamente bloqueado
+            if (view === 'dayGridMonth') {
+              // Si hay al menos un bloqueo en ese día, no permitir seleccionar
+              return bloqueosFecha.length === 0;
+            }
+
+            // En otras vistas, usa la lógica de traslape por hora
             const horaInicio = start.getHours() * 60 + start.getMinutes();
             const horaFin = end.getHours() * 60 + end.getMinutes();
-            const bloqueosFecha = businessHours.blockedHours.filter(b => b.date === dateStr);
             for (const block of bloqueosFecha) {
               const blockStart = parseInt(block.start.split(':')[0]) * 60 + parseInt(block.start.split(':')[1]);
               const blockEnd = parseInt(block.end.split(':')[0]) * 60 + parseInt(block.end.split(':')[1]);
