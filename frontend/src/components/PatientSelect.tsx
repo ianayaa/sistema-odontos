@@ -19,8 +19,22 @@ const PatientSelect: React.FC<PatientSelectProps> = ({ value, onChange, patients
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
 
+  // Función para normalizar texto (eliminar acentos y convertir a minúsculas)
+  const normalizeText = (text: string) => {
+    return text.toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  };
+
   const filtered = useMemo(
-    () => patients.filter(p => p.name.toLowerCase().includes(search.toLowerCase())),
+    () => patients.filter(p => {
+      const q = normalizeText(search);
+      return (
+        normalizeText(p.name).includes(q) ||
+        normalizeText(p.lastNamePaterno || '').includes(q) ||
+        normalizeText(p.lastNameMaterno || '').includes(q)
+      );
+    }),
     [patients, search]
   );
 

@@ -31,9 +31,16 @@ const Appointments: React.FC = () => {
     localStorage.setItem('showCalendar', showCalendar.toString());
   }, [showCalendar]);
 
+  // Función para normalizar texto (eliminar acentos y convertir a minúsculas)
+  const normalizeText = (text: string) => {
+    return text.toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  };
+
   // Búsqueda por paciente, fecha, estado o nota
   const filteredAppointments = appointments.filter(a => {
-    const q = search.toLowerCase();
+    const q = normalizeText(search);
     const today = new Date();
     const apptDate = new Date(a.date);
     let matchFilter = true;
@@ -46,9 +53,9 @@ const Appointments: React.FC = () => {
     }
     return (
       matchFilter && (
-        a.patient?.name?.toLowerCase().includes(q) ||
-        a.status?.toLowerCase().includes(q) ||
-        a.notes?.toLowerCase().includes(q) ||
+        normalizeText(a.patient?.name || '').includes(q) ||
+        normalizeText(a.status || '').includes(q) ||
+        normalizeText(a.notes || '').includes(q) ||
         new Date(a.date).toLocaleDateString().includes(q)
       )
     );

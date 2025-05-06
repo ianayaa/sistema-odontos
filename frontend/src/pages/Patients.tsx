@@ -81,13 +81,22 @@ const Patients: React.FC = () => {
     }
   };
 
+  // Función para normalizar texto (eliminar acentos y convertir a minúsculas)
+  const normalizeText = (text: string) => {
+    return text.toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  };
+
   // Filter patients by search
   const filteredPatients = patients.filter(p => {
-    const q = search.toLowerCase();
+    const q = normalizeText(search);
     return (
-      p.name.toLowerCase().includes(q) ||
-      (p.email && p.email.toLowerCase().includes(q)) ||
-      (p.phone && p.phone.toLowerCase().includes(q))
+      normalizeText(p.name).includes(q) ||
+      normalizeText(p.lastNamePaterno || '').includes(q) ||
+      normalizeText(p.lastNameMaterno || '').includes(q) ||
+      (p.email && normalizeText(p.email).includes(q)) ||
+      (p.phone && normalizeText(p.phone).includes(q))
     );
   });
 
