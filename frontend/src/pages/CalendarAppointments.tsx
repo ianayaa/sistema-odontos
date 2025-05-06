@@ -8,6 +8,7 @@ import esLocale from '@fullcalendar/core/locales/es';
 import { Calendar, Clock, User, Phone, X, Check, WarningCircle, CalendarBlank } from 'phosphor-react';
 import { Appointment, AppointmentStatus } from '../types/appointment';
 import { Calendar as ModernCalendar, utils } from 'react-modern-calendar-datepicker';
+import ModernDatePicker from '../components/ModernDatePicker';
 import '../styles/mini-calendar-custom.css';
 import { format, parseISO } from 'date-fns';
 import AddAppointmentModal from '../components/AddAppointmentModal';
@@ -21,7 +22,9 @@ import { DateCalendar, PickersDay } from '@mui/x-date-pickers';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { SidebarCollapsedContext } from '../components/DashboardLayout';
-import { message } from 'antd';
+import { message, Modal, ConfigProvider, TimePicker } from 'antd';
+import dayjs from 'dayjs';
+import esES from 'antd/lib/locale/es_ES';
 registerLocale('es', es);
 
 const dayOptions = [
@@ -105,6 +108,24 @@ const spanish = {
   yearLetterSkip: 0,
   isRtl: false
 };
+
+let globalTooltip: HTMLDivElement | null = null;
+let globalTooltipHideTimeout: NodeJS.Timeout | null = null;
+let globalTooltipShowTimeout: NodeJS.Timeout | null = null;
+
+function forceHideAppointmentTooltip() {
+  if (globalTooltipShowTimeout) clearTimeout(globalTooltipShowTimeout);
+  if (globalTooltipHideTimeout) clearTimeout(globalTooltipHideTimeout);
+  if (globalTooltip) {
+    globalTooltip.style.opacity = '0';
+    setTimeout(() => {
+      if (globalTooltip) {
+        globalTooltip.remove();
+        globalTooltip = null;
+      }
+    }, 120);
+  }
+}
 
 const CalendarAppointments: React.FC = () => {
   const calendarRef = useRef<FullCalendar | null>(null);
@@ -386,6 +407,7 @@ const CalendarAppointments: React.FC = () => {
     if (calendarRef.current) {
       calendarRef.current.getApi().changeView(newView);
     }
+    forceHideAppointmentTooltip();
   };
 
   // Maneja la navegación a hoy
@@ -394,6 +416,7 @@ const CalendarAppointments: React.FC = () => {
       calendarRef.current.getApi().today();
       setCurrentDate(new Date());
     }
+    forceHideAppointmentTooltip();
   };
 
   // Maneja la navegación anterior/siguiente
@@ -407,6 +430,7 @@ const CalendarAppointments: React.FC = () => {
       }
       setCurrentDate(api.getDate());
     }
+    forceHideAppointmentTooltip();
   };
 
   // Formatea la fecha según la vista actual
@@ -510,6 +534,9 @@ const CalendarAppointments: React.FC = () => {
     setEditMode(false);
   };
 
+  // Estado para mostrar modal de confirmación de notificación
+  const [notifyModal, setNotifyModal] = useState<{ visible: boolean; event?: any }>({ visible: false });
+
   // Maneja el drag & drop
   const handleEventDrop = async (arg: EventDropArg) => {
     // Validar si el nuevo horario está bloqueado
@@ -530,15 +557,34 @@ const CalendarAppointments: React.FC = () => {
       arg.revert();
       return;
     }
+    // Mostrar modal controlado para notificar
+    setNotifyModal({ visible: true, event: arg.event.extendedProps });
+    forceHideAppointmentTooltip();
+  };
+
+  // Función para manejar la acción del modal de notificación
+  const handleNotifyModal = async (shouldNotify: boolean) => {
+    if (!notifyModal.event) return;
+    const arg = notifyModal.event;
+    setNotifyModal({ visible: false });
     try {
       // Actualiza la cita en el backend con la nueva fecha
-      await api.put(`/appointments/${arg.event.id}`, {
-        date: format(arg.event.start!, "yyyy-MM-dd'T'HH:mm")
+      await api.put(`/appointments/${arg.id}`, {
+        date: format(arg.date, "yyyy-MM-dd'T'HH:mm"),
+        enviarMensaje: shouldNotify
       });
+      if (shouldNotify) {
+        // Enviar notificación (ajusta la ruta según tu backend)
+        await api.post(`/appointments/${arg.id}/notify`, { type: 'reschedule' });
+        message.success('Notificación enviada.');
+      } else {
+        message.success('Cita re agendada sin notificación.');
+      }
       setRefresh(r => !r);
     } catch (error) {
-      console.error('Error al actualizar la cita:', error);
-      arg.revert();
+      console.error('Error al actualizar la cita o notificar:', error);
+      // No revertir si solo fue error de notificación
+      message.error('Error al actualizar o notificar.');
     }
   };
 
@@ -737,6 +783,106 @@ const CalendarAppointments: React.FC = () => {
     };
   }, [calendarRef]);
 
+  // Maneja el evento de montaje de eventos
+  const handleEventDidMount = (info: any) => {
+    // Forzar color solo en la vista de mes
+    if (
+      info.view &&
+      info.view.type === 'dayGridMonth' &&
+      info.event.extendedProps &&
+      info.event.extendedProps.service &&
+      info.event.extendedProps.service.color
+    ) {
+      const bgColor = info.event.extendedProps.service.color;
+      info.el.style.backgroundColor = bgColor;
+      // Calcular color de texto adecuado
+      let textColor = '#fff';
+      if (bgColor.startsWith('#')) {
+        const hex = bgColor.replace('#', '');
+        const r = parseInt(hex.substring(0, 2), 16);
+        const g = parseInt(hex.substring(2, 4), 16);
+        const b = parseInt(hex.substring(4, 6), 16);
+        const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+        textColor = luminance > 0.6 ? '#222' : '#fff';
+      }
+      info.el.style.color = textColor;
+    }
+
+    const paciente = [
+      info.event.extendedProps.patient?.name,
+      info.event.extendedProps.patient?.lastNamePaterno,
+      info.event.extendedProps.patient?.lastNameMaterno
+    ].filter(Boolean).join(' ');
+
+    const servicio = info.event.extendedProps.service?.name || 'No especificado';
+    const color = info.event.extendedProps.service?.color || '#f3f4f6';
+    const telefono = info.event.extendedProps.patient?.phone || 'No registrado';
+    const doctor = info.event.extendedProps.doctor || 'No asignado';
+    const tratamiento = info.event.extendedProps.treatment || '';
+    const notas = info.event.extendedProps.notes || 'Sin notas';
+
+    const showTooltip = (e: MouseEvent) => {
+      if (globalTooltipHideTimeout) clearTimeout(globalTooltipHideTimeout);
+      if (!globalTooltip) {
+        globalTooltip = document.createElement('div');
+        globalTooltip.innerHTML = `
+          <div style="font-family: inherit; min-width:220px; max-width:320px; background: white; border-radius: 1rem; box-shadow: 0 4px 24px 0 #0002; border: 1px solid #eee; padding: 1rem;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+              <span style="display:inline-block; width:18px; height:18px; border-radius:50%; border:1px solid #eee; background:${color};"></span>
+              <span style="font-weight:600; color:#e11d48;">${paciente}</span>
+            </div>
+            <div style="font-size:15px; color:#222; margin-bottom:4px;"><b>Servicio:</b> ${servicio}</div>
+            ${tratamiento ? `<div style='font-size:14px; color:#2563eb; margin-bottom:4px;'><b>Tratamiento:</b> ${tratamiento}</div>` : ''}
+            <div style="font-size:14px; color:#444; margin-bottom:2px;"><b>Teléfono:</b> ${telefono}</div>
+            <div style="font-size:14px; color:#444; margin-bottom:2px;"><b>Doctor:</b> ${doctor}</div>
+            <div style="font-size:14px; color:#444; margin-bottom:2px;"><b>Notas:</b> ${notas}</div>
+          </div>
+        `;
+        globalTooltip.style.position = 'absolute';
+        globalTooltip.style.zIndex = '9999';
+        globalTooltip.style.pointerEvents = 'none';
+        globalTooltip.style.opacity = '0';
+        document.body.appendChild(globalTooltip);
+      }
+      const rect = (e.target as HTMLElement).getBoundingClientRect();
+      globalTooltip.style.top = `${rect.bottom + window.scrollY + 8}px`;
+      globalTooltip.style.left = `${rect.left + window.scrollX}px`;
+      globalTooltipShowTimeout = setTimeout(() => {
+        if (globalTooltip) globalTooltip.style.opacity = '1';
+      }, 60);
+    };
+    const hideTooltip = () => {
+      if (globalTooltipShowTimeout) clearTimeout(globalTooltipShowTimeout);
+      if (globalTooltip) {
+        globalTooltip.style.opacity = '0';
+        globalTooltipHideTimeout = setTimeout(() => {
+          if (globalTooltip) {
+            globalTooltip.remove();
+            globalTooltip = null;
+          }
+        }, 120);
+      }
+    };
+    info.el.addEventListener('mouseenter', showTooltip);
+    info.el.addEventListener('mousemove', showTooltip);
+    info.el.addEventListener('mouseleave', hideTooltip);
+    info.el.addEventListener('mousedown', hideTooltip);
+    info.el.addEventListener('click', hideTooltip);
+  };
+
+  // Llama a forceHideAppointmentTooltip en los siguientes lugares clave
+  const handleShowModal = (show: boolean) => {
+    if (!show) forceHideAppointmentTooltip();
+  };
+
+  const handleNotifyModalVisible = (visible: boolean) => {
+    if (!visible) forceHideAppointmentTooltip();
+  };
+
+  const handleModalInfo = (info: any) => {
+    if (!info) forceHideAppointmentTooltip();
+  };
+
   return (
     <div className="flex gap-4 h-full" style={{ minHeight: 'calc(100vh - 120px)' }}>
       {/* Botón flotante para mostrar el menú lateral si está oculto */}
@@ -767,8 +913,7 @@ const CalendarAppointments: React.FC = () => {
                     setCurrentDate(date);
                     setView('timeGridDay');
                     if (calendarRef.current) {
-                      const api = calendarRef.current.getApi();
-                      api.changeView('timeGridDay', date);
+                      calendarRef.current.getApi().changeView('timeGridDay', date);
                     }
                   }
                 }}
@@ -879,7 +1024,7 @@ const CalendarAppointments: React.FC = () => {
                           blockedHours: updated.blockedHours
                         }).catch(error => {
                           console.error('Error al guardar horario:', error);
-                          alert('Error al guardar el horario. Intenta de nuevo.');
+                          alert('Error al guardar el horario. Por favor intenta nuevamente.');
                       });
                       return updated;
                     });
@@ -920,7 +1065,7 @@ const CalendarAppointments: React.FC = () => {
                     timeIntervals={15}
                     timeCaption="Hora"
                     dateFormat="h:mm aa"
-                    className="w-full border-2 border-blue-200 rounded-xl px-3 py-2 bg-blue-50 text-gray-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
+                    className="w-full border-2 border-blue-200 rounded-xl px-3 py-2 bg-blue-50 text-gray-700"
                     placeholderText="Selecciona hora"
                   />
                 </div>
@@ -971,44 +1116,51 @@ const CalendarAppointments: React.FC = () => {
                 }}
               >
                 <div className="flex flex-col w-full">
-                  <label className="text-xs text-gray-600 mb-1">Fecha</label>
-                  <DatePicker
-                    selected={blockModal.date}
+                  {/* Usar ModernDatePicker para el día, igual que en nueva cita */}
+                  <ModernDatePicker
+                    value={blockModal.date}
                     onChange={(date: Date | null) => setBlockModal(prev => ({ ...prev, date }))}
-                    dateFormat="yyyy-MM-dd"
-                    className="w-full border-2 border-blue-200 rounded-xl px-3 py-2 bg-blue-50 text-gray-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
-                    placeholderText="Selecciona fecha"
+                    label="Fecha"
                   />
                 </div>
                 <div className="flex flex-col w-full">
                   <label className="text-xs text-gray-600 mb-1">Hora inicio</label>
-                  <DatePicker
-                    selected={blockModal.start ? new Date(`1970-01-01T${blockModal.start}:00`) : null}
-                    onChange={(date: Date | null) => setBlockModal(prev => ({ ...prev, start: date ? format(date, 'HH:mm') : '' }))}
-                    showTimeSelect
-                    showTimeSelectOnly
-                    timeIntervals={15}
-                    timeCaption="Hora"
-                    dateFormat="h:mm aa"
-                    className="w-full border-2 border-blue-200 rounded-xl px-3 py-2 bg-blue-50 text-gray-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
-                    placeholderText="Selecciona hora"
-                  />
+                  {/* Usar TimePicker de Ant Design para la hora */}
+                  <ConfigProvider locale={esES}>
+                    <TimePicker
+                      value={blockModal.start ? dayjs(`1970-01-01T${blockModal.start}:00`) : null}
+                      onChange={time => setBlockModal(prev => ({ ...prev, start: time ? time.format('HH:mm') : '' }))}
+                      format="HH:mm"
+                      minuteStep={15}
+                      className="w-full !rounded-xl !py-2 !px-3 !border-gray-200 focus:!border-red-400 focus:!ring-2 focus:!ring-red-100 bg-white text-gray-700 shadow-sm hover:!border-red-300"
+                      placeholder="Selecciona hora"
+                      popupClassName="z-[1100]"
+                      style={{ width: '100%' }}
+                    />
+                  </ConfigProvider>
                 </div>
                 <span className="text-center text-gray-400 text-xs">a</span>
                 <div className="flex flex-col w-full">
                   <label className="text-xs text-gray-600 mb-1">Hora fin</label>
-                  <DatePicker
-                    selected={blockModal.end ? new Date(`1970-01-01T${blockModal.end}:00`) : null}
-                    onChange={(date: Date | null) => setBlockModal(prev => ({ ...prev, end: date ? format(date, 'HH:mm') : '' }))}
-                    showTimeSelect
-                    showTimeSelectOnly
-                    timeIntervals={15}
-                    timeCaption="Hora"
-                    dateFormat="h:mm aa"
-                    className="w-full border-2 border-blue-200 rounded-xl px-3 py-2 bg-blue-50 text-gray-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
-                    placeholderText="Selecciona hora"
-                  />
+                  <ConfigProvider locale={esES}>
+                    <TimePicker
+                      value={blockModal.end ? dayjs(`1970-01-01T${blockModal.end}:00`) : null}
+                      onChange={time => setBlockModal(prev => ({ ...prev, end: time ? time.format('HH:mm') : '' }))}
+                      format="HH:mm"
+                      minuteStep={15}
+                      className="w-full !rounded-xl !py-2 !px-3 !border-gray-200 focus:!border-red-400 focus:!ring-2 focus:!ring-red-100 bg-white text-gray-700 shadow-sm hover:!border-red-300"
+                      placeholder="Selecciona hora"
+                      popupClassName="z-[1100]"
+                      style={{ width: '100%' }}
+                    />
+                  </ConfigProvider>
                 </div>
+                <button
+                  type="submit"
+                  className="w-full mt-2 bg-gradient-to-r from-yellow-400 to-yellow-300 hover:from-yellow-500 hover:to-yellow-400 text-yellow-900 font-bold py-2 px-4 rounded-xl transition-all duration-200 shadow-md text-base"
+                >
+                  Bloquear horario
+                </button>
               </form>
               <div className="mt-3">
                 <h5 className="text-xs font-semibold text-gray-700 mb-1">Horarios bloqueados</h5>
@@ -1176,6 +1328,7 @@ const CalendarAppointments: React.FC = () => {
           editable={true}
           eventDrop={handleEventDrop}
           eventContent={renderEventContent}
+          eventDidMount={handleEventDidMount}
           datesSet={(dateInfo) => {
             const today = new Date();
             if (currentDate.toDateString() === today.toDateString()) return;
@@ -1215,89 +1368,8 @@ const CalendarAppointments: React.FC = () => {
           moreLinkClick="popover"
           eventMaxStack={2}
           eventOrder="start,-duration,title"
-          eventDidMount={(info) => {
-            // Forzar color solo en la vista de mes
-            if (info.view.type === 'dayGridMonth' && info.event.extendedProps && info.event.extendedProps.service && info.event.extendedProps.service.color) {
-              info.el.style.backgroundColor = info.event.extendedProps.service.color;
-              // Calcular color de texto adecuado
-              const bgColor = info.event.extendedProps.service.color;
-              let textColor = '#fff';
-              if (bgColor.startsWith('#')) {
-                const hex = bgColor.replace('#', '');
-                const r = parseInt(hex.substring(0, 2), 16);
-                const g = parseInt(hex.substring(2, 4), 16);
-                const b = parseInt(hex.substring(4, 6), 16);
-                const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-                textColor = luminance > 0.6 ? '#222' : '#fff';
-              }
-              info.el.style.color = textColor;
-            }
-            const paciente = [
-              info.event.extendedProps.patient?.name,
-              info.event.extendedProps.patient?.lastNamePaterno,
-              info.event.extendedProps.patient?.lastNameMaterno
-            ].filter(Boolean).join(' ');
-
-            const servicio = info.event.extendedProps.service?.name || 'No especificado';
-            const color = info.event.extendedProps.service?.color || '#f3f4f6';
-            const telefono = info.event.extendedProps.patient?.phone || 'No registrado';
-            const doctor = info.event.extendedProps.doctor || 'No asignado';
-            const tratamiento = info.event.extendedProps.treatment || '';
-            const notas = info.event.extendedProps.notes || 'Sin notas';
-
-            // Tooltip: Mejor manejo para evitar freezing
-            let tooltip: HTMLDivElement | null = null;
-            let hideTimeout: NodeJS.Timeout | null = null;
-            let showTimeout: NodeJS.Timeout | null = null;
-            const showTooltip = (e: MouseEvent) => {
-              if (hideTimeout) clearTimeout(hideTimeout);
-              if (!tooltip) {
-                tooltip = document.createElement('div');
-                tooltip.innerHTML = `
-                  <div style="font-family: inherit; min-width:220px; max-width:320px; background: white; border-radius: 1rem; box-shadow: 0 4px 24px 0 #0002; border: 1px solid #eee; padding: 1rem;">
-                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-                      <span style="display:inline-block; width:18px; height:18px; border-radius:50%; border:1px solid #eee; background:${color};"></span>
-                      <span style="font-weight:600; color:#e11d48;">${paciente}</span>
-                    </div>
-                    <div style="font-size:15px; color:#222; margin-bottom:4px;"><b>Servicio:</b> ${servicio}</div>
-                    ${tratamiento ? `<div style='font-size:14px; color:#2563eb; margin-bottom:4px;'><b>Tratamiento:</b> ${tratamiento}</div>` : ''}
-                    <div style="font-size:14px; color:#444; margin-bottom:2px;"><b>Teléfono:</b> ${telefono}</div>
-                    <div style="font-size:14px; color:#444; margin-bottom:2px;"><b>Doctor:</b> ${doctor}</div>
-                    <div style="font-size:14px; color:#444; margin-bottom:2px;"><b>Notas:</b> ${notas}</div>
-                  </div>
-                `;
-                tooltip.style.position = 'absolute';
-                tooltip.style.zIndex = '9999';
-                tooltip.style.pointerEvents = 'none';
-                tooltip.style.opacity = '0';
-                document.body.appendChild(tooltip);
-              }
-              const rect = (e.target as HTMLElement).getBoundingClientRect();
-              tooltip.style.top = `${rect.bottom + window.scrollY + 8}px`;
-              tooltip.style.left = `${rect.left + window.scrollX}px`;
-              showTimeout = setTimeout(() => {
-                if (tooltip) tooltip.style.opacity = '1';
-              }, 60); // Mostrar rápido pero no instantáneo
-            };
-            const hideTooltip = () => {
-              if (showTimeout) clearTimeout(showTimeout);
-              if (tooltip) {
-                tooltip.style.opacity = '0';
-                hideTimeout = setTimeout(() => {
-                  if (tooltip) {
-                    tooltip.remove();
-                    tooltip = null;
-                  }
-                }, 120); // Delay para evitar parpadeo al mover rápido el mouse
-              }
-            };
-            info.el.addEventListener('mouseenter', showTooltip);
-            info.el.addEventListener('mousemove', showTooltip);
-            info.el.addEventListener('mouseleave', hideTooltip);
-            // Limpieza para evitar fugas de memoria
-            info.el.addEventListener('mousedown', hideTooltip);
-            info.el.addEventListener('click', hideTooltip);
-          }}
+          eventDragStart={() => forceHideAppointmentTooltip()}
+          eventDragStop={() => forceHideAppointmentTooltip()}
           key={`${calendarKey}-${isCollapsed}`}
         />
       </div>
@@ -1308,14 +1380,14 @@ const CalendarAppointments: React.FC = () => {
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-0 relative overflow-hidden animate-fadeInUp">
             <div className="flex items-center gap-3 bg-gradient-to-r from-red-100 to-red-50 px-8 py-6 border-b border-red-100">
               <div className="bg-red-200 text-red-600 rounded-full p-3">
-                <Calendar size={30} weight="duotone" />
+                <Clock size={30} weight="duotone" />
               </div>
               <div className="flex-1">
                 <h3 className="text-xl font-bold text-gray-800">Detalles de la cita</h3>
                 <div className="text-gray-400 text-sm">Puedes reagendar, cancelar o eliminar la cita</div>
               </div>
               <button
-                className="ml-auto text-gray-400 hover:text-red-600 text-2xl font-bold p-1 rounded-full transition-colors focus:outline-none"
+                className="ml-auto text-gray-400 hover:text-red-600 text-2xl font-bold p-1 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-red-200"
                 onClick={() => setModalInfo(null)}
                 aria-label="Cerrar"
                 type="button"
@@ -1382,7 +1454,7 @@ const CalendarAppointments: React.FC = () => {
                         setModalInfo(null);
                         setRefresh(r => !r);
                       }}
-                      className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-red-500 text-white rounded-lg shadow-sm hover:bg-red-600 transition-all font-medium text-sm focus:outline-none focus:ring-1 focus:ring-red-200"
+                      className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-red-500 text-white rounded-lg shadow-sm hover:bg-red-600 transition-all font-medium text-sm focus:outline-none focus:ring-2 focus:ring-red-200"
                     >
                       <X size={16} weight='bold' /> Eliminar
                     </button>
@@ -1390,14 +1462,14 @@ const CalendarAppointments: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setEditForm((f: any) => ({ ...f, status: 'cancelada' }))}
-                        className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-yellow-400 text-yellow-900 rounded-lg shadow-sm hover:bg-yellow-500 transition-all font-medium text-sm focus:outline-none focus:ring-1 focus:ring-yellow-200"
+                        className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-yellow-400 text-yellow-900 rounded-lg shadow-sm hover:bg-yellow-500 transition-all font-medium text-sm focus:outline-none focus:ring-2 focus:ring-yellow-200"
                       >
                         <WarningCircle size={16} weight='bold' /> Cancelar cita
                       </button>
                     )}
                     <button
                       type="submit"
-                      className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-blue-600 text-white rounded-lg shadow-sm hover:bg-blue-700 transition-all font-medium text-sm focus:outline-none focus:ring-1 focus:ring-blue-200"
+                      className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-blue-600 text-white rounded-lg shadow-sm hover:bg-blue-700 transition-all font-medium text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                     >
                       <Check size={16} weight='bold' /> Guardar
                     </button>
@@ -1420,7 +1492,7 @@ const CalendarAppointments: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock size={20} weight="bold" className="text-red-600" />
-                  <span>{new Date(modalInfo.date).toLocaleString('es-ES')}</span>
+                  <span>{new Date(modalInfo.date).toLocaleString('es-MX')}</span>
                 </div>
                 <div className="pt-2">
                   <span className="font-medium">Doctor:</span>
@@ -1448,7 +1520,7 @@ const CalendarAppointments: React.FC = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <button
                       onClick={() => setEditMode(true)}
-                      className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-blue-100 text-blue-700 rounded-lg shadow-sm hover:bg-blue-200 transition-all font-medium text-sm focus:outline-none focus:ring-1 focus:ring-blue-200"
+                      className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-blue-100 text-blue-700 rounded-lg shadow-sm hover:bg-blue-200 transition-all font-medium text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                     >
                       <Clock size={16} weight='bold' /> Reagendar
                     </button>
@@ -1458,7 +1530,7 @@ const CalendarAppointments: React.FC = () => {
                         setModalInfo(null);
                         setRefresh(r => !r);
                       }}
-                      className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-red-500 text-white rounded-lg shadow-sm hover:bg-red-600 transition-all font-medium text-sm focus:outline-none focus:ring-1 focus:ring-red-200"
+                      className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-red-500 text-white rounded-lg shadow-sm hover:bg-red-600 transition-all font-medium text-sm focus:outline-none focus:ring-2 focus:ring-red-200"
                     >
                       <X size={16} weight='bold' /> Eliminar
                     </button>
@@ -1469,7 +1541,7 @@ const CalendarAppointments: React.FC = () => {
                           setModalInfo(null);
                           setRefresh(r => !r);
                         }}
-                        className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-yellow-400 text-yellow-900 rounded-lg shadow-sm hover:bg-yellow-500 transition-all font-medium text-sm focus:outline-none focus:ring-1 focus:ring-yellow-200"
+                        className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-yellow-400 text-yellow-900 rounded-lg shadow-sm hover:bg-yellow-500 transition-all font-medium text-sm focus:outline-none focus:ring-2 focus:ring-yellow-200"
                       >
                         <WarningCircle size={16} weight='bold' /> Cancelar cita
                       </button>
@@ -1482,6 +1554,64 @@ const CalendarAppointments: React.FC = () => {
         </div>
       )}
 
+      {/* Modal personalizado para notificación de re-agenda */}
+      {notifyModal.visible && notifyModal.event && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-0 relative overflow-hidden animate-fadeInUp">
+            <div className="flex items-center gap-3 bg-gradient-to-r from-red-100 to-red-50 px-8 py-6 border-b border-red-100">
+              <div className="bg-red-200 text-red-600 rounded-full p-3">
+                <Clock size={30} weight="duotone" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-gray-800">Cita reagendada</h3>
+                <div className="text-gray-400 text-sm">¿Desea notificar al paciente sobre el cambio?</div>
+              </div>
+              <button
+                className="ml-auto text-gray-400 hover:text-red-600 text-2xl font-bold p-1 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-red-200"
+                onClick={() => setNotifyModal({ visible: false, event: null })}
+                aria-label="Cerrar"
+                type="button"
+              >
+                <svg width="28" height="28" fill="none" stroke="#e11d48" strokeWidth="2.2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+              </button>
+            </div>
+            <div className="px-8 py-7">
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-3 mb-4">
+                  {notifyModal.event.service?.color && (
+                    <span className="inline-block w-6 h-6 rounded-full border-2 border-gray-200" style={{ background: notifyModal.event.service.color }}></span>
+                  )}
+                  <span className="font-semibold text-gray-700 text-base">{notifyModal.event.service?.name || 'Sin servicio'}</span>
+                </div>
+                <div className="text-gray-700 text-sm mb-2">
+                  <b>Paciente:</b> {notifyModal.event.patient?.name} {notifyModal.event.patient?.lastNamePaterno || ''} {notifyModal.event.patient?.lastNameMaterno || ''}
+                </div>
+                <div className="text-gray-700 text-sm mb-2">
+                  <b>Fecha:</b> {notifyModal.event.date ? new Date(notifyModal.event.date).toLocaleString('es-MX') : '-'}
+                </div>
+                <div className="text-gray-700 text-sm mb-2">
+                  <b>Doctor:</b> {notifyModal.event.doctor || 'No asignado'}
+                </div>
+                <button
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-red-600 text-white font-bold text-base shadow hover:bg-red-700 transition-all focus:outline-none focus:ring-2 focus:ring-red-200"
+                  onClick={async () => {
+                    await api.post(`/appointments/${notifyModal.event.id}/notify`, { type: 'reschedule' });
+                    setNotifyModal({ visible: false, event: null });
+                  }}
+                >
+                  <span>Notificar paciente</span>
+                </button>
+                <button
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-gray-100 text-gray-700 font-bold text-base shadow hover:bg-gray-200 transition-all focus:outline-none focus:ring-2 focus:ring-gray-200"
+                  onClick={() => setNotifyModal({ visible: false, event: null })}
+                >
+                  <span>No notificar</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {showModal && (
         <AddAppointmentModal
           onClose={() => setShowModal(false)}
