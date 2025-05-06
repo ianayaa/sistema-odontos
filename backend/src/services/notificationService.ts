@@ -59,39 +59,19 @@ export const sendNotification = async (options: NotificationOptions) => {
   }
 };
 
-export const sendAppointmentReminder = async (appointment: any & { patient: { phone: string, name: string }, user?: { name?: string } }) => {
-  const { patient, date, endDate, duration, user } = appointment;
-  const fecha = new Date(date).toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric' });
-  const hora = new Date(date).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
-  const nombrePaciente = patient.name || 'Paciente';
-  const nombreDoctor = user?.name || 'Tu dentista';
-  const duracion = duration ? `${duration} min` : endDate ? `${Math.round((new Date(endDate).getTime() - new Date(date).getTime())/60000)} min` : '---';
-  const direccion = 'Av. Manuel Lepe Macedo 208, Plaza Kobá, Local 17 Planta Baja, Guadalupe Victoria, 48317 Puerto Vallarta, Jal.';
-
-  // Enlace largo
-  const enlaceLargo = `https://odontosdentaloffice.com/confirmar-cita/${appointment.id}`;
-  // Obtener enlace corto
-  let enlaceConfirmacion = enlaceLargo;
-  try {
-    const res = await axios.post(`${process.env.SHORTENER_API_URL || 'http://localhost:3000/api/shortener'}`, { url: enlaceLargo });
-    enlaceConfirmacion = res.data.short;
-  } catch (e) {
-    // Si falla, usa el largo
+export const sendAppointmentReminder = async (appointment: any & { patient: { phone: string, name: string }, customMessage?: string, user?: { name?: string } }) => {
+  const { patient, date, customMessage } = appointment;
+  let mensajeSMS = customMessage;
+  if (!mensajeSMS) {
+    // Mensaje mínimo para nueva cita
+    mensajeSMS = `Odontos: ${patient.name}, tu cita es el ${new Date(date).toLocaleDateString('es-MX')} a las ${new Date(date).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}.`;
   }
-  const mensajeSMS = `Odontos Dental Office: ${nombrePaciente}, tu cita es el ${fecha} ${hora}. Te esperamos en la clínica.`;
   console.log('Preparando SMS:', mensajeSMS);
   await sendNotification({
     type: 'SMS',
     to: patient.phone,
     message: mensajeSMS
   });
-  // WhatsApp desactivado temporalmente
-  // await sendNotification({
-  //   type: 'WHATSAPP',
-  //   to: patient.phone,
-  //   message: mensajeWhatsApp
-  // });
-  // console.log('WhatsApp enviado');
 };
 
 export const sendPaymentReminder = async (payment: any & { patient: { phone: string } }) => {

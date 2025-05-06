@@ -8,7 +8,8 @@ import {
   deleteAppointment,
   getDentistSchedule,
   upsertDentistSchedule,
-  publicConfirmAppointment
+  publicConfirmAppointment,
+  notifyAppointmentChange
 } from '../controllers/appointmentController';
 import { authenticateToken, isDentist } from '../middleware/auth';
 
@@ -25,6 +26,9 @@ router.put('/:id', wrapAsync(updateAppointment));
 router.post('/:id/cancel', wrapAsync(cancelAppointment));
 router.get('/patient/:patientId', wrapAsync(getPatientAppointments));
 router.delete('/:id', wrapAsync(deleteAppointment));
+
+// Nueva ruta para notificar cambio de cita
+router.post('/:id/notify', wrapAsync(notifyAppointmentChange));
 
 // Rutas para configuración de horarios/bloqueos del dentista autenticado
 router.get('/schedule', isDentist, wrapAsync(getDentistSchedule));

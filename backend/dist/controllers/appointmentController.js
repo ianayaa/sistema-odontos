@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getPatientsWithActiveAppointments = exports.publicConfirmAppointment = exports.upsertDentistSchedule = exports.getDentistSchedule = exports.deleteAppointment = exports.getPatientAppointments = exports.cancelAppointment = exports.updateAppointment = exports.getAppointments = exports.createAppointment = void 0;
+exports.notifyAppointmentChange = exports.getPatientsWithActiveAppointments = exports.publicConfirmAppointment = exports.upsertDentistSchedule = exports.getDentistSchedule = exports.deleteAppointment = exports.getPatientAppointments = exports.cancelAppointment = exports.updateAppointment = exports.getAppointments = exports.createAppointment = void 0;
 const client_1 = require("@prisma/client");
 const notificationService_1 = require("../services/notificationService");
 const prisma = new client_1.PrismaClient();
@@ -356,3 +356,30 @@ const getPatientsWithActiveAppointments = async (req, res) => {
     }
 };
 exports.getPatientsWithActiveAppointments = getPatientsWithActiveAppointments;
+// Notificar cambio de cita (reagendada, etc.)
+const notifyAppointmentChange = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { type } = req.body;
+        const appointment = await prisma.appointment.findUnique({
+            where: { id },
+            include: { patient: true, user: true, service: true }
+        });
+        if (!appointment || !appointment.patient || !appointment.patient.phone) {
+            return res.status(404).json({ error: 'Cita o paciente no encontrado.' });
+        }
+        // Mensaje corto para SMS (Twilio):
+        const msg = `Odontos: Cita reagendada ${appointment.service?.name ? '[' + appointment.service.name + ']' : ''} a ${appointment.date.toLocaleDateString('es-MX')} a las ${appointment.date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}.`;
+        await (0, notificationService_1.sendAppointmentReminder)({
+            ...appointment,
+            patient: { ...appointment.patient, phone: appointment.patient.phone || '' },
+            customMessage: msg
+        });
+        return res.json({ success: true });
+    }
+    catch (error) {
+        console.error('Error al notificar cambio de cita:', error);
+        return res.status(500).json({ error: 'No se pudo notificar al paciente.' });
+    }
+};
+exports.notifyAppointmentChange = notifyAppointmentChange;

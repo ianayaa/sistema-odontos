@@ -356,3 +356,29 @@ export const getPatientsWithActiveAppointments = async (req: Request, res: Respo
     res.status(500).json({ error: 'Error al obtener pacientes con cita activa' });
   }
 };
+
+// Notificar cambio de cita (reagendada, etc.)
+export const notifyAppointmentChange = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { type } = req.body;
+    const appointment = await prisma.appointment.findUnique({
+      where: { id },
+      include: { patient: true, user: true, service: true }
+    });
+    if (!appointment || !appointment.patient || !appointment.patient.phone) {
+      return res.status(404).json({ error: 'Cita o paciente no encontrado.' });
+    }
+    // Mensaje corto para SMS (Twilio):
+    const msg = `Odontos: Cita reagendada ${appointment.service?.name ? '[' + appointment.service.name + ']' : ''} a ${appointment.date.toLocaleDateString('es-MX')} a las ${appointment.date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}.`;
+    await sendAppointmentReminder({
+      ...appointment,
+      patient: { ...appointment.patient, phone: appointment.patient.phone || '' },
+      customMessage: msg
+    });
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('Error al notificar cambio de cita:', error);
+    return res.status(500).json({ error: 'No se pudo notificar al paciente.' });
+  }
+};

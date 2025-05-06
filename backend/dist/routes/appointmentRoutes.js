@@ -16,6 +16,8 @@ router.put('/:id', wrapAsync(appointmentController_1.updateAppointment));
 router.post('/:id/cancel', wrapAsync(appointmentController_1.cancelAppointment));
 router.get('/patient/:patientId', wrapAsync(appointmentController_1.getPatientAppointments));
 router.delete('/:id', wrapAsync(appointmentController_1.deleteAppointment));
+// Nueva ruta para notificar cambio de cita
+router.post('/:id/notify', wrapAsync(appointmentController_1.notifyAppointmentChange));
 // Rutas para configuración de horarios/bloqueos del dentista autenticado
 router.get('/schedule', auth_1.isDentist, wrapAsync(appointmentController_1.getDentistSchedule));
 router.post('/schedule', auth_1.isDentist, wrapAsync(appointmentController_1.upsertDentistSchedule));
