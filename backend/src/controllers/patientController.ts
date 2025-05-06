@@ -38,27 +38,13 @@ export const createPatient = async (req: Request, res: Response) => {
 
 export const getPatients = async (req: Request, res: Response) => {
   try {
-    let patients;
-    if (req.user?.role === 'ADMIN') {
-      // El admin ve todos los pacientes
-      patients = await prisma.patient.findMany({
-        include: {
-          medicalHistory: true,
-          appointments: true
-        }
-      });
-    } else {
-      // Los demás solo ven los suyos
-      patients = await prisma.patient.findMany({
-        where: {
-          userId: req.user!.id
-        },
-        include: {
-          medicalHistory: true,
-          appointments: true
-        }
-      });
-    }
+    // Obtener todos los pacientes sin filtrar por userId
+    const patients = await prisma.patient.findMany({
+      include: {
+        medicalHistory: true,
+        appointments: true
+      }
+    });
     res.json(patients.map(formatPatientDate));
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener pacientes' });
