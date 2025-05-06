@@ -25,7 +25,7 @@ const Login: React.FC = () => {
     <div
       className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8"
       style={{
-        backgroundImage: 'url(/img/fondo-login-odontos.png)',
+        backgroundImage: 'url(./img/fondo-login-odontos.png)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
