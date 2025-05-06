@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { UserCircle } from 'phosphor-react';
 import { EyeIcon, EyeSlashIcon, EnvelopeIcon, LockClosedIcon } from '@heroicons/react/24/outline';
+import fondoLogin from '../assets/img/fondo-login-odontos.png';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -25,7 +26,7 @@ const Login: React.FC = () => {
     <div
       className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8"
       style={{
-        backgroundImage: 'url(%PUBLIC_URL%/img/fondo-login-odontos.png)',
+        backgroundImage: `url(${fondoLogin})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
