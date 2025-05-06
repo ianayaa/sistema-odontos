@@ -2,6 +2,7 @@
   "name": "frontend",
   "version": "0.1.0",
   "private": true,
+  "homepage": ".",
   "proxy": "http://localhost:3000",
   "dependencies": {
     "@date-io/date-fns": "^3.2.1",
