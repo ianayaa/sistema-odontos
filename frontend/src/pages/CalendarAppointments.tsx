@@ -25,6 +25,7 @@ import { SidebarCollapsedContext } from '../components/DashboardLayout';
 import { message, Modal, ConfigProvider, TimePicker } from 'antd';
 import dayjs from 'dayjs';
 import esES from 'antd/lib/locale/es_ES';
+import EditAppointmentModal from '../components/EditAppointmentModal';
 registerLocale('es', es);
 
 const dayOptions = [
@@ -156,8 +157,8 @@ const CalendarAppointments: React.FC = () => {
     end: ''
   });
   const [refresh, setRefresh] = useState(false);
-  const [editMode, setEditMode] = useState(false);
-  const [editForm, setEditForm] = useState<any>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editAppointment, setEditAppointment] = useState<any>(null);
   const { user } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [newDuration, setNewDuration] = useState<number | undefined>(undefined);
@@ -527,11 +528,6 @@ const CalendarAppointments: React.FC = () => {
   const handleEventClick = (arg: EventClickArg) => {
     const cita = arg.event.extendedProps;
     setModalInfo(cita);
-    setEditForm({
-      ...cita,
-      date: cita.date ? format(new Date(cita.date), "yyyy-MM-dd'T'HH:mm") : ''
-    });
-    setEditMode(false);
   };
 
   // Estado para mostrar modal de confirmación de notificación
@@ -1395,161 +1391,79 @@ const CalendarAppointments: React.FC = () => {
                 <svg width="28" height="28" fill="none" stroke="#e11d48" strokeWidth="2.2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
               </button>
             </div>
-            {editMode ? (
-              <form
-                onSubmit={async e => {
-                  e.preventDefault();
-                  await api.put(`/appointments/${editForm.id}`, editForm);
-                  setModalInfo(null);
-                  setRefresh(r => !r);
-                }}
-                className="space-y-4 px-8 py-7"
-              >
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Paciente</label>
-                  <input
-                    type="text"
-                    value={editForm.patient?.name || ''}
-                    disabled
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 text-gray-700"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Fecha y hora</label>
-                  <input
-                    type="datetime-local"
-                    value={editForm.date ? editForm.date.substring(0, 16) : ''}
-                    onChange={(e) => setEditForm((f: any) => ({ ...f, date: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 text-gray-700"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Estado</label>
-                  <select
-                    value={editForm.status}
-                    onChange={(e) => setEditForm((f: any) => ({ ...f, status: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 text-gray-700"
-                  >
-                    <option value="pendiente">Pendiente</option>
-                    <option value="confirmada">Confirmada</option>
-                    <option value="cancelada">Cancelada</option>
-                    <option value="reagendada">Reagendada</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Notas</label>
-                  <textarea
-                    value={editForm.notes || ''}
-                    onChange={(e) => setEditForm((f: any) => ({ ...f, notes: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 bg-gray-50 text-gray-700"
-                    rows={2}
-                  />
-                </div>
-                <div className="flex flex-col gap-2 mt-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        await api.delete(`/appointments/${editForm.id}`);
-                        setModalInfo(null);
-                        setRefresh(r => !r);
-                      }}
-                      className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-red-500 text-white rounded-lg shadow-sm hover:bg-red-600 transition-all font-medium text-sm focus:outline-none focus:ring-2 focus:ring-red-200"
-                    >
-                      <X size={16} weight='bold' /> Eliminar
-                    </button>
-                    {!editMode && (
-                      <button
-                        type="button"
-                        onClick={() => setEditForm((f: any) => ({ ...f, status: 'cancelada' }))}
-                        className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-yellow-400 text-yellow-900 rounded-lg shadow-sm hover:bg-yellow-500 transition-all font-medium text-sm focus:outline-none focus:ring-2 focus:ring-yellow-200"
-                      >
-                        <WarningCircle size={16} weight='bold' /> Cancelar cita
-                      </button>
-                    )}
-                    <button
-                      type="submit"
-                      className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-blue-600 text-white rounded-lg shadow-sm hover:bg-blue-700 transition-all font-medium text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
-                    >
-                      <Check size={16} weight='bold' /> Guardar
-                    </button>
-                  </div>
-                </div>
-              </form>
-            ) : (
-              <div className="space-y-3 px-8 py-7">
+            <div className="space-y-3 px-8 py-7">
+              <div className="flex items-center gap-2">
+                <User size={20} weight="bold" className="text-red-600" />
+                <span className="font-medium">
+                  {modalInfo.patient?.name}
+                  {modalInfo.patient?.lastNamePaterno ? ' ' + modalInfo.patient.lastNamePaterno : ''}
+                  {modalInfo.patient?.lastNameMaterno ? ' ' + modalInfo.patient.lastNameMaterno : ''}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Phone size={20} weight="bold" className="text-red-600" />
+                <span>{modalInfo.patient?.phone || 'No registrado'}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock size={20} weight="bold" className="text-red-600" />
+                <span>{new Date(modalInfo.date).toLocaleString('es-MX')}</span>
+              </div>
+              <div className="pt-2">
+                <span className="font-medium">Doctor:</span>
+                <p className="text-gray-600">{modalInfo.doctor || 'No asignado'}</p>
+              </div>
+              <div className="pt-2">
+                <span className="font-medium">Tratamiento:</span>
                 <div className="flex items-center gap-2">
-                  <User size={20} weight="bold" className="text-red-600" />
-                  <span className="font-medium">
-                    {modalInfo.patient?.name}
-                    {modalInfo.patient?.lastNamePaterno ? ' ' + modalInfo.patient.lastNamePaterno : ''}
-                    {modalInfo.patient?.lastNameMaterno ? ' ' + modalInfo.patient.lastNameMaterno : ''}
+                  {modalInfo.service?.color && (
+                    <span className="inline-block w-4 h-4 rounded-full border border-gray-200" style={{ background: modalInfo.service.color }}></span>
+                  )}
+                  <span className="text-gray-800 break-words whitespace-pre-line">
+                    {modalInfo.service?.name || 'No especificado'}
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Phone size={20} weight="bold" className="text-red-600" />
-                  <span>{modalInfo.patient?.phone || 'No registrado'}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock size={20} weight="bold" className="text-red-600" />
-                  <span>{new Date(modalInfo.date).toLocaleString('es-MX')}</span>
-                </div>
-                <div className="pt-2">
-                  <span className="font-medium">Doctor:</span>
-                  <p className="text-gray-600">{modalInfo.doctor || 'No asignado'}</p>
-                </div>
-                <div className="pt-2">
-                  <span className="font-medium">Tratamiento:</span>
-                  <div className="flex items-center gap-2">
-                    {modalInfo.service?.color && (
-                      <span className="inline-block w-4 h-4 rounded-full border border-gray-200" style={{ background: modalInfo.service.color }}></span>
-                    )}
-                    <span className="text-gray-800 break-words whitespace-pre-line">
-                      {modalInfo.service?.name || 'No especificado'}
-                    </span>
-                  </div>
-                  {modalInfo.treatment && (
-                    <p className="text-gray-600 text-xs mt-1">{modalInfo.treatment}</p>
-                  )}
-                </div>
-                <div className="pt-2">
-                  <span className="font-medium">Notas:</span>
-                  <p className="text-gray-600">{modalInfo.notes || 'Sin notas'}</p>
-                </div>
-                <div className="flex flex-col gap-2 mt-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    <button
-                      onClick={() => setEditMode(true)}
-                      className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-blue-100 text-blue-700 rounded-lg shadow-sm hover:bg-blue-200 transition-all font-medium text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
-                    >
-                      <Clock size={16} weight='bold' /> Reagendar
-                    </button>
-                    <button
-                      onClick={async () => {
-                        await api.delete(`/appointments/${modalInfo.id}`);
-                        setModalInfo(null);
-                        setRefresh(r => !r);
-                      }}
-                      className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-red-500 text-white rounded-lg shadow-sm hover:bg-red-600 transition-all font-medium text-sm focus:outline-none focus:ring-2 focus:ring-red-200"
-                    >
-                      <X size={16} weight='bold' /> Eliminar
-                    </button>
-                    {!editMode && (
-                      <button
-                        onClick={async () => {
-                          await api.put(`/appointments/${modalInfo.id}`, { ...modalInfo, status: 'cancelada' });
-                          setModalInfo(null);
-                          setRefresh(r => !r);
-                        }}
-                        className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-yellow-400 text-yellow-900 rounded-lg shadow-sm hover:bg-yellow-500 transition-all font-medium text-sm focus:outline-none focus:ring-2 focus:ring-yellow-200"
-                      >
-                        <WarningCircle size={16} weight='bold' /> Cancelar cita
-                      </button>
-                    )}
-                  </div>
+                {modalInfo.treatment && (
+                  <p className="text-gray-600 text-xs mt-1">{modalInfo.treatment}</p>
+                )}
+              </div>
+              <div className="pt-2">
+                <span className="font-medium">Notas:</span>
+                <p className="text-gray-600">{modalInfo.notes || 'Sin notas'}</p>
+              </div>
+              <div className="flex flex-col gap-2 mt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <button
+                    onClick={() => {
+                      setEditAppointment(modalInfo);
+                      setShowEditModal(true);
+                    }}
+                    className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-blue-100 text-blue-700 rounded-lg shadow-sm hover:bg-blue-200 transition-all font-medium text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  >
+                    <Clock size={16} weight='bold' /> Reagendar
+                  </button>
+                  <button
+                    onClick={async () => {
+                      await api.delete(`/appointments/${modalInfo.id}`);
+                      setModalInfo(null);
+                      setRefresh(r => !r);
+                    }}
+                    className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-red-500 text-white rounded-lg shadow-sm hover:bg-red-600 transition-all font-medium text-sm focus:outline-none focus:ring-2 focus:ring-red-200"
+                  >
+                    <X size={16} weight='bold' /> Eliminar
+                  </button>
+                  <button
+                    onClick={async () => {
+                      await api.put(`/appointments/${modalInfo.id}`, { ...modalInfo, status: 'cancelada' });
+                      setModalInfo(null);
+                      setRefresh(r => !r);
+                    }}
+                    className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-yellow-400 text-yellow-900 rounded-lg shadow-sm hover:bg-yellow-500 transition-all font-medium text-sm focus:outline-none focus:ring-2 focus:ring-yellow-200"
+                  >
+                    <WarningCircle size={16} weight='bold' /> Cancelar cita
+                  </button>
                 </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
       )}
@@ -1622,6 +1536,23 @@ const CalendarAppointments: React.FC = () => {
           initialDate={newDate}
           initialDuration={newDuration}
           initialHour={newHour}
+          appointments={appointments}
+          blockedHours={businessHours.blockedHours}
+        />
+      )}
+      {showEditModal && editAppointment && (
+        <EditAppointmentModal
+          onClose={() => {
+            setShowEditModal(false);
+            setEditAppointment(null);
+          }}
+          onSuccess={() => {
+            setShowEditModal(false);
+            setEditAppointment(null);
+            setModalInfo(null);
+            setRefresh(r => !r);
+          }}
+          appointment={editAppointment}
           appointments={appointments}
           blockedHours={businessHours.blockedHours}
         />

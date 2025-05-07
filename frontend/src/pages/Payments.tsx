@@ -133,9 +133,9 @@ const Payments: React.FC = () => {
   };
 
   useEffect(() => {
+    fetchMonthStats();
     fetchPayments();
     fetchSummary();
-    fetchMonthStats();
     setTempStartDate(startDate);
     setTempEndDate(endDate);
     setTempPatientId(patientId);
@@ -144,7 +144,7 @@ const Payments: React.FC = () => {
     if (showFilterModal && patients.length === 0) {
       api.get('/patients').then(res => setPatients(res.data));
     }
-  }, [startDate, endDate, patientId, method, status, showFilterModal]);
+  }, [startDate, endDate, patientId, method, status, showFilterModal, patients.length]);
 
   const handleCreatePayment = () => {
     setShowModal(false);

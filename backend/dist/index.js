@@ -32,7 +32,19 @@ process.on('uncaughtException', (error) => {
 process.on('unhandledRejection', (reason, promise) => {
     console.error('Promesa rechazada no manejada:', reason);
 });
-app.use((0, cors_1.default)());
+// Configuración de CORS según entorno
+if (process.env.NODE_ENV === 'production') {
+    app.use((0, cors_1.default)({
+        origin: process.env.FRONTEND_URL || '*',
+        credentials: true
+    }));
+}
+else {
+    app.use((0, cors_1.default)({
+        origin: 'http://localhost:3000',
+        credentials: true
+    }));
+}
 app.use(express_1.default.json());
 // Rutas
 app.use('/api/users', userRoutes_1.default);
@@ -46,11 +58,14 @@ app.use('/api/config', clinicConfigRoutes_1.default);
 app.use('/api/shortener', shortenerRoutes_1.default);
 app.use('/api/services', serviceRoutes_1.default);
 // Servir archivos estáticos del frontend
-app.use(express_1.default.static(path_1.default.join(__dirname, 'public')));
+const publicPath = process.env.NODE_ENV === 'production'
+    ? path_1.default.join(__dirname, 'public')
+    : path_1.default.join(__dirname, '..', '..', 'frontend', 'build');
+app.use(express_1.default.static(publicPath));
 // Para cualquier ruta que no sea API, servir el index.html del frontend
 app.get('*', (req, res) => {
     if (!req.path.startsWith('/api')) {
-        res.sendFile(path_1.default.join(__dirname, 'public', 'index.html'));
+        res.sendFile(path_1.default.join(publicPath, 'index.html'));
     }
 });
 // Ruta básica

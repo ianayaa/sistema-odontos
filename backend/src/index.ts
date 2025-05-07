@@ -33,7 +33,19 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('Promesa rechazada no manejada:', reason);
 });
 
-app.use(cors());
+// Configuración de CORS según entorno
+if (process.env.NODE_ENV === 'production') {
+  app.use(cors({
+    origin: process.env.FRONTEND_URL || '*',
+    credentials: true
+  }));
+} else {
+  app.use(cors({
+    origin: 'http://localhost:3000',
+    credentials: true
+  }));
+}
+
 app.use(express.json());
 
 // Rutas
@@ -49,12 +61,16 @@ app.use('/api/shortener', shortenerRoutes);
 app.use('/api/services', serviceRoutes);
 
 // Servir archivos estáticos del frontend
-app.use(express.static(path.join(__dirname, 'public')));
+const publicPath = process.env.NODE_ENV === 'production' 
+  ? path.join(__dirname, 'public')
+  : path.join(__dirname, '..', '..', 'frontend', 'build');
+
+app.use(express.static(publicPath));
 
 // Para cualquier ruta que no sea API, servir el index.html del frontend
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(publicPath, 'index.html'));
   }
 });
 

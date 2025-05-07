@@ -12,7 +12,8 @@ cmds = [
 cmds = [
   "cd backend && npx prisma generate && npm run build",
   "cd frontend && npm run build",
-  "mkdir -p backend/dist/public && cp -r frontend/build/* backend/dist/public/"
+  "mkdir -p backend/dist/public",
+  "cp -r frontend/build/* backend/dist/public/"
 ]
 
 [start]
