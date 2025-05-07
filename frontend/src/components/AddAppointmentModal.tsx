@@ -68,14 +68,27 @@ const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({ onClose, onSu
   const [enviarMensaje, setEnviarMensaje] = useState(true);
   const timeOptions = generateTimeOptions();
 
+  const loadPatients = async () => {
+    try {
+      const response = await api.get('/patients');
+      setPatients(response.data);
+    } catch (error) {
+      console.error('Error al cargar pacientes:', error);
+      setPatients([]);
+    }
+  };
+
   useEffect(() => {
-    api.get('/patients')
-      .then(res => setPatients(res.data))
-      .catch(() => setPatients([]));
+    loadPatients();
     getServices()
       .then(setServices)
       .catch(() => setServices([]));
   }, []);
+
+  const handlePatientAdded = async (newPatient: Patient) => {
+    await loadPatients();
+    setForm(f => ({ ...f, patientId: newPatient.id }));
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -182,6 +195,7 @@ const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({ onClose, onSu
               onChange={patientId => setForm(f => ({ ...f, patientId }))}
               patients={patients}
               disabled={loading}
+              onPatientAdded={handlePatientAdded}
             />
           </div>
           <div>
