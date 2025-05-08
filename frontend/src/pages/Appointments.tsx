@@ -1,14 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import api from '../services/api';
-import { CalendarBlank } from 'phosphor-react';
+import { CalendarBlank, User, Phone, Clock, X, WarningCircle } from 'phosphor-react';
 import AddAppointmentModal from '../components/AddAppointmentModal';
 import CalendarAppointments from './CalendarAppointments';
 import { Appointment } from '../types/appointment';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 
+// Extiende el tipo Appointment para aceptar service opcional
+interface AppointmentWithService extends Appointment {
+  service?: { name?: string };
+}
+
 const Appointments: React.FC = () => {
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [appointments, setAppointments] = useState<AppointmentWithService[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -18,7 +23,8 @@ const Appointments: React.FC = () => {
     return stored ? stored === 'true' : false;
   });
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [appointmentToDelete, setAppointmentToDelete] = useState<Appointment | null>(null);
+  const [appointmentToDelete, setAppointmentToDelete] = useState<AppointmentWithService | null>(null);
+  const [detailsModal, setDetailsModal] = useState<{ open: boolean, appointment: AppointmentWithService | null }>({ open: false, appointment: null });
 
   useEffect(() => {
     api.get('/appointments')
@@ -83,8 +89,8 @@ const Appointments: React.FC = () => {
   };
 
   // Mostrar detalles de la cita
-  const handleShowDetails = (appointment: Appointment) => {
-    alert(`Detalles de la cita:\nPaciente: ${appointment.patient?.name}\nFecha: ${new Date(appointment.date).toLocaleString()}\nEstado: ${appointment.status}\nNotas: ${appointment.notes || 'Sin notas'}`);
+  const handleShowDetails = (appointment: AppointmentWithService) => {
+    setDetailsModal({ open: true, appointment });
   };
 
   return (
@@ -238,7 +244,13 @@ const Appointments: React.FC = () => {
               <tbody>
                 {filteredAppointments.map(a => (
                   <tr key={a.id} className="hover:bg-red-50 transition-all border-b border-gray-100 last:border-0 group">
-                    <td className="px-6 py-4 font-medium text-gray-900">{a.patient?.name || '-'}</td>
+                    <td className="px-6 py-4 font-medium text-gray-900">
+                      {[
+                        a.patient?.name,
+                        a.patient?.lastNamePaterno,
+                        a.patient?.lastNameMaterno
+                      ].filter(Boolean).join(' ') || '-'}
+                    </td>
                     <td className="px-6 py-4">{new Date(a.date).toLocaleString()}</td>
                     <td className="px-6 py-4">
                       <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${
@@ -279,6 +291,129 @@ const Appointments: React.FC = () => {
             </table>
           </div>
         )
+      )}
+      {detailsModal.open && detailsModal.appointment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-0 relative overflow-hidden animate-fadeInUp">
+            <div className="flex items-center gap-3 bg-gradient-to-r from-red-100 to-red-50 px-8 py-6 border-b border-red-100">
+              <div className="bg-red-200 text-red-600 rounded-full p-3">
+                <Clock size={30} weight="duotone" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-gray-800">Detalles de la cita</h3>
+                <div className="text-gray-400 text-sm">Puedes reagendar, cancelar o eliminar la cita</div>
+              </div>
+              <button
+                className="ml-auto text-gray-400 hover:text-red-600 text-2xl font-bold p-1 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-red-200"
+                onClick={() => setDetailsModal({ open: false, appointment: null })}
+                aria-label="Cerrar"
+                type="button"
+              >
+                <svg width="28" height="28" fill="none" stroke="#e11d48" strokeWidth="2.2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+              </button>
+            </div>
+            <div className="space-y-3 px-8 py-7">
+              {/* Nueva estructura de datos principales */}
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <User size={20} weight="bold" className="text-red-600" />
+                  <span className="font-medium">
+                    {detailsModal.appointment.patient?.name}
+                    {detailsModal.appointment.patient?.lastNamePaterno ? ' ' + detailsModal.appointment.patient.lastNamePaterno : ''}
+                    {detailsModal.appointment.patient?.lastNameMaterno ? ' ' + detailsModal.appointment.patient.lastNameMaterno : ''}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Phone size={20} weight="bold" className="text-red-600" />
+                  <span>{detailsModal.appointment.patient?.phone || 'No registrado'}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CalendarBlank size={20} weight="bold" className="text-red-600" />
+                  <span>{detailsModal.appointment.date ? new Date(detailsModal.appointment.date).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' }) : '-'}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock size={20} weight="bold" className="text-red-600" />
+                  <span>
+                    {detailsModal.appointment.date ? new Date(detailsModal.appointment.date).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : '-'}
+                    {detailsModal.appointment.endDate && (
+                      <>
+                        {' - '}
+                        {new Date(detailsModal.appointment.endDate).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
+                        {' '}
+                        <span className="text-gray-500 text-xs">(
+                          {detailsModal.appointment.duration ? `${detailsModal.appointment.duration} min` : (() => {
+                            if (detailsModal.appointment.date && detailsModal.appointment.endDate) {
+                              const start = new Date(detailsModal.appointment.date);
+                              const end = new Date(detailsModal.appointment.endDate);
+                              const diff = Math.round((end.getTime() - start.getTime()) / 60000);
+                              return `${diff} min`;
+                            }
+                            return '';
+                          })()}
+                        )</span>
+                      </>
+                    )}
+                  </span>
+                </div>
+              </div>
+              {/* Lo demás igual */}
+              <div className="pt-2">
+                <span className="font-medium">Doctor:</span>
+                <p className="text-gray-600">{detailsModal.appointment.doctor || 'No asignado'}</p>
+              </div>
+              <div className="pt-2">
+                <span className="font-medium">Tratamiento:</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-800 break-words whitespace-pre-line">
+                    {detailsModal.appointment.service?.name || 'No especificado'}
+                  </span>
+                </div>
+              </div>
+              <div className="pt-2">
+                <span className="font-medium">Notas:</span>
+                <p className="text-gray-600">{detailsModal.appointment.notes || 'Sin notas'}</p>
+              </div>
+              {/* Botones de acción */}
+              {detailsModal.appointment && (
+                <div className="flex flex-col gap-2 mt-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <button
+                      className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-blue-100 text-blue-700 rounded-lg shadow-sm hover:bg-blue-200 transition-all font-medium text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                      onClick={() => {/* Aquí puedes abrir el modal de edición si existe */}}
+                      type="button"
+                    >
+                      <Clock size={16} weight='bold' /> Reagendar
+                    </button>
+                    <button
+                      className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-red-500 text-white rounded-lg shadow-sm hover:bg-red-600 transition-all font-medium text-sm focus:outline-none focus:ring-2 focus:ring-red-200"
+                      onClick={async () => {
+                        await handleDelete(detailsModal.appointment!.id);
+                        setDetailsModal({ open: false, appointment: null });
+                      }}
+                      type="button"
+                    >
+                      <X size={16} weight='bold' /> Eliminar
+                    </button>
+                    <button
+                      className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-yellow-300 text-yellow-900 rounded-lg shadow-sm hover:bg-yellow-400 transition-all font-medium text-sm focus:outline-none focus:ring-2 focus:ring-yellow-200"
+                      onClick={async () => {
+                        await api.put(`/appointments/${detailsModal.appointment!.id}`, { ...detailsModal.appointment, status: 'cancelada' });
+                        setDetailsModal({ open: false, appointment: null });
+                        setLoading(true);
+                        api.get('/appointments')
+                          .then(res => setAppointments(res.data))
+                          .finally(() => setLoading(false));
+                      }}
+                      type="button"
+                    >
+                      <WarningCircle size={16} weight='bold' /> Cancelar cita
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </DashboardLayout>
   );

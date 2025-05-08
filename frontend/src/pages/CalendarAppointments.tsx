@@ -536,7 +536,7 @@ const CalendarAppointments: React.FC = () => {
   };
 
   // Estado para mostrar modal de confirmación de notificación
-  const [notifyModal, setNotifyModal] = useState<{ visible: boolean; event?: any }>({ visible: false });
+  const [notifyModal, setNotifyModal] = useState<{ visible: boolean; event?: any; newDate?: Date | null }>({ visible: false });
 
   // Maneja el drag & drop
   const handleEventDrop = async (arg: EventDropArg) => {
@@ -558,20 +558,20 @@ const CalendarAppointments: React.FC = () => {
       arg.revert();
       return;
     }
-    // Mostrar modal controlado para notificar
-    setNotifyModal({ visible: true, event: arg.event.extendedProps });
+    // Guardar la nueva fecha en el estado para usarla al confirmar
+    setNotifyModal({ visible: true, event: arg.event.extendedProps, newDate: start });
     forceHideAppointmentTooltip();
   };
 
   // Función para manejar la acción del modal de notificación
   const handleNotifyModal = async (shouldNotify: boolean) => {
-    if (!notifyModal.event) return;
+    if (!notifyModal.event || !notifyModal.newDate) return;
     const arg = notifyModal.event;
     setNotifyModal({ visible: false });
     try {
       // Actualiza la cita en el backend con la nueva fecha
       await api.put(`/appointments/${arg.id}`, {
-        date: format(arg.date, "yyyy-MM-dd'T'HH:mm"),
+        date: format(notifyModal.newDate, "yyyy-MM-dd'T'HH:mm"),
         enviarMensaje: shouldNotify
       });
       if (shouldNotify) {
@@ -1537,23 +1537,20 @@ const CalendarAppointments: React.FC = () => {
                   <b>Paciente:</b> {notifyModal.event.patient?.name} {notifyModal.event.patient?.lastNamePaterno || ''} {notifyModal.event.patient?.lastNameMaterno || ''}
                 </div>
                 <div className="text-gray-700 text-sm mb-2">
-                  <b>Fecha:</b> {notifyModal.event.date ? new Date(notifyModal.event.date).toLocaleString('es-MX') : '-'}
+                  <b>Fecha:</b> {notifyModal.newDate ? new Date(notifyModal.newDate).toLocaleString('es-MX') : (notifyModal.event.date ? new Date(notifyModal.event.date).toLocaleString('es-MX') : '-')}
                 </div>
                 <div className="text-gray-700 text-sm mb-2">
                   <b>Doctor:</b> {notifyModal.event.doctor || 'No asignado'}
                 </div>
                 <button
                   className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-red-600 text-white font-bold text-base shadow hover:bg-red-700 transition-all focus:outline-none focus:ring-2 focus:ring-red-200"
-                  onClick={async () => {
-                    await api.post(`/appointments/${notifyModal.event.id}/notify`, { type: 'reschedule' });
-                    setNotifyModal({ visible: false, event: null });
-                  }}
+                  onClick={() => handleNotifyModal(true)}
                 >
                   <span>Notificar paciente</span>
                 </button>
                 <button
                   className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-gray-100 text-gray-700 font-bold text-base shadow hover:bg-gray-200 transition-all focus:outline-none focus:ring-2 focus:ring-gray-200"
-                  onClick={() => setNotifyModal({ visible: false, event: null })}
+                  onClick={() => handleNotifyModal(false)}
                 >
                   <span>No notificar</span>
                 </button>
