@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
-import { CurrencyDollar, Trash, X } from 'phosphor-react';
+import { CurrencyDollar, Trash, X, PencilSimple } from 'phosphor-react';
 import api, { getPaymentSummary } from '../services/api';
 import NewPaymentModal from '../components/NewPaymentModal';
 import ModernDatePicker from '../components/ModernDatePicker';
@@ -91,6 +91,10 @@ const Payments: React.FC = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [showEstadoEdit, setShowEstadoEdit] = useState(false);
+  const lapizRef = React.useRef<HTMLButtonElement | null>(null);
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{ open: boolean, estado: string, label: string, onConfirm: () => void } | null>(null);
 
   const fetchPayments = () => {
     setLoading(true);
@@ -103,7 +107,26 @@ const Payments: React.FC = () => {
         status: status || undefined,
       }
     })
-      .then(res => setPayments(res.data))
+      .then(res => {
+        // Normalizar el status a los valores válidos del tipo Payment
+        const statusMap: Record<string, Payment['status']> = {
+          pending: 'pending',
+          completed: 'completed',
+          refunded: 'refunded',
+          cancelled: 'refunded', // si quieres mapear 'cancelled' a 'refunded', o puedes agregar 'cancelled' como estado válido si lo deseas
+          failed: 'failed',
+        };
+        const pagos = (res.data as Payment[]).map((p: any) => ({
+          ...p,
+          status: statusMap[(p.status || '').toLowerCase()] || 'pending',
+        }));
+        setPayments(pagos);
+        // Si el modal está abierto, actualiza selectedPayment si corresponde
+        if (selectedPayment) {
+          const actualizado = pagos.find(p => p.id === selectedPayment.id);
+          if (actualizado) setSelectedPayment(actualizado);
+        }
+      })
       .finally(() => setLoading(false));
   };
 
@@ -192,6 +215,141 @@ const Payments: React.FC = () => {
         return 'Transferencia';
       default:
         return method;
+    }
+  };
+
+  // Componente para cambiar el estado del pago
+  const estadosPago = [
+    { value: 'PENDING', label: 'Pendiente' },
+    { value: 'COMPLETED', label: 'Completado' },
+    { value: 'CANCELLED', label: 'Cancelado' },
+    { value: 'REFUNDED', label: 'Reembolsado' },
+  ];
+
+  const EstadoPagoDropdown: React.FC<{ payment: Payment; onStatusChange: () => void; onClose?: () => void; confirmChange?: boolean; anchorEl?: HTMLElement | null }> = ({ payment, onStatusChange, onClose, confirmChange, anchorEl }) => {
+    const [open, setOpen] = React.useState(true);
+    const [loading, setLoading] = React.useState(false);
+    const menuRef = React.useRef<HTMLUListElement>(null);
+
+    React.useEffect(() => {
+      if (anchorEl && menuRef.current) {
+        const rect = anchorEl.getBoundingClientRect();
+        const menu = menuRef.current;
+        // Posiciona el menú a la derecha del lápiz, pero si se sale de la pantalla, lo ajusta
+        let left = rect.right + 8;
+        let top = rect.top;
+        if (left + 180 > window.innerWidth) left = window.innerWidth - 200;
+        if (top + 180 > window.innerHeight) top = window.innerHeight - 200;
+        menu.style.position = 'fixed';
+        menu.style.left = `${left}px`;
+        menu.style.top = `${top}px`;
+        menu.style.zIndex = '9999';
+      }
+    }, [anchorEl]);
+
+    const handleChange = (nuevoEstado: string, label: string) => {
+      if (confirmChange) {
+        setConfirmModal({
+          open: true,
+          estado: nuevoEstado,
+          label,
+          onConfirm: async () => {
+            setLoading(true);
+            try {
+              await api.put(`/payments/${payment.id}/status`, { status: nuevoEstado });
+              setOpen(false);
+              if (onClose) onClose();
+              onStatusChange();
+            } catch (e) {
+              alert('Error al cambiar el estado');
+            } finally {
+              setLoading(false);
+              setConfirmModal(null);
+            }
+          }
+        });
+        return;
+      }
+      // Si no requiere confirmación
+      setLoading(true);
+      api.put(`/payments/${payment.id}/status`, { status: nuevoEstado })
+        .then(() => {
+          setOpen(false);
+          if (onClose) onClose();
+          onStatusChange();
+        })
+        .catch(() => alert('Error al cambiar el estado'))
+        .finally(() => setLoading(false));
+    };
+
+    if (!open) return null;
+    return (
+      <>
+        <ul
+          ref={menuRef}
+          className="shadow-lg rounded-2xl border border-gray-200 bg-white min-w-[180px] py-2 animate-fadeInUp"
+          style={{ boxShadow: '0 8px 32px #0002', padding: 0 }}
+          tabIndex={-1}
+          role="listbox"
+        >
+          {estadosPago.map((opt, idx) => (
+            <li
+              key={opt.value}
+              className={`px-5 py-2 cursor-pointer flex items-center gap-2 transition-all ${opt.value.toLowerCase() === payment.status ? 'bg-red-50 text-red-700 font-bold' : 'hover:bg-gray-50 text-gray-800'} ${idx !== estadosPago.length - 1 ? 'border-b border-gray-100' : ''}`}
+              onClick={() => handleChange(opt.value, opt.label)}
+              role="option"
+              aria-selected={opt.value.toLowerCase() === payment.status}
+              style={{ fontSize: '1rem', minHeight: '38px', lineHeight: '1.2' }}
+            >
+              {opt.label}
+            </li>
+          ))}
+        </ul>
+        {/* Modal de confirmación visual */}
+        {confirmModal?.open && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-xs relative animate-fadeInUp flex flex-col items-center">
+              <div className="text-lg font-bold text-gray-800 mb-2 text-center">¿Seguro que deseas cambiar el estado a "{confirmModal.label}"?</div>
+              <div className="flex gap-3 mt-4">
+                <button
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg"
+                  onClick={() => setConfirmModal(null)}
+                  disabled={loading}
+                >
+                  Cancelar
+                </button>
+                <button
+                  className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg"
+                  onClick={confirmModal.onConfirm}
+                  disabled={loading}
+                >
+                  Confirmar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  };
+
+  // Función para mostrar el label en español y la clase de color
+  const paymentStatusLabel = (status: Payment['status']) => {
+    switch (status) {
+      case 'completed': return 'Completado';
+      case 'pending': return 'Pendiente';
+      case 'failed': return 'Fallido';
+      case 'refunded': return 'Reembolsado';
+      default: return status;
+    }
+  };
+  const paymentStatusClass = (status: Payment['status']) => {
+    switch (status) {
+      case 'completed': return 'bg-green-100 text-green-600';
+      case 'pending': return 'bg-yellow-100 text-yellow-600';
+      case 'failed': return 'bg-red-100 text-red-600';
+      case 'refunded': return 'bg-gray-100 text-gray-600';
+      default: return 'bg-gray-100 text-gray-600';
     }
   };
 
@@ -385,15 +543,8 @@ const Payments: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 font-semibold">${payment.amount.toLocaleString()}</td>
                   <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                      payment.status === 'completed' ? 'bg-green-100 text-green-600' :
-                      payment.status === 'pending' ? 'bg-yellow-100 text-yellow-600' :
-                      payment.status === 'failed' ? 'bg-red-100 text-red-600' :
-                      'bg-gray-100 text-gray-600'
-                    }`}>
-                      {payment.status === 'completed' ? 'Completado' :
-                       payment.status === 'pending' ? 'Pendiente' :
-                       payment.status === 'failed' ? 'Fallido' : 'Reembolsado'}
+                    <span className={`font-semibold px-2 py-0.5 rounded-full text-xs ${paymentStatusClass(payment.status)} inline-flex items-center gap-2`}>
+                      {paymentStatusLabel(payment.status)}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
@@ -469,8 +620,31 @@ const Payments: React.FC = () => {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-500 font-medium">Estado:</span>
-                  <span className="font-semibold text-gray-800">{selectedPayment.status}</span>
+                  <span className={`font-semibold px-2 py-0.5 rounded-full text-xs ${paymentStatusClass(selectedPayment.status)} inline-flex items-center gap-2`}>
+                    {paymentStatusLabel(selectedPayment.status)}
+                    <button
+                      className="ml-1 p-1 rounded hover:bg-gray-100 text-gray-500 hover:text-red-600 focus:outline-none"
+                      onClick={e => {
+                        setShowEstadoEdit(true);
+                        setAnchorEl(e.currentTarget);
+                      }}
+                      title="Editar estado"
+                      type="button"
+                      ref={lapizRef}
+                    >
+                      <PencilSimple size={18} />
+                    </button>
+                  </span>
                 </div>
+                {showEstadoEdit && (
+                  <EstadoPagoDropdown
+                    payment={selectedPayment}
+                    onStatusChange={fetchPayments}
+                    onClose={() => setShowEstadoEdit(false)}
+                    confirmChange
+                    anchorEl={anchorEl}
+                  />
+                )}
                 <div className="flex justify-between items-center">
                   <span className="text-gray-500 font-medium">Descripción:</span>
                   <span className="font-semibold text-gray-800">{selectedPayment.description || '-'}</span>

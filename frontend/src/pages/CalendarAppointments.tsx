@@ -1392,22 +1392,51 @@ const CalendarAppointments: React.FC = () => {
               </button>
             </div>
             <div className="space-y-3 px-8 py-7">
-              <div className="flex items-center gap-2">
-                <User size={20} weight="bold" className="text-red-600" />
-                <span className="font-medium">
-                  {modalInfo.patient?.name}
-                  {modalInfo.patient?.lastNamePaterno ? ' ' + modalInfo.patient.lastNamePaterno : ''}
-                  {modalInfo.patient?.lastNameMaterno ? ' ' + modalInfo.patient.lastNameMaterno : ''}
-                </span>
+              {/* Nueva estructura de datos principales */}
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <User size={20} weight="bold" className="text-red-600" />
+                  <span className="font-medium">
+                    {modalInfo.patient?.name}
+                    {modalInfo.patient?.lastNamePaterno ? ' ' + modalInfo.patient.lastNamePaterno : ''}
+                    {modalInfo.patient?.lastNameMaterno ? ' ' + modalInfo.patient.lastNameMaterno : ''}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Phone size={20} weight="bold" className="text-red-600" />
+                  <span>{modalInfo.patient?.phone || 'No registrado'}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CalendarBlank size={20} weight="bold" className="text-red-600" />
+                  <span>{modalInfo.date ? new Date(modalInfo.date).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' }) : '-'}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock size={20} weight="bold" className="text-red-600" />
+                  <span>
+                    {modalInfo.date ? new Date(modalInfo.date).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : '-'}
+                    {modalInfo.endDate && (
+                      <>
+                        {' - '}
+                        {new Date(modalInfo.endDate).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
+                        {' '}
+                        <span className="text-gray-500 text-xs">(
+                          {modalInfo.duration ? `${modalInfo.duration} min` : (() => {
+                            if (modalInfo.date && modalInfo.endDate) {
+                              const start = new Date(modalInfo.date);
+                              const end = new Date(modalInfo.endDate);
+                              const diff = Math.round((end.getTime() - start.getTime()) / 60000);
+                              return `${diff} min`;
+                            }
+                            return '';
+                          })()}
+                        )</span>
+                      </>
+                    )}
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Phone size={20} weight="bold" className="text-red-600" />
-                <span>{modalInfo.patient?.phone || 'No registrado'}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock size={20} weight="bold" className="text-red-600" />
-                <span>{new Date(modalInfo.date).toLocaleString('es-MX')}</span>
-              </div>
+              {/* Lo demás igual */
+              /* Doctor, Tratamiento, Notas, Botones */}
               <div className="pt-2">
                 <span className="font-medium">Doctor:</span>
                 <p className="text-gray-600">{modalInfo.doctor || 'No asignado'}</p>
