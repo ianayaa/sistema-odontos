@@ -5,9 +5,52 @@ import jwt from 'jsonwebtoken';
 
 const prisma = new PrismaClient();
 
+// Definir permisos por rol
+const rolePermissions = {
+  ADMIN: [
+    'inicio',
+    'pacientes',
+    'citas',
+    'pagos',
+    'consentimientos',
+    'servicios',
+    'reportes',
+    'comunicacion',
+    'portal_paciente',
+    'pagos_odontologos',
+    'configuracion'
+  ],
+  DENTIST: [
+    'inicio',
+    'pacientes',
+    'citas',
+    'pagos',
+    'consentimientos',
+    'servicios',
+    'reportes',
+    'comunicacion',
+    'portal_paciente'
+  ],
+  ASSISTANT: [
+    'inicio',
+    'pacientes',
+    'citas',
+    'pagos',
+    'consentimientos',
+    'servicios',
+    'comunicacion'
+  ],
+  PATIENT: [
+    'inicio',
+    'portal_paciente'
+  ]
+};
+
 export const createUser = async (req: Request, res: Response) => {
   try {
-    const { email, password, name, lastNamePaterno, lastNameMaterno, role } = req.body;
+    const { email, password, name, lastNamePaterno, lastNameMaterno, role, permissions } = req.body;
+    
+    console.log('Datos recibidos:', { email, name, role, permissions });
     
     // Verificar si el usuario ya existe
     const existingUser = await prisma.user.findUnique({
@@ -15,31 +58,72 @@ export const createUser = async (req: Request, res: Response) => {
     });
 
     if (existingUser) {
-      res.status(400).json({ error: 'El usuario ya existe' });
-    } else {
-      // Encriptar contraseña
-      const hashedPassword = await bcrypt.hash(password, 10);
-
-      const user = await prisma.user.create({
-        data: {
-          email,
-          password: hashedPassword,
-          name,
-          lastNamePaterno,
-          lastNameMaterno,
-          role
-        }
-      });
-
-      res.status(201).json({
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role
-      });
+      return res.status(400).json({ error: 'El usuario ya existe' });
     }
+
+    // Encriptar contraseña
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Crear el usuario primero
+    const user = await prisma.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        name,
+        lastNamePaterno,
+        lastNameMaterno,
+        role
+      }
+    });
+
+    console.log('Usuario creado:', user);
+
+    // Asignar permisos por defecto según el rol si no se proporcionan permisos específicos
+    const permissionsToAssign = permissions || rolePermissions[role as keyof typeof rolePermissions] || [];
+
+    // Crear los permisos
+    if (permissionsToAssign.length > 0) {
+      try {
+        await prisma.userPermission.createMany({
+          data: permissionsToAssign.map((permissionId: string) => ({
+            userId: user.id,
+            permissionId
+          }))
+        });
+        console.log('Permisos creados exitosamente');
+      } catch (permissionError) {
+        console.error('Error al crear permisos:', permissionError);
+        // Continuar con la respuesta aunque falle la creación de permisos
+      }
+    }
+
+    // Obtener el usuario con sus permisos
+    const userWithPermissions = await prisma.user.findUnique({
+      where: { id: user.id },
+      include: {
+        permissions: {
+          include: {
+            permission: true
+          }
+        }
+      }
+    });
+
+    console.log('Usuario con permisos:', userWithPermissions);
+
+    res.status(201).json({
+      id: userWithPermissions?.id,
+      email: userWithPermissions?.email,
+      name: userWithPermissions?.name,
+      role: userWithPermissions?.role,
+      permissions: userWithPermissions?.permissions.map(p => p.permission.id) || []
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Error al crear usuario' });
+    console.error('Error detallado al crear usuario:', error);
+    res.status(500).json({ 
+      error: 'Error al crear usuario',
+      details: error instanceof Error ? error.message : 'Error desconocido'
+    });
   }
 };
 
@@ -48,11 +132,23 @@ export const login = async (req: Request, res: Response) => {
     const { email, password, systemType = 'main' } = req.body;
 
     const user = await prisma.user.findUnique({
-      where: { email }
+      where: { email },
+      include: {
+        permissions: {
+          include: {
+            permission: true
+          }
+        }
+      }
     });
 
     if (!user) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
+    }
+
+    // Validar si el usuario está activo
+    if (!user.isActive) {
+      return res.status(403).json({ error: 'Cuenta desactivada. Contacte al administrador.' });
     }
 
     // Validar el rol según el sistema
@@ -75,16 +171,23 @@ export const login = async (req: Request, res: Response) => {
       { expiresIn: '24h' }
     );
 
+    // Transformar la respuesta para incluir los permisos como un array de strings
+    const userWithPermissions = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      lastNamePaterno: user.lastNamePaterno,
+      lastNameMaterno: user.lastNameMaterno,
+      role: user.role,
+      permissions: user.permissions.map(p => p.permission.id)
+    };
+
     res.json({
       token,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role
-      }
+      user: userWithPermissions
     });
   } catch (error) {
+    console.error('Error al iniciar sesión:', error);
     res.status(500).json({ error: 'Error al iniciar sesión' });
   }
 };
@@ -99,11 +202,25 @@ export const getUsers = async (req: Request, res: Response) => {
         lastNamePaterno: true,
         lastNameMaterno: true,
         role: true,
-        createdAt: true
+        isActive: true,
+        createdAt: true,
+        permissions: {
+          include: {
+            permission: true
+          }
+        }
       }
     });
-    res.json(users);
+
+    // Transformar la respuesta para incluir los permisos como un array de strings
+    const usersWithPermissions = users.map(user => ({
+      ...user,
+      permissions: user.permissions.map(p => p.permission.id)
+    }));
+
+    res.json(usersWithPermissions);
   } catch (error) {
+    console.error('Error al obtener usuarios:', error);
     res.status(500).json({ error: 'Error al obtener usuarios' });
   }
 };
@@ -111,8 +228,11 @@ export const getUsers = async (req: Request, res: Response) => {
 export const updateUser = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, lastNamePaterno, lastNameMaterno, role } = req.body;
+    const { name, lastNamePaterno, lastNameMaterno, role, permissions } = req.body;
 
+    console.log('Datos de actualización:', { id, name, role, permissions });
+
+    // Actualizar el usuario primero
     const user = await prisma.user.update({
       where: { id },
       data: {
@@ -120,21 +240,61 @@ export const updateUser = async (req: Request, res: Response) => {
         lastNamePaterno,
         lastNameMaterno,
         role
-      },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        lastNamePaterno: true,
-        lastNameMaterno: true,
-        role: true,
-        createdAt: true
       }
     });
 
-    res.json(user);
+    console.log('Usuario actualizado:', user);
+
+    // Eliminar permisos existentes
+    await prisma.userPermission.deleteMany({
+      where: { userId: id }
+    });
+
+    // Crear nuevos permisos si existen
+    if (permissions && permissions.length > 0) {
+      try {
+        await prisma.userPermission.createMany({
+          data: permissions.map((permissionId: string) => ({
+            userId: id,
+            permissionId
+          }))
+        });
+        console.log('Permisos actualizados exitosamente');
+      } catch (permissionError) {
+        console.error('Error al actualizar permisos:', permissionError);
+        // Continuar con la respuesta aunque falle la actualización de permisos
+      }
+    }
+
+    // Obtener el usuario actualizado con sus permisos
+    const updatedUser = await prisma.user.findUnique({
+      where: { id },
+      include: {
+        permissions: {
+          include: {
+            permission: true
+          }
+        }
+      }
+    });
+
+    console.log('Usuario final con permisos:', updatedUser);
+
+    res.json({
+      id: updatedUser?.id,
+      email: updatedUser?.email,
+      name: updatedUser?.name,
+      lastNamePaterno: updatedUser?.lastNamePaterno,
+      lastNameMaterno: updatedUser?.lastNameMaterno,
+      role: updatedUser?.role,
+      permissions: updatedUser?.permissions.map(p => p.permission) || []
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Error al actualizar usuario' });
+    console.error('Error detallado al actualizar usuario:', error);
+    res.status(500).json({ 
+      error: 'Error al actualizar usuario',
+      details: error instanceof Error ? error.message : 'Error desconocido'
+    });
   }
 };
 
@@ -161,5 +321,62 @@ export const deleteUser = async (req: Request, res: Response) => {
     res.status(204).send();
   } catch (error) {
     res.status(500).json({ error: 'Error al eliminar usuario y sus datos relacionados' });
+  }
+};
+
+export const updateUserActive = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { isActive } = req.body;
+    const user = await prisma.user.update({
+      where: { id },
+      data: { isActive }
+    });
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al actualizar estado del usuario' });
+  }
+};
+
+export const getCurrentUser = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        lastNamePaterno: true,
+        lastNameMaterno: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        permissions: {
+          include: {
+            permission: true
+          }
+        }
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+
+    // Transformar la respuesta para incluir los permisos como un array de strings
+    const userWithPermissions = {
+      ...user,
+      permissions: user.permissions.map(p => p.permission.id)
+    };
+
+    res.json(userWithPermissions);
+  } catch (error) {
+    console.error('Error al obtener usuario actual:', error);
+    res.status(500).json({ error: 'Error al obtener usuario actual' });
   }
 }; 

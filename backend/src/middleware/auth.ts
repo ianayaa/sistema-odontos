@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { PrismaClient } from '@prisma/client';
 
 interface JwtPayload {
   id: string;
@@ -14,6 +15,8 @@ declare global {
     }
   }
 }
+
+const prisma = new PrismaClient();
 
 export const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers['authorization'];
@@ -73,4 +76,33 @@ export const isPatient = (req: Request, res: Response, next: NextFunction) => {
     return;
   }
   next();
+};
+
+export const hasPermission = (requiredPermission: string) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      res.status(401).json({ error: 'No autenticado' });
+      return;
+    }
+
+    try {
+      const userPermissions = await prisma.userPermission.findMany({
+        where: { userId: req.user.id },
+        include: { permission: true }
+      });
+
+      const hasPermission = userPermissions.some(
+        up => up.permission.name === requiredPermission
+      );
+
+      if (!hasPermission) {
+        res.status(403).json({ error: 'No tiene permiso para realizar esta acción' });
+        return;
+      }
+
+      next();
+    } catch (error) {
+      res.status(500).json({ error: 'Error al verificar permisos' });
+    }
+  };
 };
