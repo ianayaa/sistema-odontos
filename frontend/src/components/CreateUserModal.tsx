@@ -13,6 +13,15 @@ const CreateUserModal: React.FC<Props> = ({ open, onClose, onCreate }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState<'débil' | 'media' | 'fuerte' | null>(null);
 
+  // Password criteria definition moved before useEffect
+  const passwordCriteria = [
+    { label: 'Al menos 8 caracteres', test: (pw: string) => pw.length >= 8 },
+    { label: 'Una letra mayúscula', test: (pw: string) => /[A-Z]/.test(pw) },
+    { label: 'Una letra minúscula', test: (pw: string) => /[a-z]/.test(pw) },
+    { label: 'Un número', test: (pw: string) => /[0-9]/.test(pw) },
+    { label: 'Un símbolo', test: (pw: string) => /[^A-Za-z0-9]/.test(pw) },
+  ];
+
   const sectionPermissions = [
     { key: 'inicio', label: 'Inicio' },
     { key: 'pacientes', label: 'Pacientes' },
@@ -33,18 +42,18 @@ const CreateUserModal: React.FC<Props> = ({ open, onClose, onCreate }) => {
     RECEPCIONISTA: ['inicio', 'pacientes', 'citas', 'pagos', 'servicios', 'reportes'],
   };
 
-  // Password strength logic
-  const passwordCriteria = [
-    { label: 'Al menos 8 caracteres', test: (pw: string) => pw.length >= 8 },
-    { label: 'Una letra mayúscula', test: (pw: string) => /[A-Z]/.test(pw) },
-    { label: 'Una letra minúscula', test: (pw: string) => /[a-z]/.test(pw) },
-    { label: 'Un número', test: (pw: string) => /[0-9]/.test(pw) },
-    { label: 'Un símbolo', test: (pw: string) => /[^A-Za-z0-9]/.test(pw) },
-  ];
+  const validatePassword = () => {
+    const pw: string = form.password;
+    const passed = passwordCriteria.filter(c => c.test(pw)).length;
+    if (!pw) setPasswordStrength(null);
+    else if (passed <= 2) setPasswordStrength('débil');
+    else if (passed === 3 || passed === 4) setPasswordStrength('media');
+    else setPasswordStrength('fuerte');
+  };
 
   useEffect(() => {
     validatePassword();
-  }, [form.password, passwordCriteria]);
+  }, [form.password]);
 
   if (!open) return null;
 
@@ -64,15 +73,6 @@ const CreateUserModal: React.FC<Props> = ({ open, onClose, onCreate }) => {
           : [...prev.permissions, key],
       };
     });
-  };
-
-  const validatePassword = () => {
-    const pw: string = form.password;
-    const passed = passwordCriteria.filter(c => c.test(pw)).length;
-    if (!pw) setPasswordStrength(null);
-    else if (passed <= 2) setPasswordStrength('débil');
-    else if (passed === 3 || passed === 4) setPasswordStrength('media');
-    else setPasswordStrength('fuerte');
   };
 
   return (
