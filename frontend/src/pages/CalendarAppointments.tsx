@@ -114,17 +114,22 @@ let globalTooltip: HTMLDivElement | null = null;
 let globalTooltipHideTimeout: NodeJS.Timeout | null = null;
 let globalTooltipShowTimeout: NodeJS.Timeout | null = null;
 
-function forceHideAppointmentTooltip() {
+function forceHideAppointmentTooltip(inmediato = false) {
   if (globalTooltipShowTimeout) clearTimeout(globalTooltipShowTimeout);
   if (globalTooltipHideTimeout) clearTimeout(globalTooltipHideTimeout);
   if (globalTooltip) {
     globalTooltip.style.opacity = '0';
-    setTimeout(() => {
-      if (globalTooltip) {
-        globalTooltip.remove();
-        globalTooltip = null;
-      }
-    }, 120);
+    if (inmediato) {
+      globalTooltip.remove();
+      globalTooltip = null;
+    } else {
+      setTimeout(() => {
+        if (globalTooltip) {
+          globalTooltip.remove();
+          globalTooltip = null;
+        }
+      }, 120);
+    }
   }
 }
 
@@ -818,6 +823,8 @@ const CalendarAppointments: React.FC = () => {
     const notas = info.event.extendedProps.notes || 'Sin notas';
 
     const showTooltip = (e: MouseEvent) => {
+      // Oculta cualquier tooltip anterior antes de mostrar uno nuevo, de inmediato
+      forceHideAppointmentTooltip(true);
       if (globalTooltipHideTimeout) clearTimeout(globalTooltipHideTimeout);
       if (!globalTooltip) {
         globalTooltip = document.createElement('div');
