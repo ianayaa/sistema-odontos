@@ -55,4 +55,4 @@ const CustomSelect: React.FC<CustomSelectProps> = ({ value, onChange, options, p
   );
 };
 
-export default CustomSelect; 
+export default React.memo(CustomSelect); 

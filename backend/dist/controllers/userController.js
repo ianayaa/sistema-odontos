@@ -3,10 +3,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteUser = exports.updateUser = exports.getUsers = exports.login = exports.createUser = void 0;
+exports.deleteUser = exports.updateUser = exports.getUsers = exports.logout = exports.refreshAccessToken = exports.login = exports.createUser = void 0;
 const client_1 = require("@prisma/client");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+// Estructura en memoria para refresh tokens válidos. En producción usa Redis.
+const refreshTokens = {};
 const prisma = new client_1.PrismaClient();
 const createUser = async (req, res) => {
     try {
@@ -64,9 +66,19 @@ const login = async (req, res) => {
         if (!validPassword) {
             return res.status(401).json({ error: 'Credenciales inválidas' });
         }
-        const token = jsonwebtoken_1.default.sign({ id: user.id, email: user.email, role: user.role }, process.env.JWT_SECRET, { expiresIn: '24h' });
+        // Access token (corto)
+        const accessToken = jsonwebtoken_1.default.sign({ id: user.id, email: user.email, role: user.role }, process.env.JWT_SECRET, { expiresIn: '15m' });
+        const refreshToken = jsonwebtoken_1.default.sign({ id: user.id }, process.env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
+        refreshTokens[refreshToken] = user.id;
+        // Enviar refresh token en cookie httpOnly
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 días
+        });
         res.json({
-            token,
+            accessToken,
             user: {
                 id: user.id,
                 email: user.email,
@@ -80,6 +92,33 @@ const login = async (req, res) => {
     }
 };
 exports.login = login;
+// Endpoint para refrescar access token
+const refreshAccessToken = (req, res) => {
+    const refreshToken = req.cookies?.refreshToken;
+    if (!refreshToken || !refreshTokens[refreshToken]) {
+        return res.status(401).json({ error: 'Refresh token inválido o no proporcionado' });
+    }
+    try {
+        const decoded = jsonwebtoken_1.default.verify(refreshToken, process.env.JWT_SECRET);
+        // Opcional: puedes verificar si el usuario sigue activo
+        const newAccessToken = jsonwebtoken_1.default.sign(decoded, process.env.JWT_SECRET, { expiresIn: '15m' });
+        res.json({ accessToken: newAccessToken });
+    }
+    catch (error) {
+        return res.status(403).json({ error: 'Refresh token inválido' });
+    }
+};
+exports.refreshAccessToken = refreshAccessToken;
+// Endpoint para logout seguro
+const logout = (req, res) => {
+    const refreshToken = req.cookies?.refreshToken;
+    if (refreshToken) {
+        delete refreshTokens[refreshToken];
+    }
+    res.clearCookie('refreshToken');
+    res.json({ message: 'Logout exitoso' });
+};
+exports.logout = logout;
 const getUsers = async (req, res) => {
     try {
         const users = await prisma.user.findMany({

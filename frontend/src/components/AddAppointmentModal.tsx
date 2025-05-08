@@ -344,4 +344,4 @@ const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({ onClose, onSu
   );
 };
 
-export default AddAppointmentModal;
+export default React.memo(AddAppointmentModal);

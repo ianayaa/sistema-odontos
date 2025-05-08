@@ -37,8 +37,12 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
       role: decoded.role
     };
     next();
-  } catch (error) {
-    res.status(403).json({ error: 'Token inválido' });
+  } catch (error: any) {
+    if (error.name === 'TokenExpiredError') {
+      res.status(401).json({ error: 'Token expirado' });
+    } else {
+      res.status(403).json({ error: 'Token inválido' });
+    }
     return;
   }
 };

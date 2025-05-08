@@ -4,9 +4,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
+const cookie_parser_1 = __importDefault(require("cookie-parser"));
+const tokenRoutes_1 = __importDefault(require("./routes/tokenRoutes"));
 const cors_1 = __importDefault(require("cors"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const client_1 = require("@prisma/client");
+const helmet_1 = __importDefault(require("helmet"));
+const compression_1 = __importDefault(require("compression"));
+const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
+const morgan_1 = __importDefault(require("morgan"));
 const patientRoutes_1 = __importDefault(require("./routes/patientRoutes"));
 const appointmentRoutes_1 = __importDefault(require("./routes/appointmentRoutes"));
 const userRoutes_1 = __importDefault(require("./routes/userRoutes"));
@@ -18,9 +24,30 @@ const clinicConfigRoutes_1 = __importDefault(require("./routes/clinicConfigRoute
 const shortenerRoutes_1 = __importDefault(require("./routes/shortenerRoutes"));
 const serviceRoutes_1 = __importDefault(require("./routes/serviceRoutes"));
 const path_1 = __importDefault(require("path"));
+const userController_1 = require("./controllers/userController");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
+app.use((0, cookie_parser_1.default)());
 const prisma = new client_1.PrismaClient();
+// Habilitar manejo de cookies (necesario para refresh tokens)
+// (Ya está habilitado arriba)
+// Seguridad HTTP
+app.use((0, helmet_1.default)());
+// Compresión de respuestas
+app.use((0, compression_1.default)());
+// Logging de peticiones HTTP
+app.use((0, morgan_1.default)('combined'));
+// Rate limiting básico
+const limiter = (0, express_rate_limit_1.default)({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    max: 100, // máximo 100 requests por IP
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+app.use(limiter);
+// SUGERENCIA: Para logging estructurado, considera integrar winston o pino.
+// SUGERENCIA: Para monitoreo de errores, considera integrar Sentry.
+// SUGERENCIA: Para cache de consultas, considera integrar Redis (requiere infraestructura Redis).
 // Endpoint de healthcheck para Railway
 app.get('/api/health', (req, res) => {
     res.status(200).json({ status: 'ok' });
@@ -48,6 +75,7 @@ else {
 app.use(express_1.default.json());
 // Rutas
 app.use('/api/users', userRoutes_1.default);
+app.use('/api/token', tokenRoutes_1.default);
 app.use('/api/patients', patientRoutes_1.default);
 app.use('/api/appointments', appointmentRoutes_1.default);
 app.use('/api/medical-history', medicalHistoryRoutes_1.default);
@@ -57,6 +85,10 @@ app.use('/api/twilio-test', twilioTestRoutes_1.default);
 app.use('/api/config', clinicConfigRoutes_1.default);
 app.use('/api/shortener', shortenerRoutes_1.default);
 app.use('/api/services', serviceRoutes_1.default);
+// Endpoint para refrescar access token
+// app.post('/api/token/refresh', refreshAccessToken);
+// Endpoint para logout seguro
+app.post('/api/logout', userController_1.logout);
 // Servir archivos estáticos del frontend
 const publicPath = process.env.NODE_ENV === 'production'
     ? path_1.default.join(__dirname, 'public')

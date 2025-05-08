@@ -3,6 +3,9 @@ import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
+// Estructura en memoria para refresh tokens válidos. En producción usa Redis.
+const refreshTokens: { [key: string]: string } = {};
+
 const prisma = new PrismaClient();
 
 export const createUser = async (req: Request, res: Response) => {
@@ -69,14 +72,21 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
-    const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
-      process.env.JWT_SECRET!,
-      { expiresIn: '24h' }
-    );
+    // Access token (corto)
+    const accessToken = jwt.sign({ id: user.id, email: user.email, role: user.role }, process.env.JWT_SECRET!, { expiresIn: '15m' });
+    const refreshToken = jwt.sign({ id: user.id }, process.env.JWT_REFRESH_SECRET!, { expiresIn: '7d' });
+    refreshTokens[refreshToken] = user.id;
+
+    // Enviar refresh token en cookie httpOnly
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 días
+    });
 
     res.json({
-      token,
+      accessToken,
       user: {
         id: user.id,
         email: user.email,
@@ -87,6 +97,36 @@ export const login = async (req: Request, res: Response) => {
   } catch (error) {
     res.status(500).json({ error: 'Error al iniciar sesión' });
   }
+};
+
+// Endpoint para refrescar access token
+export const refreshAccessToken: (req: Request, res: Response) => void = (req, res) => {
+  const refreshToken = req.cookies?.refreshToken;
+  if (!refreshToken || !refreshTokens[refreshToken]) {
+    return res.status(401).json({ error: 'Refresh token inválido o no proporcionado' });
+  }
+  try {
+    const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET!);
+    // Opcional: puedes verificar si el usuario sigue activo
+    const newAccessToken = jwt.sign(
+      (decoded as any),
+      process.env.JWT_SECRET!,
+      { expiresIn: '15m' }
+    );
+    res.json({ accessToken: newAccessToken });
+  } catch (error: any) {
+    return res.status(403).json({ error: 'Refresh token inválido' });
+  }
+};
+
+// Endpoint para logout seguro
+export const logout: (req: Request, res: Response) => void = (req, res) => {
+  const refreshToken = req.cookies?.refreshToken;
+  if (refreshToken) {
+    delete refreshTokens[refreshToken];
+  }
+  res.clearCookie('refreshToken');
+  res.json({ message: 'Logout exitoso' });
 };
 
 export const getUsers = async (req: Request, res: Response) => {
