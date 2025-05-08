@@ -3,6 +3,7 @@ import { User, UserPlus, Pencil, Trash, Eye, EyeSlash } from 'phosphor-react';
 import api from '../services/api';
 import CreateUserModal from '../components/CreateUserModal';
 import EditUserModal from '../components/EditUserModal';
+import { message } from 'antd';
 
 interface UserData {
   id: string;
@@ -12,6 +13,7 @@ interface UserData {
   email: string;
   role: 'ADMIN' | 'DENTIST' | 'ASSISTANT' | 'PATIENT';
   status: 'active' | 'inactive';
+  isActive: boolean;
 }
 
 interface UserForm {
@@ -101,6 +103,15 @@ const UserManagement: React.FC = () => {
     }
   };
 
+  const toggleUserActive = async (user: UserData) => {
+    try {
+      await api.patch(`/users/${user.id}/active`, { isActive: !user.isActive });
+      loadUsers();
+    } catch (error) {
+      message.error('Error al cambiar el estado del usuario');
+    }
+  };
+
   // Filtrar usuarios: solo mostrar ADMIN, DENTIST y ASSISTANT
   const filteredUsers = users
     .filter(user => user.role !== 'PATIENT')
@@ -167,10 +178,17 @@ const UserManagement: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                      user.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
-                      {user.status === 'active' ? 'Activo' : 'Inactivo'}
+                    <span
+                      className={`px-4 py-2 rounded-full text-xs font-semibold cursor-pointer transition-colors ${
+                        user.isActive
+                          ? 'bg-green-100 text-green-800 hover:bg-red-100 hover:text-red-700'
+                          : 'bg-red-100 text-red-800 hover:bg-green-100 hover:text-green-700'
+                      }`}
+                      title={user.isActive ? 'Haz clic para desactivar' : 'Haz clic para activar'}
+                      onClick={() => toggleUserActive(user)}
+                      style={{ userSelect: 'none' }}
+                    >
+                      {user.isActive ? 'Activo' : 'Inactivo'}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">

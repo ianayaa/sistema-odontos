@@ -1,12 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import api from '../services/api';
-
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-}
+import { User } from '../types/user';
+import { login as authLogin, getCurrentUser, logout as authLogout } from '../services/auth';
 
 interface AuthContextType {
   user: User | null;
@@ -23,6 +17,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -35,12 +30,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const checkAuthStatus = async () => {
     try {
-      const response = await api.get('/users/me');
-      setUser(response.data);
+      const userData = await getCurrentUser();
+      setUser(userData);
+      setIsAuthenticated(true);
       setError(null);
     } catch (err) {
       localStorage.removeItem('token');
       setUser(null);
+      setIsAuthenticated(false);
       setError('Sesión expirada');
     } finally {
       setLoading(false);
@@ -51,14 +48,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true);
       setError(null);
-      const response = await api.post('/users/login', { email, password });
-      const { token, user } = response.data;
+      const { token, user: userData } = await authLogin(email, password);
       localStorage.setItem('token', token);
-      setUser(user);
+      setUser(userData);
+      setIsAuthenticated(true);
       setError(null);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Error al iniciar sesión');
       setUser(null);
+      setIsAuthenticated(false);
       localStorage.removeItem('token');
     } finally {
       setLoading(false);
@@ -66,21 +64,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
+    authLogout();
     setUser(null);
-  };
-
-  const value = {
-    user,
-    loading,
-    error,
-    login,
-    logout,
-    isAuthenticated: !!user
+    setIsAuthenticated(false);
   };
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{ user, loading, error, login, logout, isAuthenticated }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserCircle, X } from 'phosphor-react';
 import RoleSelect from './RoleSelect';
+import ReactDOM from 'react-dom';
 
 interface Props {
   open: boolean;
@@ -33,13 +34,21 @@ const sectionPermissions = [
 
 const roleDefaultPermissions: Record<string, string[]> = {
   ADMIN: sectionPermissions.map(s => s.key),
-  DOCTOR: ['inicio', 'pacientes', 'citas', 'pagos', 'consentimientos', 'servicios', 'reportes', 'pagos_odontologos'],
-  RECEPCIONISTA: ['inicio', 'pacientes', 'citas', 'pagos', 'servicios', 'reportes'],
+  DENTIST: ['inicio', 'pacientes', 'citas', 'pagos', 'consentimientos', 'servicios', 'reportes', 'pagos_odontologos'],
+  ASSISTANT: ['inicio', 'pacientes', 'citas', 'pagos', 'servicios', 'reportes'],
   // Agrega más roles según tu sistema
 };
 
 const EditUserModal: React.FC<Props> = ({ open, onClose, user, onEdit }) => {
-  const [form, setForm] = useState({ id: '', name: '', lastNamePaterno: '', lastNameMaterno: '', email: '', role: 'ADMIN', permissions: sectionPermissions.map(s => s.key) });
+  const [form, setForm] = useState({
+    id: '',
+    name: '',
+    lastNamePaterno: '',
+    lastNameMaterno: '',
+    email: '',
+    role: 'ADMIN',
+    permissions: roleDefaultPermissions['ADMIN'],
+  });
 
   useEffect(() => {
     if (user) {
@@ -50,10 +59,21 @@ const EditUserModal: React.FC<Props> = ({ open, onClose, user, onEdit }) => {
         lastNameMaterno: user.lastNameMaterno || '',
         email: user.email,
         role: user.role,
-        permissions: user.permissions || sectionPermissions.map(s => s.key),
+        permissions: user.permissions || roleDefaultPermissions[user.role] || [],
       });
     }
   }, [user]);
+
+  useEffect(() => {
+    if (open && user) {
+      setForm(prev => ({
+        ...prev,
+        permissions: user.permissions && user.permissions.length > 0
+          ? user.permissions
+          : roleDefaultPermissions[prev.role] || [],
+      }));
+    }
+  }, [open, user]);
 
   if (!open || !user) return null;
 
@@ -74,7 +94,7 @@ const EditUserModal: React.FC<Props> = ({ open, onClose, user, onEdit }) => {
     });
   };
 
-  return (
+  const modalContent = (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-0 relative overflow-hidden animate-fadeInUp">
         <div className="flex items-center gap-3 bg-gradient-to-r from-red-100 to-red-50 px-8 py-6 border-b border-red-100">
@@ -91,7 +111,10 @@ const EditUserModal: React.FC<Props> = ({ open, onClose, user, onEdit }) => {
             aria-label="Cerrar"
             type="button"
           >
-            <X size={28} className="text-red-400 hover:text-red-600" />
+            <svg width="28" height="28" fill="none" stroke="#d32f2f" strokeWidth="2.2" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M15 9l-6 6M9 9l6 6" />
+            </svg>
           </button>
         </div>
         <form onSubmit={handleSubmit} className="px-8 py-7 space-y-4">
@@ -157,7 +180,7 @@ const EditUserModal: React.FC<Props> = ({ open, onClose, user, onEdit }) => {
                     type="checkbox"
                     checked={form.permissions.includes(perm.key)}
                     onChange={() => handleCheckboxChange(perm.key)}
-                    className="rounded border-gray-300 focus:ring-red-400"
+                    className="accent-blue-500 rounded border-gray-300 focus:ring-blue-400"
                   />
                   {perm.label}
                 </label>
@@ -174,6 +197,8 @@ const EditUserModal: React.FC<Props> = ({ open, onClose, user, onEdit }) => {
       </div>
     </div>
   );
+
+  return ReactDOM.createPortal(modalContent, document.body);
 };
 
 export default EditUserModal;

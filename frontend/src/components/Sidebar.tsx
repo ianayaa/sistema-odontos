@@ -18,18 +18,19 @@ import {
   CaretRight
 } from 'phosphor-react';
 import { useAuth } from '../context/AuthContext';
+import { User } from '../types/user';
 
 const menu = [
-  { label: 'Inicio', path: '/dashboard', icon: <House size={24} /> },
-  { label: 'Pacientes', path: '/pacientes', icon: <Users size={24} /> },
-  { label: 'Citas', path: '/citas', icon: <Calendar size={24} /> },
-  { label: 'Pagos', path: '/pagos', icon: <CurrencyDollar size={24} /> },
-  { label: 'Consentimientos', path: '/consentimientos', icon: <FileText size={24} /> },
-  { label: 'Servicios', path: '/servicios', icon: <FirstAid size={24} /> },
-  { label: 'Reportes', path: '/reportes', icon: <ChartBar size={24} /> },
-  { label: 'Comunicación', path: '/comunicacion', icon: <ChatCircle size={24} /> },
-  { label: 'Pagos Odontólogos', path: '/pagos-odontologos', icon: <Calculator size={24} /> },
-  { label: 'Configuración', path: '/configuracion', icon: <GearSix size={24} /> },
+  { label: 'Inicio', path: '/dashboard', icon: <House size={24} />, permission: 'inicio' },
+  { label: 'Pacientes', path: '/pacientes', icon: <Users size={24} />, permission: 'pacientes' },
+  { label: 'Citas', path: '/citas', icon: <Calendar size={24} />, permission: 'citas' },
+  { label: 'Pagos', path: '/pagos', icon: <CurrencyDollar size={24} />, permission: 'pagos' },
+  { label: 'Consentimientos', path: '/consentimientos', icon: <FileText size={24} />, permission: 'consentimientos' },
+  { label: 'Servicios', path: '/servicios', icon: <FirstAid size={24} />, permission: 'servicios' },
+  { label: 'Reportes', path: '/reportes', icon: <ChartBar size={24} />, permission: 'reportes' },
+  { label: 'Comunicación', path: '/comunicacion', icon: <ChatCircle size={24} />, permission: 'comunicacion' },
+  { label: 'Pagos Odontólogos', path: '/pagos-odontologos', icon: <Calculator size={24} />, permission: 'pagos_odontologos' },
+  { label: 'Configuración', path: '/configuracion', icon: <GearSix size={24} />, permission: 'configuracion' },
 ];
 
 interface SidebarProps {
@@ -42,23 +43,17 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  // Definir permisos de menú
+  // Depuración de permisos
+  console.log('Usuario actual:', user);
+  console.log('Permisos del usuario:', user?.permissions);
+
+  // Filtrar menú basado en permisos
   const allowedMenu = menu.filter(item => {
     if (!user) return false;
-    // ADMIN tiene acceso a todo
-    if (user.role === 'ADMIN') return true;
-    // ODONTOLOGO
-    if (user.role === 'DENTIST') {
-      // No puede ver Configuración ni Gestión de Usuarios ni Inventario
-      return !['/configuracion', '/inventario', '/pagos-odontologos'].includes(item.path);
-    }
-    // ASISTENTE
-    if (user.role === 'ASSISTANT') {
-      // Solo puede ver Pacientes, Citas, Comunicación y Dashboard
-      return ['/pacientes', '/citas', '/comunicacion', '/dashboard'].includes(item.path);
-    }
-    // Otros roles (ej: PATIENT)
-    return false;
+    // Si el usuario tiene el permiso específico, mostrar el ítem
+    const hasPermission = (user as User).permissions?.includes(item.permission) || false;
+    console.log(`Verificando permiso ${item.permission}:`, hasPermission);
+    return hasPermission;
   });
 
   const handleLogout = () => {
