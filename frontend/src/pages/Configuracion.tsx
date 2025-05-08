@@ -147,7 +147,6 @@ const Configuracion: React.FC = () => {
                           src={form.logoPreview} 
                           alt="Logo preview" 
                           className="w-full h-full object-contain rounded-lg"
-                          loading="lazy"
                         />
                       ) : (
                         <Image size={32} className="text-gray-400" />

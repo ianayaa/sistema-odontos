@@ -27,12 +27,7 @@ const authenticateToken = (req, res, next) => {
         next();
     }
     catch (error) {
-        if (error.name === 'TokenExpiredError') {
-            res.status(401).json({ error: 'Token expirado' });
-        }
-        else {
-            res.status(403).json({ error: 'Token inválido' });
-        }
+        res.status(403).json({ error: 'Token inválido' });
         return;
     }
 };

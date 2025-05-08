@@ -1,10 +1,9 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import App from './App';
-jest.mock('axios');
 
-test('muestra el botón Iniciar sesión', async () => {
+test('renders learn react link', () => {
   render(<App />);
-  const loginButton = await screen.findByRole('button', { name: /iniciar sesión/i });
-  expect(loginButton).toBeInTheDocument();
+  const linkElement = screen.getByText(/learn react/i);
+  expect(linkElement).toBeInTheDocument();
 });

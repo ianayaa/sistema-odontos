@@ -73,10 +73,12 @@ const DentistPayments: React.FC = () => {
   const [dentists, setDentists] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
-    api.get('/payments/dentist')
-      .then(res => setPayments(res.data));
-    api.get('/payments/dentist/summary')
-      .then(res => setSummary(res.data));
+    fetch('/api/payments/dentist')
+      .then(res => res.json())
+      .then(data => setPayments(data));
+    fetch('/api/payments/dentist/summary')
+      .then(res => res.json())
+      .then(data => setSummary(data));
     api.get('/users')
       .then(res => {
         const data = res.data;

@@ -1,13 +1,7 @@
 import express from 'express';
-import cookieParser from 'cookie-parser';
-import tokenRoutes from './routes/tokenRoutes';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
-import helmet from 'helmet';
-import compression from 'compression';
-import rateLimit from 'express-rate-limit';
-import morgan from 'morgan';
 import patientRoutes from './routes/patientRoutes';
 import appointmentRoutes from './routes/appointmentRoutes';
 import userRoutes from './routes/userRoutes';
@@ -19,38 +13,11 @@ import clinicConfigRoutes from './routes/clinicConfigRoutes';
 import shortenerRoutes from './routes/shortenerRoutes';
 import serviceRoutes from './routes/serviceRoutes';
 import path from 'path';
-import { refreshAccessToken, logout } from './controllers/userController';
 
 dotenv.config();
 
 const app = express();
-app.use(cookieParser());
 const prisma = new PrismaClient();
-
-// Habilitar manejo de cookies (necesario para refresh tokens)
-// (Ya está habilitado arriba)
-
-// Seguridad HTTP
-app.use(helmet());
-
-// Compresión de respuestas
-app.use(compression());
-
-// Logging de peticiones HTTP
-app.use(morgan('combined'));
-
-// Rate limiting básico
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 100, // máximo 100 requests por IP
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-app.use(limiter);
-
-// SUGERENCIA: Para logging estructurado, considera integrar winston o pino.
-// SUGERENCIA: Para monitoreo de errores, considera integrar Sentry.
-// SUGERENCIA: Para cache de consultas, considera integrar Redis (requiere infraestructura Redis).
 
 // Endpoint de healthcheck para Railway
 app.get('/api/health', (req, res) => {
@@ -83,7 +50,6 @@ app.use(express.json());
 
 // Rutas
 app.use('/api/users', userRoutes);
-app.use('/api/token', tokenRoutes);
 app.use('/api/patients', patientRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/medical-history', medicalHistoryRoutes);
@@ -93,11 +59,6 @@ app.use('/api/twilio-test', twilioTestRoutes);
 app.use('/api/config', clinicConfigRoutes);
 app.use('/api/shortener', shortenerRoutes);
 app.use('/api/services', serviceRoutes);
-
-// Endpoint para refrescar access token
-// app.post('/api/token/refresh', refreshAccessToken);
-// Endpoint para logout seguro
-app.post('/api/logout', logout);
 
 // Servir archivos estáticos del frontend
 const publicPath = process.env.NODE_ENV === 'production' 

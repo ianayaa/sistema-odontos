@@ -3,7 +3,6 @@ import DashboardLayout from '../components/DashboardLayout';
 import api from '../services/api';
 import { CalendarBlank, User, Phone, Clock, X, WarningCircle } from 'phosphor-react';
 import AddAppointmentModal from '../components/AddAppointmentModal';
-import EditAppointmentModal from '../components/EditAppointmentModal';
 import CalendarAppointments from './CalendarAppointments';
 import { Appointment } from '../types/appointment';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
@@ -14,8 +13,6 @@ interface AppointmentWithService extends Appointment {
 }
 
 const Appointments: React.FC = () => {
-  // ...existing state
-  const [editModal, setEditModal] = useState<{ open: boolean, appointment: AppointmentWithService | null }>({ open: false, appointment: null });
   const [appointments, setAppointments] = useState<AppointmentWithService[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -98,21 +95,6 @@ const Appointments: React.FC = () => {
 
   return (
     <DashboardLayout>
-      {/* Edit Appointment Modal */}
-      {editModal.open && editModal.appointment && (
-        <EditAppointmentModal
-          appointment={editModal.appointment}
-          appointments={appointments}
-          onClose={() => setEditModal({ open: false, appointment: null })}
-          onSuccess={async () => {
-            setEditModal({ open: false, appointment: null });
-            setLoading(true);
-            await api.get('/appointments')
-              .then(res => setAppointments(res.data))
-              .finally(() => setLoading(false));
-          }}
-        />
-      )}
       <ConfirmDeleteModal
         open={deleteModalOpen}
         onClose={cancelDelete}
@@ -396,15 +378,12 @@ const Appointments: React.FC = () => {
                 <div className="flex flex-col gap-2 mt-4">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <button
-  className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-blue-100 text-blue-700 rounded-lg shadow-sm hover:bg-blue-200 transition-all font-medium text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
-  onClick={() => {
-    setEditModal({ open: true, appointment: detailsModal.appointment });
-    setDetailsModal({ open: false, appointment: null });
-  }}
-  type="button"
->
-  <Clock size={16} weight='bold' /> Reagendar
-</button>
+                      className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-blue-100 text-blue-700 rounded-lg shadow-sm hover:bg-blue-200 transition-all font-medium text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                      onClick={() => {/* Aquí puedes abrir el modal de edición si existe */}}
+                      type="button"
+                    >
+                      <Clock size={16} weight='bold' /> Reagendar
+                    </button>
                     <button
                       className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-red-500 text-white rounded-lg shadow-sm hover:bg-red-600 transition-all font-medium text-sm focus:outline-none focus:ring-2 focus:ring-red-200"
                       onClick={async () => {

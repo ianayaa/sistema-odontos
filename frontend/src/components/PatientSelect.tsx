@@ -131,4 +131,4 @@ const PatientSelect: React.FC<PatientSelectProps> = ({ value, onChange, patients
   );
 };
 
-export default React.memo(PatientSelect);
+export default PatientSelect;

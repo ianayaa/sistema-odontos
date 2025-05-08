@@ -286,4 +286,4 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({ onClose, on
   );
 };
 
-export default React.memo(EditAppointmentModal); 
+export default EditAppointmentModal; 
