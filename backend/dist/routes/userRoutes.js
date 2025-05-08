@@ -8,27 +8,19 @@ const userController_1 = require("../controllers/userController");
 const auth_1 = require("../middleware/auth");
 const router = express_1.default.Router();
 // Rutas públicas
-router.post('/login', userController_1.login);
-// Endpoint para validar token y obtener usuario actual (debe ser /me)
-router.get('/me', auth_1.authenticateToken, (req, res) => {
-    if (!req.user) {
-        res.status(401).json({ error: 'No autenticado' });
-        return;
-    }
-    res.json(req.user);
-    return;
-});
+router.post('/login', wrapAsync(userController_1.login));
 // Rutas protegidas
 router.use(auth_1.authenticateToken);
-// Rutas de administración
-router.use(auth_1.isAdmin);
-router.post('/', wrapAsync(userController_1.createUser));
+router.get('/me', wrapAsync(userController_1.getCurrentUser));
 router.get('/', wrapAsync(userController_1.getUsers));
+router.post('/', wrapAsync(userController_1.createUser));
 router.put('/:id', wrapAsync(userController_1.updateUser));
 router.delete('/:id', wrapAsync(userController_1.deleteUser));
+// Rutas de administración
+router.use(auth_1.isAdmin);
 function wrapAsync(fn) {
-    return function (req, res, next) {
-        Promise.resolve(fn(req, res, next)).catch(next);
+    return (req, res, next) => {
+        Promise.resolve(fn(req, res)).catch(next);
     };
 }
 exports.default = router;

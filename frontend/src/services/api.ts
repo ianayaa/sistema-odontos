@@ -12,6 +12,15 @@ api.interceptors.request.use(config => {
   return config;
 });
 
+// Agregar interceptor para manejar errores
+api.interceptors.response.use(
+  response => response,
+  error => {
+    console.error('Error en la petición:', error.response?.data || error.message);
+    return Promise.reject(error);
+  }
+);
+
 export default api;
 
 export const getDentistSchedule = async () => {

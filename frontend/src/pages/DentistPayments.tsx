@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
-import { Money } from 'phosphor-react';
+import { Money, Plus, X, MagnifyingGlass } from 'phosphor-react';
 import api from '../services/api';
 
 interface Payment {
@@ -73,17 +73,20 @@ const DentistPayments: React.FC = () => {
   const [dentists, setDentists] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
-    fetch('/api/payments/dentist')
-      .then(res => res.json())
-      .then(data => setPayments(data));
-    fetch('/api/payments/dentist/summary')
-      .then(res => res.json())
-      .then(data => setSummary(data));
+    api.get('/payments/dentist')
+      .then(res => setPayments(res.data))
+      .catch(err => console.error('Error al cargar pagos:', err));
+      
+    api.get('/payments/dentist/summary')
+      .then(res => setSummary(res.data))
+      .catch(err => console.error('Error al cargar resumen:', err));
+      
     api.get('/users')
       .then(res => {
         const data = res.data;
         setDentists(Array.isArray(data) ? data.filter((u: any) => u.role === 'DENTIST') : []);
-      });
+      })
+      .catch(err => console.error('Error al cargar odontólogos:', err));
   }, []);
 
   const filteredPayments = Array.isArray(payments)
@@ -92,6 +95,39 @@ const DentistPayments: React.FC = () => {
         (payment.period?.toLowerCase() || '').includes(search.toLowerCase())
       )
     : [];
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await api.post('/payments/dentist', {
+        dentistId: form.dentistId,
+        period: form.period,
+        baseSalary: form.baseSalary,
+        commission: form.commission,
+        deductions: form.deductions,
+        total: form.total,
+        status: form.status,
+        paymentDate: form.paymentDate
+      });
+      
+      setShowModal(false);
+      setForm({ dentistId: '', period: '', baseSalary: '', commission: '', deductions: '', total: '', status: 'pending', paymentDate: '' });
+      
+      // Recargar pagos y resumen
+      const [paymentsRes, summaryRes] = await Promise.all([
+        api.get('/payments/dentist'),
+        api.get('/payments/dentist/summary')
+      ]);
+      
+      setPayments(paymentsRes.data);
+      setSummary(summaryRes.data);
+    } catch (err) {
+      alert('Error al guardar el pago');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -241,39 +277,7 @@ const DentistPayments: React.FC = () => {
               </button>
             </div>
             <form
-              onSubmit={async e => {
-                e.preventDefault();
-                setLoading(true);
-                try {
-                  await fetch('/api/payments/dentist', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      dentistId: form.dentistId,
-                      period: form.period,
-                      baseSalary: form.baseSalary,
-                      commission: form.commission,
-                      deductions: form.deductions,
-                      total: form.total,
-                      status: form.status,
-                      paymentDate: form.paymentDate
-                    })
-                  });
-                  setShowModal(false);
-                  setForm({ dentistId: '', period: '', baseSalary: '', commission: '', deductions: '', total: '', status: 'pending', paymentDate: '' });
-                  // Recargar pagos y resumen
-                  const [p, s] = await Promise.all([
-                    fetch('/api/payments/dentist').then(res => res.json()),
-                    fetch('/api/payments/dentist/summary').then(res => res.json())
-                  ]);
-                  setPayments(p);
-                  setSummary(s);
-                } catch (err) {
-                  alert('Error al guardar el pago');
-                } finally {
-                  setLoading(false);
-                }
-              }}
+              onSubmit={handleSubmit}
               className="px-8 py-7 space-y-4"
             >
               <div>
