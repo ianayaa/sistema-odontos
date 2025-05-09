@@ -4,12 +4,13 @@
   "description": "Backend para sistema de gestión dental",
   "main": "dist/index.js",
   "scripts": {
-    "start": "prisma migrate deploy && prisma generate && node dist/index.js",
+    "start": "npx prisma generate && node dist/index.js",
     "dev": "nodemon src/index.ts",
     "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1",
     "prisma:migrate": "prisma migrate deploy",
-    "prisma:generate": "prisma generate"
+    "prisma:generate": "prisma generate",
+    "prisma:fix": "prisma migrate reset --force && prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^6.6.0",
