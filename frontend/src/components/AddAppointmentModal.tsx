@@ -22,6 +22,13 @@ interface Patient {
   name: string;
 }
 
+interface Dentist {
+  id: string;
+  name: string;
+  lastNamePaterno?: string;
+  lastNameMaterno?: string;
+}
+
 const initialState = {
   patientId: '',
   date: null as Date | null,
@@ -57,7 +64,8 @@ const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({ onClose, onSu
           ? new Date(initialDate + 'T00:00:00')
           : new Date(initialDate))
       : null,
-    serviceId: ''
+    serviceId: '',
+    dentistId: ''
   });
   const [patients, setPatients] = useState<Patient[]>([]);
   const [services, setServices] = useState<any[]>([]);
@@ -67,6 +75,7 @@ const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({ onClose, onSu
   const [duration, setDuration] = useState(initialDuration || 60);
   const [enviarMensaje, setEnviarMensaje] = useState(true);
   const timeOptions = generateTimeOptions();
+  const [dentists, setDentists] = useState<Dentist[]>([]);
 
   const loadPatients = async () => {
     try {
@@ -83,6 +92,10 @@ const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({ onClose, onSu
     getServices()
       .then(setServices)
       .catch(() => setServices([]));
+    // Cargar dentistas
+    api.get('/users').then(res => {
+      setDentists(Array.isArray(res.data) ? res.data.filter((u: any) => u.role === 'DENTIST') : []);
+    }).catch(() => setDentists([]));
   }, []);
 
   const handlePatientAdded = async (newPatient: Patient) => {
@@ -98,8 +111,8 @@ const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({ onClose, onSu
     e.preventDefault();
     setLoading(true);
     setError('');
-    if (!form.patientId || !form.date || !hour || !form.serviceId) {
-      setError('Selecciona un paciente, una fecha, una hora y un servicio.');
+    if (!form.patientId || !form.date || !hour || !form.serviceId || !form.dentistId) {
+      setError('Selecciona un paciente, una fecha, una hora, un servicio y un dentista.');
       setLoading(false);
       return;
     }
@@ -120,6 +133,7 @@ const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({ onClose, onSu
         notes: form.notes,
         duration,
         serviceId: form.serviceId,
+        dentistId: form.dentistId,
         enviarMensaje,
       });
       onSuccess();
@@ -291,6 +305,23 @@ const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({ onClose, onSu
                 </Select.Option>
               ))}
             </Select>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Dentista</label>
+            <Select
+              value={form.dentistId}
+              onChange={dentistId => setForm(f => ({ ...f, dentistId }))}
+              style={{ width: '100%' }}
+              placeholder="Selecciona un dentista"
+              disabled={loading}
+            >
+              {dentists.map(d => (
+                <Select.Option key={d.id} value={d.id}>
+                  {d.name} {d.lastNamePaterno || ''} {d.lastNameMaterno || ''}
+                </Select.Option>
+              ))}
+            </Select>
+            {(!form.dentistId && error) && <div className="text-red-500 text-xs mt-1">Selecciona un dentista</div>}
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Estado</label>
