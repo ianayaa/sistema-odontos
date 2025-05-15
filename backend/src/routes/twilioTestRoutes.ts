@@ -11,20 +11,6 @@ function wrapAsync(fn: any) {
   };
 }
 
-// Endpoint de prueba para enviar SMS o WhatsApp
-router.post('/send-notification', wrapAsync(async (req: Request, res: Response) => {
-  const { type, to, message } = req.body;
-  if (!type || !to || !message) {
-    return res.status(400).json({ success: false, error: 'Faltan parámetros: type, to, message' });
-  }
-  try {
-    await sendNotification({ type, to, message });
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error instanceof Error ? error.message : error });
-  }
-}));
-
 // Endpoint para enviar mensaje de cita por WhatsApp con quick replies
 router.post('/send-whatsapp-appointment', wrapAsync(async (req: Request, res: Response) => {
   const { to, nombrePaciente, fecha, hora } = req.body;

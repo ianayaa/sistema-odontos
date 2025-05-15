@@ -4,7 +4,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const notificationService_1 = require("../services/notificationService");
 const twilio_1 = __importDefault(require("twilio"));
 const router = express_1.default.Router();
 // Función para envolver async y manejar errores correctamente en Express
@@ -13,20 +12,6 @@ function wrapAsync(fn) {
         Promise.resolve(fn(req, res, next)).catch(next);
     };
 }
-// Endpoint de prueba para enviar SMS o WhatsApp
-router.post('/send-notification', wrapAsync(async (req, res) => {
-    const { type, to, message } = req.body;
-    if (!type || !to || !message) {
-        return res.status(400).json({ success: false, error: 'Faltan parámetros: type, to, message' });
-    }
-    try {
-        await (0, notificationService_1.sendNotification)({ type, to, message });
-        res.json({ success: true });
-    }
-    catch (error) {
-        res.status(500).json({ success: false, error: error instanceof Error ? error.message : error });
-    }
-}));
 // Endpoint para enviar mensaje de cita por WhatsApp con quick replies
 router.post('/send-whatsapp-appointment', wrapAsync(async (req, res) => {
     const { to, nombrePaciente, fecha, hora } = req.body;

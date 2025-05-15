@@ -122,7 +122,10 @@ const createUser = async (req, res) => {
 exports.createUser = createUser;
 const login = async (req, res) => {
     try {
+        console.log('=== INICIO DE PROCESO DE LOGIN ===');
         const { email, password, systemType = 'main' } = req.body;
+        console.log('Datos recibidos:', { email, systemType });
+        console.log('Buscando usuario en la base de datos...');
         const user = await prisma.user.findUnique({
             where: { email },
             include: {
@@ -134,23 +137,36 @@ const login = async (req, res) => {
             }
         });
         if (!user) {
+            console.log('Usuario no encontrado');
             return res.status(401).json({ error: 'Credenciales inválidas' });
         }
+        console.log('Usuario encontrado:', {
+            id: user.id,
+            email: user.email,
+            role: user.role,
+            isActive: user.isActive
+        });
         // Validar si el usuario está activo
         if (!user.isActive) {
+            console.log('Usuario inactivo');
             return res.status(403).json({ error: 'Cuenta desactivada. Contacte al administrador.' });
         }
         // Validar el rol según el sistema
         if (systemType === 'main' && !['ADMIN', 'DENTIST', 'ASSISTANT'].includes(user.role)) {
+            console.log('Rol no permitido para sistema principal:', user.role);
             return res.status(403).json({ error: 'Acceso denegado para este usuario' });
         }
         if (systemType === 'patient-portal' && user.role !== 'PATIENT') {
+            console.log('Rol no permitido para portal de paciente:', user.role);
             return res.status(403).json({ error: 'Acceso denegado para este usuario' });
         }
+        console.log('Validando contraseña...');
         const validPassword = await bcryptjs_1.default.compare(password, user.password);
         if (!validPassword) {
+            console.log('Contraseña inválida');
             return res.status(401).json({ error: 'Credenciales inválidas' });
         }
+        console.log('Generando token JWT...');
         const token = jsonwebtoken_1.default.sign({ id: user.id, email: user.email, role: user.role }, process.env.JWT_SECRET, { expiresIn: '24h' });
         // Transformar la respuesta para incluir los permisos como un array de strings
         const userWithPermissions = {
@@ -162,14 +178,20 @@ const login = async (req, res) => {
             role: user.role,
             permissions: user.permissions.map(p => p.permission.id)
         };
+        console.log('Login exitoso para usuario:', user.email);
+        console.log('=== FIN DE PROCESO DE LOGIN ===');
         res.json({
             token,
             user: userWithPermissions
         });
     }
     catch (error) {
-        console.error('Error al iniciar sesión:', error);
-        res.status(500).json({ error: 'Error al iniciar sesión' });
+        console.error('Error detallado al iniciar sesión:', error);
+        console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace available');
+        res.status(500).json({
+            error: 'Error al iniciar sesión',
+            details: error instanceof Error ? error.message : 'Error desconocido'
+        });
     }
 };
 exports.login = login;

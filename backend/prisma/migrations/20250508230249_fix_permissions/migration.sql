@@ -11,7 +11,7 @@ BEGIN
     END IF;
 
     -- Eliminar los índices si existen
-    IF EXISTS (SELECT 1 FROM information_schema.indexes WHERE index_name = 'UserPermission_userId_permissionId_key') THEN
+    IF EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'UserPermission_userId_permissionId_key') THEN
         DROP INDEX IF EXISTS "UserPermission_userId_permissionId_key";
     END IF;
 END $$;
@@ -79,7 +79,7 @@ BEGIN
     FOR user_record IN 
         SELECT u.id 
         FROM "User" u 
-        LEFT JOIN "UserPermission" up ON u.id = up.userId 
+        LEFT JOIN "UserPermission" up ON u.id = up."userId" 
         WHERE u.role = 'ADMIN' AND up.id IS NULL
     LOOP
         FOR permission_id IN 
@@ -95,7 +95,7 @@ BEGIN
     FOR user_record IN 
         SELECT u.id 
         FROM "User" u 
-        LEFT JOIN "UserPermission" up ON u.id = up.userId 
+        LEFT JOIN "UserPermission" up ON u.id = up."userId" 
         WHERE u.role = 'DENTIST' AND up.id IS NULL
     LOOP
         FOR permission_id IN 
@@ -111,7 +111,7 @@ BEGIN
     FOR user_record IN 
         SELECT u.id 
         FROM "User" u 
-        LEFT JOIN "UserPermission" up ON u.id = up.userId 
+        LEFT JOIN "UserPermission" up ON u.id = up."userId" 
         WHERE u.role = 'ASSISTANT' AND up.id IS NULL
     LOOP
         FOR permission_id IN 
@@ -127,7 +127,7 @@ BEGIN
     FOR user_record IN 
         SELECT u.id 
         FROM "User" u 
-        LEFT JOIN "UserPermission" up ON u.id = up.userId 
+        LEFT JOIN "UserPermission" up ON u.id = up."userId" 
         WHERE u.role = 'PATIENT' AND up.id IS NULL
     LOOP
         FOR permission_id IN 

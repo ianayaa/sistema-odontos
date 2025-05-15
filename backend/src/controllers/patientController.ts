@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
-import { sendSMS, sendWhatsApp } from '../services/notificationService';
 
 const prisma = new PrismaClient();
 

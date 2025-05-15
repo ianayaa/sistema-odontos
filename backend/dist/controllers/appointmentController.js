@@ -6,6 +6,7 @@ const notificationService_1 = require("../services/notificationService");
 const prisma = new client_1.PrismaClient();
 const createAppointment = async (req, res) => {
     try {
+        console.log('=== INICIO DE CREACIÓN DE CITA ===');
         console.log('BODY:', req.body);
         const { patientId, date, endDate, duration, notes, status, serviceId, enviarMensaje } = req.body;
         const data = {
@@ -21,9 +22,21 @@ const createAppointment = async (req, res) => {
             data.duration = duration;
         if (serviceId)
             data.serviceId = serviceId;
+        console.log('Datos de la cita a crear:', {
+            patientId,
+            userId: req.user.id,
+            fecha: new Date(date).toLocaleString('es-MX'),
+            duracion: duration,
+            servicio: serviceId,
+            enviarMensaje
+        });
         // Validar traslape de citas (dos pasos para evitar errores de linter)
         const start = new Date(date);
         const end = endDate ? new Date(endDate) : new Date(start.getTime() + (duration || 60) * 60000);
+        console.log('Verificando traslape de citas:', {
+            inicio: start.toLocaleString('es-MX'),
+            fin: end.toLocaleString('es-MX')
+        });
         const overlapWithEnd = await prisma.appointment.findFirst({
             where: {
                 userId: req.user.id,
@@ -44,8 +57,10 @@ const createAppointment = async (req, res) => {
             }
         });
         if (overlapWithEnd || overlapWithoutEnd) {
+            console.log('Se encontró traslape de citas');
             return res.status(400).json({ error: 'Ya existe una cita en ese horario.' });
         }
+        console.log('No hay traslape, procediendo a crear la cita...');
         const appointment = await prisma.appointment.create({
             data,
             include: {
@@ -53,16 +68,35 @@ const createAppointment = async (req, res) => {
                 user: true
             }
         });
+        console.log('Cita creada exitosamente:', {
+            id: appointment.id,
+            paciente: appointment.patient?.name,
+            fecha: appointment.date.toLocaleString('es-MX'),
+            estado: appointment.status
+        });
         // Solo enviar notificación si el usuario lo pidió
         if (enviarMensaje && appointment.patient && appointment.patient.phone) {
-            await (0, notificationService_1.sendAppointmentReminder)({
-                ...appointment,
-                patient: { ...appointment.patient, phone: appointment.patient.phone || '' }
+            console.log('Intentando enviar notificación al paciente:', {
+                nombre: appointment.patient.name,
+                telefono: appointment.patient.phone
             });
+            try {
+                await (0, notificationService_1.sendAppointmentReminder)({
+                    ...appointment,
+                    patient: { ...appointment.patient, phone: appointment.patient.phone || '' }
+                });
+                console.log('Notificación enviada exitosamente');
+            }
+            catch (error) {
+                console.error('Error al enviar notificación:', error);
+                // Puedes decidir si quieres retornar aquí o solo loguear el error
+            }
         }
+        console.log('=== FIN DE CREACIÓN DE CITA ===');
         return res.status(201).json(appointment);
     }
     catch (error) {
+        console.error('Error al crear cita:', error);
         return res.status(500).json({ error: 'Error al crear cita' });
     }
 };
@@ -368,12 +402,9 @@ const notifyAppointmentChange = async (req, res) => {
         if (!appointment || !appointment.patient || !appointment.patient.phone) {
             return res.status(404).json({ error: 'Cita o paciente no encontrado.' });
         }
-        // Mensaje corto para SMS (Twilio):
-        const msg = `Odontos: Cita reagendada ${appointment.service?.name ? '[' + appointment.service.name + ']' : ''} a ${appointment.date.toLocaleDateString('es-MX')} a las ${appointment.date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}.`;
         await (0, notificationService_1.sendAppointmentReminder)({
             ...appointment,
             patient: { ...appointment.patient, phone: appointment.patient.phone || '' },
-            customMessage: msg
         });
         return res.json({ success: true });
     }

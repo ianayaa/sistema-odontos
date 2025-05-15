@@ -89,20 +89,10 @@ export const createAppointment = async (req: Request, res: Response) => {
           patient: { ...appointment.patient, phone: appointment.patient.phone || '' }
         });
         console.log('Notificación enviada exitosamente');
-      } catch (smsError) {
-        console.error('Error al enviar SMS:', smsError);
-        // No afectamos la respuesta de la API si falla el SMS
-        return res.status(201).json({
-          ...appointment,
-          smsError: 'No se pudo enviar la notificación por SMS'
-        });
+      } catch (error) {
+        console.error('Error al enviar notificación:', error);
+        // Puedes decidir si quieres retornar aquí o solo loguear el error
       }
-    } else {
-      console.log('No se enviará notificación:', {
-        enviarMensaje,
-        tienePaciente: !!appointment.patient,
-        tieneTelefono: !!appointment.patient?.phone
-      });
     }
 
     console.log('=== FIN DE CREACIÓN DE CITA ===');
@@ -415,12 +405,9 @@ export const notifyAppointmentChange = async (req: Request, res: Response) => {
     if (!appointment || !appointment.patient || !appointment.patient.phone) {
       return res.status(404).json({ error: 'Cita o paciente no encontrado.' });
     }
-    // Mensaje corto para SMS (Twilio):
-    const msg = `Odontos: Cita reagendada ${appointment.service?.name ? '[' + appointment.service.name + ']' : ''} a ${appointment.date.toLocaleDateString('es-MX')} a las ${appointment.date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}.`;
     await sendAppointmentReminder({
       ...appointment,
       patient: { ...appointment.patient, phone: appointment.patient.phone || '' },
-      customMessage: msg
     });
     return res.json({ success: true });
   } catch (error) {
