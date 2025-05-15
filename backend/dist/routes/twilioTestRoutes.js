@@ -5,7 +5,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const twilio_1 = __importDefault(require("twilio"));
+const client_1 = require("@prisma/client");
 const router = express_1.default.Router();
+const prisma = new client_1.PrismaClient();
 // Función para envolver async y manejar errores correctamente en Express
 function wrapAsync(fn) {
     return function (req, res, next) {
@@ -37,4 +39,32 @@ router.post('/send-whatsapp-appointment', wrapAsync(async (req, res) => {
         res.status(500).json({ success: false, error: error instanceof Error ? error.message : error });
     }
 }));
+// Webhook para recibir respuestas de WhatsApp
+router.post('/webhook', express_1.default.json(), async (req, res) => {
+    // Twilio manda los datos en x-www-form-urlencoded por default
+    const payload = req.body.ButtonPayload || req.body.buttonPayload || '';
+    const from = req.body.From || req.body.from;
+    const waId = req.body.WaId || req.body.waId;
+    console.log('Webhook recibido de Twilio:', { payload, from, waId });
+    // Procesar el payload para extraer el ID de la cita
+    let match = payload.match(/(confirmar_cita|cancelar_cita)_(\d+)/);
+    if (match) {
+        const accion = match[1];
+        const citaId = parseInt(match[2], 10);
+        if (!isNaN(citaId)) {
+            if (accion === 'confirmar_cita') {
+                await prisma.appointment.update({ where: { id: citaId.toString() }, data: { status: 'CONFIRMED' } });
+                console.log('Cita confirmada:', citaId);
+            }
+            else if (accion === 'cancelar_cita') {
+                await prisma.appointment.update({ where: { id: citaId.toString() }, data: { status: 'CANCELLED' } });
+                console.log('Cita cancelada:', citaId);
+            }
+        }
+    }
+    else {
+        console.log('Payload no reconocido o sin ID de cita:', payload);
+    }
+    res.status(200).send('OK');
+});
 exports.default = router;

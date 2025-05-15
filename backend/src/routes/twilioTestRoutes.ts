@@ -1,8 +1,10 @@
 import express, { Request, Response } from 'express';
 import { sendNotification } from '../services/notificationService';
 import twilio from 'twilio';
+import { PrismaClient } from '@prisma/client';
 
 const router = express.Router();
+const prisma = new PrismaClient();
 
 // Función para envolver async y manejar errores correctamente en Express
 function wrapAsync(fn: any) {
@@ -35,5 +37,34 @@ router.post('/send-whatsapp-appointment', wrapAsync(async (req: Request, res: Re
     res.status(500).json({ success: false, error: error instanceof Error ? error.message : error });
   }
 }));
+
+// Webhook para recibir respuestas de WhatsApp
+router.post('/webhook', express.json(), async (req: Request, res: Response) => {
+  // Twilio manda los datos en x-www-form-urlencoded por default
+  const payload = req.body.ButtonPayload || req.body.buttonPayload || '';
+  const from = req.body.From || req.body.from;
+  const waId = req.body.WaId || req.body.waId;
+  console.log('Webhook recibido de Twilio:', { payload, from, waId });
+
+  // Procesar el payload para extraer el ID de la cita
+  let match = payload.match(/(confirmar_cita|cancelar_cita)_(\d+)/);
+  if (match) {
+    const accion = match[1];
+    const citaId = parseInt(match[2], 10);
+    if (!isNaN(citaId)) {
+      if (accion === 'confirmar_cita') {
+        await prisma.appointment.update({ where: { id: citaId.toString() }, data: { status: 'CONFIRMED' } });
+        console.log('Cita confirmada:', citaId);
+      } else if (accion === 'cancelar_cita') {
+        await prisma.appointment.update({ where: { id: citaId.toString() }, data: { status: 'CANCELLED' } });
+        console.log('Cita cancelada:', citaId);
+      }
+    }
+  } else {
+    console.log('Payload no reconocido o sin ID de cita:', payload);
+  }
+
+  res.status(200).send('OK');
+});
 
 export default router; 

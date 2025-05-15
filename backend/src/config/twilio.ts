@@ -8,8 +8,8 @@ const twilioWhatsApp = process.env.TWILIO_WHATSAPP_NUMBER!;
 // Configuración de plantillas de WhatsApp
 export const whatsappTemplates = {
   appointment: {
-    sid: 'HX5574f13fad9b6399dc853eccee60b5b4', // SID real de la plantilla
-    variables: ['nombrePaciente', 'fecha', 'hora']
+    sid: 'HX0743dbfe93d0515d63f549ef152f7da5', // Nuevo SID de la plantilla
+    variables: ['id', 'nombre', 'fecha', 'hora']
   }
 };
 
