@@ -1,25 +1,45 @@
-# Node
+# Dependencies
 node_modules/
+**/node_modules/
+.pnp
+.pnp.js
+
+# Environment
 .env
 .env.*
+!.env.example
 
 # Logs
+logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
 # Build
 /dist
 /build
+**/dist
+**/build
+
+# Testing
+/coverage
+**/coverage
 
 # Editor
 .DS_Store
 .idea/
 .vscode/
 *.swp
+*.swo
+*.swn
+*.bak
 
 # OS
 Thumbs.db
+ehthumbs.db
+Desktop.ini
 
 # React
 frontend/build/
@@ -30,13 +50,21 @@ paciente-portal/node_modules/
 # Prisma
 backend/prisma/dev.db
 backend/prisma/dev.db-journal
+**/prisma/*.db
+**/prisma/*.db-journal
 
 # Misc
-*.log
 *.lock
+.cache/
+.temp/
+.tmp/
 
-# Ignore public images except .keep
+# Public assets
 frontend/public/img/*
 !frontend/public/img/.keep
 paciente-portal/public/img/*
 !paciente-portal/public/img/.keep
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
