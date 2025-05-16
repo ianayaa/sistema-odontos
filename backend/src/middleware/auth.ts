@@ -8,6 +8,17 @@ interface JwtPayload {
   role: string;
 }
 
+interface UserPermissionWithPermission {
+  id: string;
+  userId: string;
+  permissionId: string;
+  permission: {
+    id: string;
+    name: string;
+    description: string;
+  };
+}
+
 declare global {
   namespace Express {
     interface Request {
@@ -92,7 +103,7 @@ export const hasPermission = (requiredPermission: string) => {
       });
 
       const hasPermission = userPermissions.some(
-        up => up.permission.name === requiredPermission
+        (up: UserPermissionWithPermission) => up.permission.name === requiredPermission
       );
 
       if (!hasPermission) {

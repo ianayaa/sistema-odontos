@@ -57,7 +57,9 @@ export const sendAppointmentReminder = async (appointment: any & { patient: { ph
   }
 
   const formattedDate = new Date(date).toLocaleDateString('es-MX');
-  const formattedTime = new Date(date).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+  // Formatear la hora en formato 24 horas (HH:mm)
+  const d = new Date(date);
+  const formattedTime = `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
 
   try {
     const normalizedPhone = normalizePhoneNumber(patient.phone);
@@ -66,10 +68,9 @@ export const sendAppointmentReminder = async (appointment: any & { patient: { ph
       to: `whatsapp:${normalizedPhone}`,
       contentSid: whatsappTemplates.appointment.sid,
       contentVariables: JSON.stringify({
-        '1': id,
-        '2': patient.name,
-        '3': formattedDate,
-        '4': formattedTime
+        '1': patient.name,
+        '2': formattedDate,
+        '3': formattedTime
       })
     });
   } catch (error) {

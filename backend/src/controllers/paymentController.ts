@@ -1,8 +1,42 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import type { DentistPayment, User } from '@prisma/client';
 
 const prisma = new PrismaClient();
+
+interface PaymentWithPatient {
+  id: string;
+  patientId: string;
+  amount: number;
+  method: string;
+  status: string;
+  description: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  patient: {
+    id: string;
+    name: string;
+    lastNamePaterno: string | null;
+    lastNameMaterno: string | null;
+  };
+}
+
+interface DentistPaymentWithDentist {
+  id: string;
+  dentistId: string;
+  period: string;
+  baseSalary: number;
+  commission: number;
+  deductions: number;
+  total: number;
+  status: string;
+  paymentDate: Date;
+  createdAt: Date;
+  updatedAt: Date;
+  dentist: {
+    id: string;
+    name: string;
+  };
+}
 
 export const createPayment = async (req: Request, res: Response) => {
   try {
@@ -48,7 +82,7 @@ export const getPayments = async (req: Request, res: Response) => {
       }
     });
 
-    const paymentsWithDate = payments.map(p => ({ ...p, date: p.createdAt }));
+    const paymentsWithDate = payments.map((p: PaymentWithPatient) => ({ ...p, date: p.createdAt }));
     res.json(paymentsWithDate);
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener pagos' });
@@ -142,11 +176,27 @@ export const getDentistPayments = async (req: Request, res: Response) => {
 
 export const getDentistPaymentsSummary = async (req: Request, res: Response) => {
   try {
-    const payments = await prisma.dentistPayment.findMany();
-    const totalPaid = payments.filter(p => p.status === 'paid').reduce((sum, p) => sum + p.total, 0);
-    const totalPending = payments.filter(p => p.status === 'pending').reduce((sum, p) => sum + p.total, 0);
-    const totalCommission = payments.reduce((sum, p) => sum + p.commission, 0);
-    const avgCommission = payments.length > 0 ? (payments.reduce((sum, p) => sum + p.commission, 0) / payments.length) : 0;
+    const payments = await prisma.dentistPayment.findMany({
+      include: {
+        dentist: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      }
+    });
+
+    const totalPaid = payments
+      .filter((p: DentistPaymentWithDentist) => p.status === 'paid')
+      .reduce((sum: number, p: DentistPaymentWithDentist) => sum + p.total, 0);
+    const totalPending = payments
+      .filter((p: DentistPaymentWithDentist) => p.status === 'pending')
+      .reduce((sum: number, p: DentistPaymentWithDentist) => sum + p.total, 0);
+    const totalCommission = payments.reduce((sum: number, p: DentistPaymentWithDentist) => sum + p.commission, 0);
+    const avgCommission = payments.length > 0 
+      ? (payments.reduce((sum: number, p: DentistPaymentWithDentist) => sum + p.commission, 0) / payments.length) 
+      : 0;
     res.json({
       totalPaid,
       totalPending,

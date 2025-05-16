@@ -14,8 +14,7 @@ exports.twilioWhatsApp = twilioWhatsApp;
 // Configuración de plantillas de WhatsApp
 exports.whatsappTemplates = {
     appointment: {
-        sid: 'HX0743dbfe93d0515d63f549ef152f7da5', // Nuevo SID de la plantilla
-        variables: ['id', 'nombre', 'fecha', 'hora']
+        sid: 'HXb04649447daa754fa0a419861cf1bc87'
     }
 };
 const client = (0, twilio_1.default)(accountSid, authToken);

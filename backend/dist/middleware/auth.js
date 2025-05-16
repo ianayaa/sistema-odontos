@@ -77,7 +77,7 @@ const hasPermission = (requiredPermission) => {
                 where: { userId: req.user.id },
                 include: { permission: true }
             });
-            const hasPermission = userPermissions.some(up => up.permission.name === requiredPermission);
+            const hasPermission = userPermissions.some((up) => up.permission.name === requiredPermission);
             if (!hasPermission) {
                 res.status(403).json({ error: 'No tiene permiso para realizar esta acción' });
                 return;

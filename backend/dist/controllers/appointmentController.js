@@ -141,9 +141,9 @@ const getAppointments = async (req, res) => {
                 date: 'asc'
             }
         });
-        console.log('Citas encontradas:', appointments.map(a => ({
+        console.log('Citas encontradas:', appointments.map((a) => ({
             id: a.id,
-            date: a.date.toISOString(),
+            date: a.date instanceof Date ? a.date.toISOString() : a.date,
             patient: a.patient?.name,
             status: a.status
         })));
@@ -365,17 +365,16 @@ exports.publicConfirmAppointment = publicConfirmAppointment;
 // Endpoint para obtener pacientes con cita activa
 const getPatientsWithActiveAppointments = async (req, res) => {
     try {
-        const now = new Date();
-        // Buscar citas activas (SCHEDULED o CONFIRMED y futura)
         const activeAppointments = await prisma.appointment.findMany({
             where: {
                 userId: req.user.id,
-                status: { in: ['SCHEDULED', 'CONFIRMED'] },
-                date: { gte: now }
+                status: 'SCHEDULED'
             },
-            select: { patientId: true }
+            include: {
+                patient: true
+            }
         });
-        const patientIds = Array.from(new Set(activeAppointments.map(a => a.patientId)));
+        const patientIds = Array.from(new Set(activeAppointments.map((a) => a.patientId)));
         if (patientIds.length === 0) {
             res.json([]);
             return;
@@ -386,7 +385,7 @@ const getPatientsWithActiveAppointments = async (req, res) => {
         res.json(patients);
     }
     catch (error) {
-        res.status(500).json({ error: 'Error al obtener pacientes con cita activa' });
+        res.status(500).json({ error: 'Error al obtener pacientes con citas activas' });
     }
 };
 exports.getPatientsWithActiveAppointments = getPatientsWithActiveAppointments;

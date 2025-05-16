@@ -4,6 +4,42 @@ import { sendAppointmentReminder } from '../services/notificationService';
 
 const prisma = new PrismaClient();
 
+interface AppointmentWithRelations {
+  id: string;
+  patientId: string;
+  userId: string;
+  date: Date;
+  status: string;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  duration: number | null;
+  endDate: Date | null;
+  serviceId: string | null;
+  patient?: {
+    id: string;
+    name: string;
+    lastNamePaterno: string | null;
+    lastNameMaterno: string | null;
+    email: string | null;
+    phone: string | null;
+  };
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  service?: {
+    id: string;
+    name: string;
+    type: string;
+    duration: number;
+    price: number;
+    description: string;
+    color: string | null;
+  } | null;
+}
+
 export const createAppointment = async (req: Request, res: Response) => {
   try {
     console.log('=== INICIO DE CREACIÓN DE CITA ===');
@@ -145,9 +181,9 @@ export const getAppointments = async (req: Request, res: Response) => {
       }
     });
 
-    console.log('Citas encontradas:', appointments.map(a => ({
+    console.log('Citas encontradas:', appointments.map((a: AppointmentWithRelations) => ({
       id: a.id,
-      date: a.date.toISOString(),
+      date: a.date instanceof Date ? a.date.toISOString() : a.date,
       patient: a.patient?.name,
       status: a.status
     })));
@@ -367,19 +403,19 @@ export const publicConfirmAppointment = async (req: Request, res: Response) => {
 };
 
 // Endpoint para obtener pacientes con cita activa
-export const getPatientsWithActiveAppointments = async (req: Request, res: Response) => {
+export const getPatientsWithActiveAppointments = async (req: Request, res: Response): Promise<void> => {
   try {
-    const now = new Date();
-    // Buscar citas activas (SCHEDULED o CONFIRMED y futura)
     const activeAppointments = await prisma.appointment.findMany({
       where: {
         userId: req.user!.id,
-        status: { in: ['SCHEDULED', 'CONFIRMED'] },
-        date: { gte: now }
+        status: 'SCHEDULED'
       },
-      select: { patientId: true }
+      include: {
+        patient: true
+      }
     });
-    const patientIds = Array.from(new Set(activeAppointments.map(a => a.patientId)));
+
+    const patientIds = Array.from(new Set(activeAppointments.map((a: any) => a.patientId)));
     if (patientIds.length === 0) {
       res.json([]);
       return;
@@ -389,7 +425,7 @@ export const getPatientsWithActiveAppointments = async (req: Request, res: Respo
     });
     res.json(patients);
   } catch (error) {
-    res.status(500).json({ error: 'Error al obtener pacientes con cita activa' });
+    res.status(500).json({ error: 'Error al obtener pacientes con citas activas' });
   }
 };
 

@@ -44,7 +44,7 @@ const getPayments = async (req, res) => {
                 createdAt: 'desc'
             }
         });
-        const paymentsWithDate = payments.map(p => ({ ...p, date: p.createdAt }));
+        const paymentsWithDate = payments.map((p) => ({ ...p, date: p.createdAt }));
         res.json(paymentsWithDate);
     }
     catch (error) {
@@ -138,11 +138,26 @@ const getDentistPayments = async (req, res) => {
 exports.getDentistPayments = getDentistPayments;
 const getDentistPaymentsSummary = async (req, res) => {
     try {
-        const payments = await prisma.dentistPayment.findMany();
-        const totalPaid = payments.filter(p => p.status === 'paid').reduce((sum, p) => sum + p.total, 0);
-        const totalPending = payments.filter(p => p.status === 'pending').reduce((sum, p) => sum + p.total, 0);
+        const payments = await prisma.dentistPayment.findMany({
+            include: {
+                dentist: {
+                    select: {
+                        id: true,
+                        name: true
+                    }
+                }
+            }
+        });
+        const totalPaid = payments
+            .filter((p) => p.status === 'paid')
+            .reduce((sum, p) => sum + p.total, 0);
+        const totalPending = payments
+            .filter((p) => p.status === 'pending')
+            .reduce((sum, p) => sum + p.total, 0);
         const totalCommission = payments.reduce((sum, p) => sum + p.commission, 0);
-        const avgCommission = payments.length > 0 ? (payments.reduce((sum, p) => sum + p.commission, 0) / payments.length) : 0;
+        const avgCommission = payments.length > 0
+            ? (payments.reduce((sum, p) => sum + p.commission, 0) / payments.length)
+            : 0;
         res.json({
             totalPaid,
             totalPending,
