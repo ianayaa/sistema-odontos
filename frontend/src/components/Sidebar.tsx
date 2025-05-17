@@ -43,16 +43,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, setIsCollapsed }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  // Depuración de permisos
-  console.log('Usuario actual:', user);
-  console.log('Permisos del usuario:', user?.permissions);
-
   // Filtrar menú basado en permisos
   const allowedMenu = menu.filter(item => {
     if (!user) return false;
     // Si el usuario tiene el permiso específico, mostrar el ítem
     const hasPermission = (user as User).permissions?.includes(item.permission) || false;
-    console.log(`Verificando permiso ${item.permission}:`, hasPermission);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Verificando permiso ${item.permission}:`, hasPermission);
+    }
     return hasPermission;
   });
 

@@ -1,6 +1,13 @@
 import { client, twilioWhatsApp, whatsappTemplates } from '../config/twilio';
 import axios from 'axios';
+import { formatInTimeZone } from 'date-fns-tz';
 
+// Constantes
+const TIMEZONE = 'America/Mexico_City' as const;
+const DATE_FORMAT = 'dd/MM/yyyy' as const;
+const TIME_FORMAT = 'HH:mm' as const;
+
+// Tipos
 type NotificationType = 'WHATSAPP';
 
 interface NotificationOptions {
@@ -9,24 +16,61 @@ interface NotificationOptions {
   message: string;
 }
 
+interface Patient {
+  phone: string;
+  name: string;
+}
+
+interface User {
+  name?: string;
+}
+
+interface Appointment {
+  patient: Patient;
+  date: Date;
+  customMessage?: string;
+  user?: User;
+  id: string;
+}
+
+interface NotificationError extends Error {
+  code?: string;
+  details?: unknown;
+}
+
+// Funciones de utilidad
 function normalizePhoneNumber(phone: string): string {
-  // Elimina todos los caracteres que no sean dígitos
-  let cleaned = phone.replace(/\D/g, '');
-  // Si ya empieza con + y el resto son dígitos, está en formato internacional
-  if (phone.startsWith('+') && /^\+\d{11,15}$/.test(phone)) return phone;
-  // Si es un número local de México (10 dígitos), agrega +52
-  if (/^\d{10}$/.test(cleaned)) return '+52' + cleaned;
-  // Si es un número internacional (11-15 dígitos), agrega + si no lo tiene
-  if (/^\d{11,15}$/.test(cleaned)) return '+' + cleaned;
-  // Si no, lanza un error claro
+  const cleaned = phone.replace(/\D/g, '');
+  
+  if (phone.startsWith('+') && /^\+\d{11,15}$/.test(phone)) {
+    return phone;
+  }
+  
+  if (/^\d{10}$/.test(cleaned)) {
+    return '+52' + cleaned;
+  }
+  
+  if (/^\d{11,15}$/.test(cleaned)) {
+    return '+' + cleaned;
+  }
+  
   throw new Error(`Número de teléfono inválido: ${phone}. Debe ser de 10 dígitos (México) o formato internacional E.164.`);
 }
 
-export const sendNotification = async (options: NotificationOptions) => {
+function formatAppointmentDateTime(date: Date): { formattedDate: string; formattedTime: string } {
+  return {
+    formattedDate: formatInTimeZone(date, TIMEZONE, DATE_FORMAT),
+    formattedTime: formatInTimeZone(date, TIMEZONE, TIME_FORMAT)
+  };
+}
+
+// Funciones principales
+export const sendNotification = async (options: NotificationOptions): Promise<void> => {
   try {
     const normalizedTo = normalizePhoneNumber(options.to);
     console.log('Enviando notificación:', options);
     console.log('Intentando enviar WhatsApp a:', `whatsapp:${normalizedTo}`);
+    
     const result = await client.messages.create({
       body: options.message,
       from: twilioWhatsApp,
@@ -36,16 +80,19 @@ export const sendNotification = async (options: NotificationOptions) => {
         'reply:Cancelar'
       ]
     });
+    
     console.log('Resultado WhatsApp:', result.sid);
     console.log('Notificación enviada correctamente:', options.type);
   } catch (error) {
-    console.error(`Error al enviar ${options.type}:`, error);
-    throw error;
+    const notificationError = new Error(`Error al enviar ${options.type}`) as NotificationError;
+    notificationError.code = 'NOTIFICATION_ERROR';
+    notificationError.details = error;
+    throw notificationError;
   }
 };
 
-export const sendAppointmentReminder = async (appointment: any & { patient: { phone: string, name: string }, customMessage?: string, user?: { name?: string } }) => {
-  const { patient, date, customMessage, id } = appointment;
+export const sendAppointmentReminder = async (appointment: Appointment): Promise<void> => {
+  const { patient, date, customMessage } = appointment;
   
   if (customMessage) {
     await sendNotification({
@@ -56,10 +103,15 @@ export const sendAppointmentReminder = async (appointment: any & { patient: { ph
     return;
   }
 
-  const formattedDate = new Date(date).toLocaleDateString('es-MX');
-  // Formatear la hora en formato 24 horas (HH:mm)
-  const d = new Date(date);
-  const formattedTime = `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+  const appointmentDate = new Date(date);
+  const { formattedDate, formattedTime } = formatAppointmentDateTime(appointmentDate);
+
+  console.log('Fecha de la cita:', {
+    original: date,
+    local: appointmentDate.toLocaleString(),
+    formatted: `${formattedDate} ${formattedTime}`,
+    timezone: TIMEZONE
+  });
 
   try {
     const normalizedPhone = normalizePhoneNumber(patient.phone);
@@ -74,16 +126,18 @@ export const sendAppointmentReminder = async (appointment: any & { patient: { ph
       })
     });
   } catch (error) {
-    console.error('Error al enviar recordatorio de cita:', error);
-    throw error;
+    const notificationError = new Error('Error al enviar recordatorio de cita') as NotificationError;
+    notificationError.code = 'APPOINTMENT_REMINDER_ERROR';
+    notificationError.details = error;
+    throw notificationError;
   }
 };
 
 export const sendBulkNotifications = async (
-  patients: { phone: string }[],
+  patients: Pick<Patient, 'phone'>[],
   message: string,
   type: NotificationType = 'WHATSAPP'
-) => {
+): Promise<void> => {
   const notifications = patients.map(patient => ({
     type,
     to: patient.phone,
@@ -94,10 +148,10 @@ export const sendBulkNotifications = async (
 };
 
 export const sendCampaign = async (
-  patients: { phone: string }[],
+  patients: Pick<Patient, 'phone'>[],
   message: string,
   type: NotificationType = 'WHATSAPP'
-) => {
+): Promise<{ success: boolean; message: string }> => {
   try {
     await sendBulkNotifications(patients, message, type);
     return { success: true, message: 'Campaña enviada exitosamente' };
@@ -107,11 +161,11 @@ export const sendCampaign = async (
   }
 };
 
-export async function sendWhatsApp(to: string, message: string) {
+export const sendWhatsApp = async (to: string, message: string): Promise<any> => {
   const normalizedTo = normalizePhoneNumber(to);
   return client.messages.create({
     body: message,
     from: twilioWhatsApp,
     to: `whatsapp:${normalizedTo}`
   });
-} 
+}; 

@@ -5,6 +5,7 @@ import ModernDatePicker from './ModernDatePicker';
 import { Select } from 'antd';
 import 'antd/dist/reset.css';
 import StatusSelect from './StatusSelect';
+import { createDateWithTime, toZonedDate } from '../utils/dateUtils';
 
 interface EditAppointmentModalProps {
   onClose: () => void;
@@ -71,14 +72,15 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({ onClose, on
       setLoading(false);
       return;
     }
-    const dateWithTime = new Date(form.date);
-    const [h, m] = hour.split(':');
-    dateWithTime.setHours(Number(h), Number(m), 0, 0);
+
+    const dateWithTime = createDateWithTime(form.date, hour);
     const endDate = new Date(dateWithTime.getTime() + duration * 60000);
+    
     let status = 'SCHEDULED';
     if (form.status === 'completada') status = 'COMPLETED';
     else if (form.status === 'cancelada') status = 'CANCELLED';
     else if (form.status === 'reagendada') status = 'RESCHEDULED';
+
     try {
       await api.put(`/appointments/${appointment.id}`, {
         date: dateWithTime.toISOString(),

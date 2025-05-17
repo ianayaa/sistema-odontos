@@ -1,9 +1,9 @@
---
+﻿--
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 16.8 (Homebrew)
--- Dumped by pg_dump version 17.4
+-- Dumped from database version 16.8 (Debian 16.8-1.pgdg120+1)
+-- Dumped by pg_dump version 17.5
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -18,23 +18,14 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- Name: public; Type: SCHEMA; Schema: -; Owner: jorgeivananaya
---
-
--- *not* creating schema, since initdb creates it
-
-
-ALTER SCHEMA public OWNER TO jorgeivananaya;
-
---
--- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: jorgeivananaya
+-- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: pg_database_owner
 --
 
 COMMENT ON SCHEMA public IS '';
 
 
 --
--- Name: AppointmentStatus; Type: TYPE; Schema: public; Owner: jorgeivananaya
+-- Name: AppointmentStatus; Type: TYPE; Schema: public; Owner: postgres
 --
 
 CREATE TYPE public."AppointmentStatus" AS ENUM (
@@ -46,10 +37,10 @@ CREATE TYPE public."AppointmentStatus" AS ENUM (
 );
 
 
-ALTER TYPE public."AppointmentStatus" OWNER TO jorgeivananaya;
+ALTER TYPE public."AppointmentStatus" OWNER TO postgres;
 
 --
--- Name: PaymentMethod; Type: TYPE; Schema: public; Owner: jorgeivananaya
+-- Name: PaymentMethod; Type: TYPE; Schema: public; Owner: postgres
 --
 
 CREATE TYPE public."PaymentMethod" AS ENUM (
@@ -59,10 +50,10 @@ CREATE TYPE public."PaymentMethod" AS ENUM (
 );
 
 
-ALTER TYPE public."PaymentMethod" OWNER TO jorgeivananaya;
+ALTER TYPE public."PaymentMethod" OWNER TO postgres;
 
 --
--- Name: PaymentStatus; Type: TYPE; Schema: public; Owner: jorgeivananaya
+-- Name: PaymentStatus; Type: TYPE; Schema: public; Owner: postgres
 --
 
 CREATE TYPE public."PaymentStatus" AS ENUM (
@@ -73,10 +64,10 @@ CREATE TYPE public."PaymentStatus" AS ENUM (
 );
 
 
-ALTER TYPE public."PaymentStatus" OWNER TO jorgeivananaya;
+ALTER TYPE public."PaymentStatus" OWNER TO postgres;
 
 --
--- Name: Role; Type: TYPE; Schema: public; Owner: jorgeivananaya
+-- Name: Role; Type: TYPE; Schema: public; Owner: postgres
 --
 
 CREATE TYPE public."Role" AS ENUM (
@@ -87,14 +78,14 @@ CREATE TYPE public."Role" AS ENUM (
 );
 
 
-ALTER TYPE public."Role" OWNER TO jorgeivananaya;
+ALTER TYPE public."Role" OWNER TO postgres;
 
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
 
 --
--- Name: Appointment; Type: TABLE; Schema: public; Owner: jorgeivananaya
+-- Name: Appointment; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public."Appointment" (
@@ -112,10 +103,10 @@ CREATE TABLE public."Appointment" (
 );
 
 
-ALTER TABLE public."Appointment" OWNER TO jorgeivananaya;
+ALTER TABLE public."Appointment" OWNER TO postgres;
 
 --
--- Name: ClinicConfig; Type: TABLE; Schema: public; Owner: jorgeivananaya
+-- Name: ClinicConfig; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public."ClinicConfig" (
@@ -131,10 +122,10 @@ CREATE TABLE public."ClinicConfig" (
 );
 
 
-ALTER TABLE public."ClinicConfig" OWNER TO jorgeivananaya;
+ALTER TABLE public."ClinicConfig" OWNER TO postgres;
 
 --
--- Name: Consultation; Type: TABLE; Schema: public; Owner: jorgeivananaya
+-- Name: Consultation; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public."Consultation" (
@@ -150,10 +141,10 @@ CREATE TABLE public."Consultation" (
 );
 
 
-ALTER TABLE public."Consultation" OWNER TO jorgeivananaya;
+ALTER TABLE public."Consultation" OWNER TO postgres;
 
 --
--- Name: DentistPayment; Type: TABLE; Schema: public; Owner: jorgeivananaya
+-- Name: DentistPayment; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public."DentistPayment" (
@@ -171,10 +162,10 @@ CREATE TABLE public."DentistPayment" (
 );
 
 
-ALTER TABLE public."DentistPayment" OWNER TO jorgeivananaya;
+ALTER TABLE public."DentistPayment" OWNER TO postgres;
 
 --
--- Name: DentistSchedule; Type: TABLE; Schema: public; Owner: jorgeivananaya
+-- Name: DentistSchedule; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public."DentistSchedule" (
@@ -189,10 +180,10 @@ CREATE TABLE public."DentistSchedule" (
 );
 
 
-ALTER TABLE public."DentistSchedule" OWNER TO jorgeivananaya;
+ALTER TABLE public."DentistSchedule" OWNER TO postgres;
 
 --
--- Name: MedicalHistory; Type: TABLE; Schema: public; Owner: jorgeivananaya
+-- Name: MedicalHistory; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public."MedicalHistory" (
@@ -278,10 +269,10 @@ CREATE TABLE public."MedicalHistory" (
 );
 
 
-ALTER TABLE public."MedicalHistory" OWNER TO jorgeivananaya;
+ALTER TABLE public."MedicalHistory" OWNER TO postgres;
 
 --
--- Name: Patient; Type: TABLE; Schema: public; Owner: jorgeivananaya
+-- Name: Patient; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public."Patient" (
@@ -299,10 +290,10 @@ CREATE TABLE public."Patient" (
 );
 
 
-ALTER TABLE public."Patient" OWNER TO jorgeivananaya;
+ALTER TABLE public."Patient" OWNER TO postgres;
 
 --
--- Name: Payment; Type: TABLE; Schema: public; Owner: jorgeivananaya
+-- Name: Payment; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public."Payment" (
@@ -317,10 +308,25 @@ CREATE TABLE public."Payment" (
 );
 
 
-ALTER TABLE public."Payment" OWNER TO jorgeivananaya;
+ALTER TABLE public."Payment" OWNER TO postgres;
 
 --
--- Name: Service; Type: TABLE; Schema: public; Owner: jorgeivananaya
+-- Name: Permission; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."Permission" (
+    id text NOT NULL,
+    name text NOT NULL,
+    description text NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" timestamp(3) without time zone NOT NULL
+);
+
+
+ALTER TABLE public."Permission" OWNER TO postgres;
+
+--
+-- Name: Service; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public."Service" (
@@ -336,10 +342,10 @@ CREATE TABLE public."Service" (
 );
 
 
-ALTER TABLE public."Service" OWNER TO jorgeivananaya;
+ALTER TABLE public."Service" OWNER TO postgres;
 
 --
--- Name: User; Type: TABLE; Schema: public; Owner: jorgeivananaya
+-- Name: User; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public."User" (
@@ -359,10 +365,25 @@ CREATE TABLE public."User" (
 );
 
 
-ALTER TABLE public."User" OWNER TO jorgeivananaya;
+ALTER TABLE public."User" OWNER TO postgres;
 
 --
--- Name: _prisma_migrations; Type: TABLE; Schema: public; Owner: jorgeivananaya
+-- Name: UserPermission; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public."UserPermission" (
+    id text NOT NULL,
+    "userId" text NOT NULL,
+    "permissionId" text NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" timestamp(3) without time zone NOT NULL
+);
+
+
+ALTER TABLE public."UserPermission" OWNER TO postgres;
+
+--
+-- Name: _prisma_migrations; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public._prisma_migrations (
@@ -377,10 +398,10 @@ CREATE TABLE public._prisma_migrations (
 );
 
 
-ALTER TABLE public._prisma_migrations OWNER TO jorgeivananaya;
+ALTER TABLE public._prisma_migrations OWNER TO postgres;
 
 --
--- Name: odontogram; Type: TABLE; Schema: public; Owner: jorgeivananaya
+-- Name: odontogram; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.odontogram (
@@ -392,19 +413,48 @@ CREATE TABLE public.odontogram (
 );
 
 
-ALTER TABLE public.odontogram OWNER TO jorgeivananaya;
+ALTER TABLE public.odontogram OWNER TO postgres;
 
 --
--- Data for Name: Appointment; Type: TABLE DATA; Schema: public; Owner: jorgeivananaya
+-- Data for Name: Appointment; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public."Appointment" (id, "patientId", "userId", date, status, notes, "createdAt", "updatedAt", duration, "endDate", "serviceId") FROM stdin;
-3f70f999-e321-466d-a539-148adefff095	e2b4cfb8-307c-42d8-869a-412583f4d6d2	43393c65-c4b1-4b6d-9df1-dcbe568cde72	2025-05-06 18:00:00	SCHEDULED		2025-05-04 17:44:34.829	2025-05-04 17:44:34.829	60	2025-05-06 19:00:00	88e5204f-6490-4030-8962-cee034b92bbc
+eb7eff59-be92-4e26-887a-6bbb8fd50a8a	b7d6724f-ade9-4592-85cf-fbdd8f032c9b	55e7a281-cab1-4155-9db2-71167deeb665	2025-08-25 16:00:00	SCHEDULED		2025-05-07 22:09:24.45	2025-05-07 22:09:24.45	120	2025-08-25 18:00:00	8edeccc7-e4d7-4e14-b3db-4aaccce9c7a9
+1bed403c-d61d-41ac-9f1d-ec6393ee4e53	5daff24f-3e2f-4cbe-9edc-b0e6602de041	55e7a281-cab1-4155-9db2-71167deeb665	2025-05-06 16:00:00	SCHEDULED		2025-05-06 00:12:26.131	2025-05-06 00:12:26.131	60	2025-05-06 17:00:00	e9e71042-0e34-4f10-87c7-f8e1957e70ee
+7f0f5798-6454-45bf-a59a-7a4f2e76356d	41a0620b-2ec7-4a8e-9506-63ddd4d1f0b1	55e7a281-cab1-4155-9db2-71167deeb665	2025-05-06 22:30:00	SCHEDULED		2025-05-06 00:13:59.027	2025-05-06 00:13:59.027	30	2025-05-06 23:00:00	15ac41c0-0bd7-4b77-b9b9-5e7ca87c5263
+ab3d0352-595b-43c3-a3fe-883565e22e2b	1b2251ed-8e4f-4595-ad0c-7d74d5ab4b5c	55e7a281-cab1-4155-9db2-71167deeb665	2025-05-07 16:00:00	SCHEDULED		2025-05-06 00:31:05.702	2025-05-06 00:31:05.702	60	2025-05-07 17:00:00	302235da-4fad-46ef-8ced-d9f02692ced6
+749fd0a1-5c05-4272-a8ed-63d2bc4c6762	b7d6724f-ade9-4592-85cf-fbdd8f032c9b	55e7a281-cab1-4155-9db2-71167deeb665	2025-05-07 22:00:00	SCHEDULED		2025-05-06 00:32:27.174	2025-05-06 00:32:27.174	60	2025-05-07 23:00:00	302235da-4fad-46ef-8ced-d9f02692ced6
+ee11d407-a1ba-47c5-9292-87d5ac1005b6	f28ddbe5-7567-441b-bf37-22245d6d20f3	55e7a281-cab1-4155-9db2-71167deeb665	2025-05-08 21:00:00	SCHEDULED		2025-05-06 00:33:39.173	2025-05-06 00:33:39.173	60	2025-05-08 22:00:00	302235da-4fad-46ef-8ced-d9f02692ced6
+7e6258d1-8707-441e-86d0-9428adefe1c2	740bbc1d-9f13-47d0-9064-780ae7e521f0	55e7a281-cab1-4155-9db2-71167deeb665	2025-05-08 22:15:00	SCHEDULED		2025-05-06 00:35:11.567	2025-05-06 00:35:11.567	75	2025-05-08 23:30:00	8edeccc7-e4d7-4e14-b3db-4aaccce9c7a9
+1cae36dd-2a3b-4cb4-8c16-f1d84317a336	95084963-ea97-46c4-8652-1b717f549acc	55e7a281-cab1-4155-9db2-71167deeb665	2025-05-09 23:00:00	SCHEDULED		2025-05-06 00:36:02.391	2025-05-06 00:36:02.391	15	2025-05-09 23:15:00	cd98c738-b188-4e51-8f1f-65a5c4fa5463
+12097f9d-14ed-4784-bcc4-8ed7cf2599db	cdae144a-aa82-434e-af4e-97b505a61742	55e7a281-cab1-4155-9db2-71167deeb665	2025-05-17 17:00:00	SCHEDULED		2025-05-06 00:43:20.686	2025-05-06 00:43:20.686	60	2025-05-17 18:00:00	a97018a1-609a-4baf-a77c-3dfec05c9163
+fc9d0523-d9b6-42a8-b4b1-c119f9a05b75	b31cc161-a81f-472d-a9e6-87270bc4f73f	55e7a281-cab1-4155-9db2-71167deeb665	2025-05-19 22:00:00	SCHEDULED		2025-05-06 00:45:10.548	2025-05-06 00:45:10.548	60	2025-05-19 23:00:00	8edeccc7-e4d7-4e14-b3db-4aaccce9c7a9
+57719d4e-9193-4062-8623-916cd3815b10	257bca77-a606-4420-b904-bd0a56936c8e	55e7a281-cab1-4155-9db2-71167deeb665	2025-05-15 23:00:00	SCHEDULED		2025-05-06 21:12:45.14	2025-05-06 21:12:45.14	30	2025-05-15 23:30:00	38f83905-3a90-4d5b-b3f7-ec5646de6f4f
+3633cd73-c404-4c4f-8ce7-a2fb7373f626	bec6e71b-727e-459c-a961-00f5725c2bc3	55e7a281-cab1-4155-9db2-71167deeb665	2025-05-15 23:30:00	SCHEDULED		2025-05-06 21:17:32.983	2025-05-06 21:17:32.983	30	2025-05-16 00:00:00	38f83905-3a90-4d5b-b3f7-ec5646de6f4f
+53cb6bf3-4baa-425f-88cd-49f5d4930792	f0920fd1-e258-4588-9b07-9e544792ede3	55e7a281-cab1-4155-9db2-71167deeb665	2025-05-06 21:00:00	SCHEDULED		2025-05-06 21:19:01.552	2025-05-06 21:19:01.552	60	2025-05-06 22:00:00	8edeccc7-e4d7-4e14-b3db-4aaccce9c7a9
+2e905263-11c0-4ae6-ab3c-eb6dfa9f72ea	f0920fd1-e258-4588-9b07-9e544792ede3	55e7a281-cab1-4155-9db2-71167deeb665	2025-05-09 23:30:00	SCHEDULED		2025-05-06 21:34:08.012	2025-05-06 21:34:08.012	30	2025-05-10 00:00:00	8edeccc7-e4d7-4e14-b3db-4aaccce9c7a9
+407681f0-adb7-478a-8965-c5f0d8db3ba5	5daff24f-3e2f-4cbe-9edc-b0e6602de041	55e7a281-cab1-4155-9db2-71167deeb665	2025-05-09 16:00:00	SCHEDULED		2025-05-06 17:27:51.261	2025-05-07 05:11:21.248	60	2025-05-09 17:00:00	e9e71042-0e34-4f10-87c7-f8e1957e70ee
+e411fae7-5a91-4d8a-b3ad-f29a54b16771	ec868803-a731-4539-8d11-44d90026586d	55e7a281-cab1-4155-9db2-71167deeb665	2025-05-16 00:30:00	SCHEDULED		2025-05-07 15:10:24.195	2025-05-07 15:10:24.195	15	2025-05-16 00:45:00	38f83905-3a90-4d5b-b3f7-ec5646de6f4f
+b5027139-4f1e-4bdf-82bf-0058357587c6	dfd9deeb-c65b-48e2-bb38-3acaaa98301d	55e7a281-cab1-4155-9db2-71167deeb665	2025-05-08 16:00:00	SCHEDULED		2025-05-07 18:15:52.143	2025-05-07 18:15:52.143	45	2025-05-08 16:45:00	a97018a1-609a-4baf-a77c-3dfec05c9163
+82ec1904-07e0-4563-b0e0-c7f26a2d2903	f28ddbe5-7567-441b-bf37-22245d6d20f3	55e7a281-cab1-4155-9db2-71167deeb665	2025-06-21 18:00:00	SCHEDULED		2025-05-08 21:19:42.525	2025-05-08 21:19:42.525	60	2025-06-21 19:00:00	5d10eb55-3bee-4f96-870b-0e8d86170a20
+c72cc10e-a91b-4088-8bc1-9f30263f3841	740bbc1d-9f13-47d0-9064-780ae7e521f0	55e7a281-cab1-4155-9db2-71167deeb665	2025-05-15 20:45:00	SCHEDULED		2025-05-08 22:21:22.351	2025-05-08 22:21:22.351	45	2025-05-15 21:30:00	8edeccc7-e4d7-4e14-b3db-4aaccce9c7a9
+c435bf5c-703b-4145-afcb-4e0dd0787c2e	f886fa50-1529-4a98-bb1e-d24c8dab7f97	55e7a281-cab1-4155-9db2-71167deeb665	2025-05-09 17:15:00	SCHEDULED		2025-05-09 16:45:43.081	2025-05-09 16:45:43.081	15	2025-05-09 17:30:00	a97018a1-609a-4baf-a77c-3dfec05c9163
+6a40e5d8-248d-4040-be3e-fbb4f54530c7	392d8e20-ffc7-400f-84d9-cbfd3d088cb7	55e7a281-cab1-4155-9db2-71167deeb665	2025-05-17 18:00:00	SCHEDULED		2025-05-09 19:15:14.25	2025-05-09 19:15:14.25	60	2025-05-17 19:00:00	5d10eb55-3bee-4f96-870b-0e8d86170a20
+5bf390e0-302c-4410-bef0-a93763d913c0	0c8713a5-a91e-42e3-a5ea-8b0e2d0358ec	55e7a281-cab1-4155-9db2-71167deeb665	2025-05-15 22:30:00	SCHEDULED		2025-05-10 00:27:19.236	2025-05-10 00:27:19.236	30	2025-05-15 23:00:00	d606d483-81de-4adc-88ed-0248a307845e
+f4f26c38-5428-49c7-bfe1-c6a73adf8d1d	5daff24f-3e2f-4cbe-9edc-b0e6602de041	55e7a281-cab1-4155-9db2-71167deeb665	2025-05-16 16:00:00	SCHEDULED		2025-05-13 23:46:49.495	2025-05-13 23:46:49.495	60	2025-05-16 17:00:00	e9e71042-0e34-4f10-87c7-f8e1957e70ee
+90a3e589-8a52-42fe-90b4-d1ce2226fe75	b08bf7a8-0aa1-4d52-9510-72242d4142a2	55e7a281-cab1-4155-9db2-71167deeb665	2025-05-16 17:00:00	SCHEDULED		2025-05-16 00:17:27.619	2025-05-16 00:17:27.619	60	2025-05-16 18:00:00	a97018a1-609a-4baf-a77c-3dfec05c9163
+bddfcc6e-5a49-4857-91fb-3215822a583b	b0e51ed7-7178-4eb7-b829-1fd9d3f46f51	55e7a281-cab1-4155-9db2-71167deeb665	2025-05-16 18:00:00	SCHEDULED		2025-05-16 00:17:59.097	2025-05-16 00:17:59.097	60	2025-05-16 19:00:00	e9e71042-0e34-4f10-87c7-f8e1957e70ee
+5158ed40-b902-42ed-ae12-c25994ac5460	740bbc1d-9f13-47d0-9064-780ae7e521f0	55e7a281-cab1-4155-9db2-71167deeb665	2025-05-16 21:00:00	SCHEDULED		2025-05-16 00:18:46.825	2025-05-16 00:18:46.825	45	2025-05-16 21:45:00	8edeccc7-e4d7-4e14-b3db-4aaccce9c7a9
+2ac52aae-439c-4d6e-b162-84dca1aaefaa	95084963-ea97-46c4-8652-1b717f549acc	55e7a281-cab1-4155-9db2-71167deeb665	2025-05-17 16:00:00	SCHEDULED		2025-05-16 00:20:04.756	2025-05-16 00:20:04.756	60	2025-05-17 17:00:00	cd98c738-b188-4e51-8f1f-65a5c4fa5463
+7014b573-8952-45b6-a29f-7e7f347b3815	bec6e71b-727e-459c-a961-00f5725c2bc3	55e7a281-cab1-4155-9db2-71167deeb665	2025-06-17 23:00:00	SCHEDULED		2025-05-16 01:23:40.216	2025-05-16 01:23:40.216	30	2025-06-17 23:30:00	38f83905-3a90-4d5b-b3f7-ec5646de6f4f
+aa13ad8f-1b01-4ebf-bd5b-5fdf99e5bc62	85590c3b-c61f-4537-a81d-249b94c8e7ce	55e7a281-cab1-4155-9db2-71167deeb665	2025-05-24 17:00:00	SCHEDULED		2025-05-16 15:26:28.768	2025-05-16 15:26:28.768	60	2025-05-24 18:00:00	78e9336d-706a-4592-a93e-98c4bc5b9775
+b1f394a3-48e2-4560-b249-46dcdb1086ea	257bca77-a606-4420-b904-bd0a56936c8e	55e7a281-cab1-4155-9db2-71167deeb665	2025-06-17 23:30:00	SCHEDULED		2025-05-16 00:04:52.555	2025-05-16 15:37:42.649	30	2025-06-18 00:00:00	38f83905-3a90-4d5b-b3f7-ec5646de6f4f
 \.
 
 
 --
--- Data for Name: ClinicConfig; Type: TABLE DATA; Schema: public; Owner: jorgeivananaya
+-- Data for Name: ClinicConfig; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public."ClinicConfig" (id, "nombreClinica", telefono, direccion, correo, horario, "colorPrincipal", "logoUrl", "updatedAt") FROM stdin;
@@ -413,7 +463,7 @@ COPY public."ClinicConfig" (id, "nombreClinica", telefono, direccion, correo, ho
 
 
 --
--- Data for Name: Consultation; Type: TABLE DATA; Schema: public; Owner: jorgeivananaya
+-- Data for Name: Consultation; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public."Consultation" (id, "patientId", date, motivo, diagnostico, tratamiento, observaciones, "createdAt", "updatedAt") FROM stdin;
@@ -421,7 +471,7 @@ COPY public."Consultation" (id, "patientId", date, motivo, diagnostico, tratamie
 
 
 --
--- Data for Name: DentistPayment; Type: TABLE DATA; Schema: public; Owner: jorgeivananaya
+-- Data for Name: DentistPayment; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public."DentistPayment" (id, "dentistId", period, "baseSalary", commission, deductions, total, status, "paymentDate", "createdAt", "updatedAt") FROM stdin;
@@ -429,16 +479,17 @@ COPY public."DentistPayment" (id, "dentistId", period, "baseSalary", commission,
 
 
 --
--- Data for Name: DentistSchedule; Type: TABLE DATA; Schema: public; Owner: jorgeivananaya
+-- Data for Name: DentistSchedule; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public."DentistSchedule" (id, "userId", "workingDays", "startTime", "endTime", "blockedHours", "createdAt", "updatedAt") FROM stdin;
-750657d1-aae0-4280-bb90-ca13c35265cb	43393c65-c4b1-4b6d-9df1-dcbe568cde72	[1, 2, 3, 4, 5, 6]	10:00	18:00	[{"end": "13:00", "date": "2025-05-05", "start": "12:00"}]	2025-05-02 18:38:19.197	2025-05-04 17:38:36.307
+750657d1-aae0-4280-bb90-ca13c35265cb	43393c65-c4b1-4b6d-9df1-dcbe568cde72	[1, 2, 3, 4, 5, 6]	10:00	18:00	[]	2025-05-02 18:38:19.197	2025-05-05 23:29:12.831
+59d6ada2-e484-4c43-b307-c532d8c66b90	55e7a281-cab1-4155-9db2-71167deeb665	[1, 2, 3, 4, 5, 6]	10:00	20:00	[{"end": "13:00", "date": "2025-05-10", "start": "10:00"}, {"end": "23:59", "date": "2025-05-12", "start": "00:00"}, {"end": "23:59", "date": "2025-05-13", "start": "00:00"}]	2025-05-06 00:36:12.398	2025-05-10 00:19:13.872
 \.
 
 
 --
--- Data for Name: MedicalHistory; Type: TABLE DATA; Schema: public; Owner: jorgeivananaya
+-- Data for Name: MedicalHistory; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public."MedicalHistory" (id, "patientId", notes, "createdAt", "updatedAt", alergias, "cigarrillosPorDia", compania, diabetes, domicilio, edad, "edadFiebreReumatica", embarazo, "empleoProfesion", escolaridad, "estadoCivil", "fechaNacimiento", "fechaUltimaConsultaMedica", "frecuenciaCardiaca", fum, fuma, "interrogatorioTipo", "lugarNacimiento", "medicamentosActuales", "motivoConsulta", "motivoUltimaConsultaMedica", "nombreCompleto", "nombreInformante", ocupacion, "otrasCondicionesMedicas", "padecimientoOdontologicoActual", "padecimientosGastricos", "parentescoInformante", "periodoMenstrual", "presionArterial", "procesosQuirurgicos", respuesta, rh, "saludGeneral", sangrado, sexo, "telefonoDomicilio", "telefonoOficina", temperatura, "terapeuticaEmpleada", "tipoSanguineo", "tratamientosHormonales", urgencia, "apellidoMaterno", "apellidoPaterno", asma, bradicardia, bronquitis, cirrosis, enfisema, "hepatitisA", "hepatitisB", "hepatitisC", "hepatitisD", "hepatitisHigado", herpes, hipertension, hipertiroidismo, hipotension, hipotiroidismo, "mesesEmbarazo", taquicardia, vih, angina, convulsiones, cortaduras, "diabetesControlMedico", "doloresPecho", extracciones, "fiebreReumatica", infarto, "nerviosismoDental", "problemasRinonUrinarias", "sangradoNasal") FROM stdin;
@@ -447,7 +498,7 @@ COPY public."MedicalHistory" (id, "patientId", notes, "createdAt", "updatedAt", 
 
 
 --
--- Data for Name: Patient; Type: TABLE DATA; Schema: public; Owner: jorgeivananaya
+-- Data for Name: Patient; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public."Patient" (id, name, "lastNamePaterno", "lastNameMaterno", email, phone, "birthDate", address, "createdAt", "updatedAt", "userId") FROM stdin;
@@ -569,6 +620,7 @@ c353e84e-2783-4ba5-a7f8-d79af4e4f11c	Airam Natzarelly	Santo Villela		\N	\N	2002-
 c0d54626-e52e-4d32-a221-61a61f8a46e4	Aitana Fabiola	Rodríguez Bernal		\N	\N	2017-01-06 00:00:00		2025-05-03 20:50:49.384	2025-05-03 20:50:49.384	\N
 463337ad-1385-44d9-8eb2-801fbe7ef41a	Alberto	Stone Guerra		alberto-898@hotmail.com	\N	2000-05-19 00:00:00		2025-05-03 20:50:49.384	2025-05-03 20:50:49.384	\N
 6e7cee34-3764-44d0-849c-c5478acea760	Alan	Sellers		beachbum74@hotmail.com	\N	1974-10-26 00:00:00		2025-05-03 20:50:49.385	2025-05-03 20:50:49.385	\N
+74eece3a-ac8a-403b-9e0f-80de8daf7bf3	Claudia	Flores Altamirano		\N	\N	1993-08-11 00:00:00		2025-05-03 20:50:49.652	2025-05-03 20:50:49.652	\N
 a85fcdb5-a4b5-42d5-8316-6515df3db51e	Alberto Raul	Rueda Villegas		albertoruedav@gmail.com	3292913711	1950-10-20 00:00:00		2025-05-03 20:50:49.385	2025-05-03 20:50:49.385	\N
 86372868-37d4-4e16-8297-d9334a172b73	Alama Gabriela	Sanchez Ramos		\N	3221392537	\N		2025-05-03 20:50:49.385	2025-05-03 20:50:49.385	\N
 4ab38ea2-1624-4beb-89de-c9cdb25eec8b	Alan Yasser	Cardenas Molina		\N	\N	\N		2025-05-03 20:50:49.386	2025-05-03 20:50:49.386	\N
@@ -1391,7 +1443,6 @@ fe84234a-225d-4573-aa1e-f70fdb40e68c	Clarence	Eddy		\N	\N	\N		2025-05-03 20:50:4
 d838587a-d0ae-44a4-b175-378705dbb2ce	Claudia	Calderon Baltazar		clauscalderon@hotmail.com	\N	1970-11-25 00:00:00		2025-05-03 20:50:49.651	2025-05-03 20:50:49.651	\N
 60c12a72-c159-4669-a8ab-ad538036a127	Claudia	Del León Martinéz		\N	\N	2008-05-22 00:00:00		2025-05-03 20:50:49.652	2025-05-03 20:50:49.652	\N
 739a04d1-8c60-4715-8b7c-f9df5abb11f9	Claudia	Duran Alonzo		\N	\N	1977-04-22 00:00:00		2025-05-03 20:50:49.652	2025-05-03 20:50:49.652	\N
-74eece3a-ac8a-403b-9e0f-80de8daf7bf3	Claudia	Flores Altamirano		\N	\N	1993-08-11 00:00:00		2025-05-03 20:50:49.652	2025-05-03 20:50:49.652	\N
 cd4e50e5-ac55-4f55-9132-ddec18d1b98c	Claudia	Gallegos ¨Perez		\N	\N	1968-08-12 00:00:00		2025-05-03 20:50:49.653	2025-05-03 20:50:49.653	\N
 dc2e194a-706d-43ad-b44b-0db9da53ff67	Cesar	Jimenez Martinez		cjimenez@ecosta.com.mx	\N	1971-06-18 00:00:00		2025-05-03 20:50:49.653	2025-05-03 20:50:49.653	\N
 e033b3b2-43f6-4d61-9060-f257851240ab	Claudia	Lopez Jaimes		cloelopez@gmail.com	\N	1972-07-01 00:00:00		2025-05-03 20:50:49.653	2025-05-03 20:50:49.653	\N
@@ -1688,6 +1739,7 @@ aea338c2-d531-452a-ad21-ea16029065ee	Dulce Maria	Ayala García		ayala.dulce@hotm
 6b9070ef-ccc7-4633-8c5c-bdd7ab4155b9	Dulce Maria	Rangel Baños		dulmaraba@gmail.com	\N	1980-01-30 00:00:00		2025-05-03 20:50:49.746	2025-05-03 20:50:49.746	\N
 2396b712-4a5a-428c-8704-2bfa3649daf6	Dwayne	Meyer		meyerda@shaw.ca	\N	1957-08-27 00:00:00		2025-05-03 20:50:49.746	2025-05-03 20:50:49.746	\N
 110e24f4-b7a8-4b2e-859e-7c041f6868da	Eda	Sciutto		\N	\N	\N		2025-05-03 20:50:49.746	2025-05-03 20:50:49.746	\N
+4fa4bdb5-fb30-4bf6-9064-83823875db1b	Karen Anel	Torres Medrano		\N	\N	1993-02-27 00:00:00		2025-05-03 20:50:50.565	2025-05-03 20:50:50.565	\N
 d33d6622-a8fa-4287-87f7-54a5027b71c0	Diego Frncisco	Rico Patiño		diego_rico90@hotmail.com	+525610021475	1990-06-03 00:00:00		2025-05-03 20:50:49.747	2025-05-03 20:50:49.747	\N
 e4ccda53-e86c-45e1-8aa1-80a1627494e2	Edgar	Bender Guzman		ebenderg@hotmail.com	\N	1955-01-09 00:00:00		2025-05-03 20:50:49.747	2025-05-03 20:50:49.747	\N
 59a8e5a8-a8e4-4553-8a2b-f66d394cf321	Edgar	Delgadillo		\N	\N	2011-06-15 00:00:00		2025-05-03 20:50:49.747	2025-05-03 20:50:49.747	\N
@@ -4193,7 +4245,6 @@ ddeaa03e-d2a5-4199-a036-f15925973dd5	Pierrette	Deschamps		pierrette.deschamps01@
 826144b9-ff90-484f-9129-b14086071651	Silvia	Flores Jaimes		\N	\N	1993-09-05 00:00:00		2025-05-03 20:50:50.564	2025-05-03 20:50:50.564	\N
 35e42ca4-f808-4908-a3f1-88d889d69f96	Juan Luis	Rodriguez Juarez		\N	3222100265	\N		2025-05-03 20:50:50.565	2025-05-03 20:50:50.565	\N
 db586975-7fcf-470e-a626-f7d32137434b	Lynda	Michaud		lmlaforme1961@gmail.com	\N	1961-09-27 00:00:00		2025-05-03 20:50:50.565	2025-05-03 20:50:50.565	\N
-4fa4bdb5-fb30-4bf6-9064-83823875db1b	Karen Anel	Torres Medrano		\N	\N	1993-02-27 00:00:00		2025-05-03 20:50:50.565	2025-05-03 20:50:50.565	\N
 c059211a-cf7c-44c5-ad3b-61cc1e3575a9	Maria Guadalupe	Rodriguez Contreras		\N	\N	1988-12-12 00:00:00		2025-05-03 20:50:50.565	2025-05-03 20:50:50.565	\N
 aa9db660-f734-4864-9b0e-c6da69595760	Regina  Elizabeth	Cruz Vasquez		\N	\N	2012-09-03 00:00:00		2025-05-03 20:50:50.566	2025-05-03 20:50:50.566	\N
 3131a11e-c277-471f-99b7-3eee4839c830	Maria Cruz	Placencia Barreto		\N	\N	1960-05-03 00:00:00		2025-05-03 20:50:50.566	2025-05-03 20:50:50.566	\N
@@ -4661,6 +4712,7 @@ e8a64b38-4e32-4f5f-b055-0e035a79c112	Miguel Anguel	Alvarado Barragan		angel.alva
 a227cd4d-328c-4609-9f5a-7139b1ccbe5e	Karol Romina	Valle Hernández		\N	\N	2005-06-21 00:00:00		2025-05-03 20:50:50.716	2025-05-03 20:50:50.716	\N
 a63f51ef-77e5-483c-bdf7-397923470397	Kristof Ramses	Valle Hernandez		\N	\N	2010-04-13 00:00:00		2025-05-03 20:50:50.716	2025-05-03 20:50:50.716	\N
 69a57fdf-3a8b-4899-ad3d-1b477db3259a	Walther	Grego		waltergego@gmai.com	\N	1951-07-16 00:00:00		2025-05-03 20:50:50.717	2025-05-03 20:50:50.717	\N
+5e2a3467-07b2-40bf-8d12-81b69dcc6fed	Blanca	Morales	Gomez	1@gmail.com	+523221356485	1973-07-28 00:00:00		2025-05-06 00:19:44.64	2025-05-06 00:19:44.64	\N
 3c84bbcb-ea47-46eb-a5b7-17ca5765148d	Maria del Rosario	Rodriguez Gonzalez		charytina_123@hotmail.com	3221344437	1979-11-21 00:00:00		2025-05-03 20:50:50.717	2025-05-03 20:50:50.717	\N
 75926416-bcc5-464e-83a4-569f1e419350	MARIBEL	PLACA		\N	3223652481	\N		2025-05-03 20:50:50.717	2025-05-03 20:50:50.717	\N
 3aa0e3a7-0241-4296-8f0a-94173b82fdfe	Lizaa	Grego		\N	\N	1961-03-18 00:00:00		2025-05-03 20:50:50.718	2025-05-03 20:50:50.718	\N
@@ -5051,89 +5103,148 @@ d02465e0-1588-434b-be69-f1ad1e0d1f85	Josefina	Valdes		\N	\N	\N		2025-05-03 20:50
 704b06b1-21c7-4594-ae4e-56fdd7c98aa5	Mariane	Hernandez Hernandez		\N	3123025876	\N		2025-05-03 20:50:50.839	2025-05-03 20:50:50.839	\N
 9a31a5d9-87f4-4556-9262-eb129a641f83	Paul	Fowler		\N	+15056039528	\N		2025-05-03 20:50:50.84	2025-05-03 20:50:50.84	\N
 dddc6c8c-1175-4b24-9d44-467ece431080	Maria Belem	Gonzalez	Diaz		+523222039013	2005-08-13 00:00:00		2025-05-03 20:50:50.838	2025-05-04 01:03:35.478	\N
+5a98a02b-1783-4e5b-8ea9-63f202d62778	Blanca	Morales	Gomez	aa123@gmail.com	+523221356485	1973-07-28 00:00:00		2025-05-06 00:21:29.435	2025-05-06 00:21:29.435	\N
+dfd9deeb-c65b-48e2-bb38-3acaaa98301d	Eugenie	Tebe	x	eugenie_tebe@yahoo.fr	+14046685693	\N		2025-05-07 15:37:14.721	2025-05-07 15:37:14.721	\N
+5e4fa9bd-8612-4fe4-8488-86a898ae87ce	Eugenie	Tebe	x	eugenie_tebe@yahoo.fr	+1446685693	\N		2025-05-07 15:40:54.855	2025-05-07 15:40:54.855	\N
+b7222740-dd9e-43a7-b971-d8851deec0a6	Eugenie	Tebe	x	eugenie_tebe@yahoo.fr	+1446685693	2025-05-07 00:00:00	usa	2025-05-07 15:42:33.231	2025-05-07 15:42:33.231	\N
+18dddb87-9220-4dcd-974a-41bb834e7b5b	Veronica	Ulloa 	Ruiz	vernica@gmail.com	+523221597410	2025-05-08 00:00:00		2025-05-08 19:42:30.527	2025-05-08 19:42:30.527	\N
+b08bf7a8-0aa1-4d52-9510-72242d4142a2	Fernando	Rodriguez	Vega	anavrcd@hotmail.com	+523221507767	\N	Ave. Manuel Lepe Macedo	2025-05-16 00:16:55.62	2025-05-16 00:16:55.62	\N
 \.
 
 
 --
--- Data for Name: Payment; Type: TABLE DATA; Schema: public; Owner: jorgeivananaya
+-- Data for Name: Payment; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public."Payment" (id, "patientId", amount, method, status, description, "createdAt", "updatedAt") FROM stdin;
+0d3b3343-9b33-48e9-ac5a-f2ccc4bbdea3	f0920fd1-e258-4588-9b07-9e544792ede3	1900	CASH	PENDING	restan 2100	2025-05-06 21:36:20.664	2025-05-06 21:36:20.664
 \.
 
 
 --
--- Data for Name: Service; Type: TABLE DATA; Schema: public; Owner: jorgeivananaya
+-- Data for Name: Permission; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."Permission" (id, name, description, "createdAt", "updatedAt") FROM stdin;
+inicio	inicio	Acceso a la página de inicio	2025-05-09 23:13:44.849	2025-05-09 23:13:44.849
+pacientes	pacientes	Gestión de pacientes	2025-05-09 23:13:44.849	2025-05-09 23:13:44.849
+citas	citas	Gestión de citas	2025-05-09 23:13:44.849	2025-05-09 23:13:44.849
+pagos	pagos	Gestión de pagos	2025-05-09 23:13:44.849	2025-05-09 23:13:44.849
+consentimientos	consentimientos	Gestión de consentimientos	2025-05-09 23:13:44.849	2025-05-09 23:13:44.849
+servicios	servicios	Gestión de servicios	2025-05-09 23:13:44.849	2025-05-09 23:13:44.849
+reportes	reportes	Acceso a reportes	2025-05-09 23:13:44.849	2025-05-09 23:13:44.849
+comunicacion	comunicacion	Gestión de comunicación	2025-05-09 23:13:44.849	2025-05-09 23:13:44.849
+portal_paciente	portal_paciente	Acceso al portal de pacientes	2025-05-09 23:13:44.849	2025-05-09 23:13:44.849
+pagos_odontologos	pagos_odontologos	Gestión de pagos a odontólogos	2025-05-09 23:13:44.849	2025-05-09 23:13:44.849
+configuracion	configuracion	Acceso a la configuración	2025-05-09 23:13:44.849	2025-05-09 23:13:44.849
+\.
+
+
+--
+-- Data for Name: Service; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public."Service" (id, name, type, duration, price, description, "createdAt", "updatedAt", color) FROM stdin;
-78e9336d-706a-4592-a93e-98c4bc5b9775	Aplicación de ácido hialurónico	General	30	0	Aplicación de ácido hialurónico	2025-05-03 19:11:57.962	2025-05-03 19:11:57.962	\N
-248a1a0d-1d6c-425b-8ef3-98edf8abe025	Aplicación de toxina botulínica (Botox)	General	30	0	Aplicación de toxina botulínica (Botox)	2025-05-03 19:11:57.962	2025-05-03 19:11:57.962	\N
-cd98c738-b188-4e51-8f1f-65a5c4fa5463	Cirugía del tercer molar	General	30	0	Cirugía del tercer molar	2025-05-03 19:11:57.962	2025-05-03 19:11:57.962	\N
-5e88ef73-218b-4d28-a9fb-e97d1d1e7376	Consulta en línea	General	30	0	Consulta en línea	2025-05-03 19:11:57.962	2025-05-03 19:11:57.962	\N
-38f83905-3a90-4d5b-b3f7-ec5646de6f4f	Consulta mensual de ortodoncia	General	30	0	Consulta mensual de ortodoncia	2025-05-03 19:11:57.962	2025-05-03 19:11:57.962	\N
-03d03b88-ef9b-4339-9ca6-394b1b403e85	Corona metal porcelana	General	30	0	Corona metal porcelana	2025-05-03 19:11:57.962	2025-05-03 19:11:57.962	\N
-e9e71042-0e34-4f10-87c7-f8e1957e70ee	Coronas dentales de zirconio	General	30	0	Coronas dentales de zirconio	2025-05-03 19:11:57.962	2025-05-03 19:11:57.962	\N
-2c49f463-d2d1-402c-b947-2773d048cf54	Extracción dental	General	30	0	Extracción dental	2025-05-03 19:11:57.962	2025-05-03 19:11:57.962	\N
-00f6ec17-8303-457f-8f9d-b5a159d7031e	Guarda oclusal	General	30	0	Guarda oclusal	2025-05-03 19:11:57.962	2025-05-03 19:11:57.962	\N
 6a3234a7-ead6-47e6-9dec-b735f92a8f24	Implantología	General	30	0	Implantología	2025-05-03 19:11:57.962	2025-05-03 19:11:57.962	\N
-8edeccc7-e4d7-4e14-b3db-4aaccce9c7a9	Prótesis dental fija y removible	General	30	0	Prótesis dental fija y removible	2025-05-03 19:11:57.962	2025-05-03 19:11:57.962	\N
 a8f8c773-8f1f-4560-a636-b296fe3bd0fa	Rehabilitación bucal	General	30	0	Rehabilitación bucal	2025-05-03 19:11:57.962	2025-05-03 19:11:57.962	\N
-15ac41c0-0bd7-4b77-b9b9-5e7ca87c5263	Rehabilitación protésica para implante	General	30	0	Rehabilitación protésica para implante	2025-05-03 19:11:57.962	2025-05-03 19:11:57.962	\N
-5d10eb55-3bee-4f96-870b-0e8d86170a20	Resinas dentales	General	30	0	Resinas dentales	2025-05-03 19:11:57.962	2025-05-03 19:11:57.962	\N
-646ba4cc-2a97-4ffd-987f-c70a8bcefe94	Retratamiento de Conductos	General	30	0	Retratamiento de Conductos	2025-05-03 19:11:57.962	2025-05-03 19:11:57.962	\N
-1a6a7af6-e85c-4f99-90c5-759dacfe8364	Sedación consciente con óxido nitroso	General	30	0	Sedación consciente con óxido nitroso	2025-05-03 19:11:57.962	2025-05-03 19:11:57.962	\N
 5e677aa9-b50b-4195-a1cb-ffaed39141de	Terapia Láser para manejo del dolor	General	30	0	Terapia Láser para manejo del dolor	2025-05-03 19:11:57.962	2025-05-03 19:11:57.962	\N
-c330366a-91fe-4373-9008-0fb7bc2ee5c8	Toma de impresión dental	General	30	0	Toma de impresión dental	2025-05-03 19:11:57.962	2025-05-03 19:11:57.962	\N
-d606d483-81de-4adc-88ed-0248a307845e	Tratamiento de Endodoncia	General	30	0	Tratamiento de Endodoncia	2025-05-03 19:11:57.962	2025-05-03 19:11:57.962	\N
-a97018a1-609a-4baf-a77c-3dfec05c9163	Limpieza dental	General	30	0	Limpieza dental	2025-05-03 19:11:57.962	2025-05-04 01:27:42.189	\N
-88e5204f-6490-4030-8962-cee034b92bbc	Aclaramiento dental	General	30	0	Aclaramiento dental	2025-05-03 19:11:57.962	2025-05-04 01:42:49.201	#9a244f
-302235da-4fad-46ef-8ced-d9f02692ced6	Visita Odontología	General	30	0	Visita Odontología	2025-05-03 19:11:57.962	2025-05-04 01:42:58.536	#ffaa00
-55a88233-6967-43f4-8882-76ad44bc72f8	Profilaxis	Preventivo	35	1200	La profilaxis dental, o limpieza bucal profesional, es un servicio dental que consiste en la eliminación de placa bacteriana, sarro y manchas de los dientes.	2025-05-04 01:20:26.281	2025-05-04 01:43:04.676	#77bb41
+78e9336d-706a-4592-a93e-98c4bc5b9775	Aplicación de ácido hialurónico	General	30	0	Aplicación de ácido hialurónico	2025-05-03 19:11:57.962	2025-05-05 13:28:30.247	#610a51
+248a1a0d-1d6c-425b-8ef3-98edf8abe025	Aplicación de toxina botulínica (Botox)	General	30	0	Aplicación de toxina botulínica (Botox)	2025-05-03 19:11:57.962	2025-05-05 13:28:37.294	#079759
+646ba4cc-2a97-4ffd-987f-c70a8bcefe94	Retratamiento de Conductos	General	30	4800	Retratamiento de Conductos	2025-05-03 19:11:57.962	2025-05-06 21:53:33.18	#30bcdf
+5e88ef73-218b-4d28-a9fb-e97d1d1e7376	Consulta en línea	General	30	0	Consulta en línea	2025-05-03 19:11:57.962	2025-05-05 13:28:51.515	#b08e11
+38f83905-3a90-4d5b-b3f7-ec5646de6f4f	Consulta mensual de ortodoncia	General	30	800	Consulta mensual de ortodoncia	2025-05-03 19:11:57.962	2025-05-06 21:54:58.975	#00d5ff
+2c49f463-d2d1-402c-b947-2773d048cf54	Extracción dental	General	30	0	Extracción dental	2025-05-03 19:11:57.962	2025-05-05 13:29:26.614	#ff5900
+15ac41c0-0bd7-4b77-b9b9-5e7ca87c5263	Rehabilitación protésica para implante	General	30	0	Rehabilitación protésica para implante	2025-05-03 19:11:57.962	2025-05-06 00:14:30.293	#0061ff
+d606d483-81de-4adc-88ed-0248a307845e	Tratamiento de Endodoncia	General	30	4200	Tratamiento de Endodoncia	2025-05-03 19:11:57.962	2025-05-06 21:32:25.783	#48aaf4
+c330366a-91fe-4373-9008-0fb7bc2ee5c8	Toma de impresión dental	General	30	0	Toma de impresión dental	2025-05-03 19:11:57.962	2025-05-06 21:30:45.702	#ece9e9
+03d03b88-ef9b-4339-9ca6-394b1b403e85	Corona metal porcelana	General	30	5250	Corona metal porcelana	2025-05-03 19:11:57.962	2025-05-06 21:39:43.792	#fff5f5
+e9e71042-0e34-4f10-87c7-f8e1957e70ee	Coronas dentales de zirconio	General	30	7250	Coronas dentales de zirconio	2025-05-03 19:11:57.962	2025-05-06 21:39:57.199	#eae1e1
+00f6ec17-8303-457f-8f9d-b5a159d7031e	Guarda oclusal	General	30	1200	Guarda oclusal	2025-05-03 19:11:57.962	2025-05-06 21:40:32.304	#ffffff
+a97018a1-609a-4baf-a77c-3dfec05c9163	Limpieza dental	General	30	1050	Limpieza dental	2025-05-03 19:11:57.962	2025-05-06 21:40:59.04	#ffb3d1
+55a88233-6967-43f4-8882-76ad44bc72f8	Profilaxis	Preventivo	35	750	Limpieza dental para niños	2025-05-04 01:20:26.281	2025-05-06 21:42:30.947	#77bb41
+88e5204f-6490-4030-8962-cee034b92bbc	Aclaramiento dental	General	30	3200	Aclaramiento dental	2025-05-03 19:11:57.962	2025-05-06 21:44:44.995	#d1cb29
+5d10eb55-3bee-4f96-870b-0e8d86170a20	Resinas dentales	General	60	1050	Resinas dentales	2025-05-03 19:11:57.962	2025-05-06 21:45:45.674	#38d22d
+1a6a7af6-e85c-4f99-90c5-759dacfe8364	Sedación consciente con óxido nitroso	General	45	4500	Sedación consciente con óxido nitroso	2025-05-03 19:11:57.962	2025-05-06 21:47:56.307	#ffffff
+302235da-4fad-46ef-8ced-d9f02692ced6	Visita Odontología	General	30	0	Visita Odontología	2025-05-03 19:11:57.962	2025-05-06 21:51:37.983	#ff80d0
+cd98c738-b188-4e51-8f1f-65a5c4fa5463	Cirugía del tercer molar	General	30	0	Cirugía del tercer molar	2025-05-03 19:11:57.962	2025-05-06 21:52:20.959	#ff7300
+8edeccc7-e4d7-4e14-b3db-4aaccce9c7a9	Prótesis dental fija y removible	General	30	0	Prótesis dental fija y removible	2025-05-03 19:11:57.962	2025-05-06 21:52:40.703	#a59c9c
 \.
 
 
 --
--- Data for Name: User; Type: TABLE DATA; Schema: public; Owner: jorgeivananaya
+-- Data for Name: User; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public."User" (id, email, password, name, role, "createdAt", "updatedAt", speciality, license, phone, "isActive", "lastNameMaterno", "lastNamePaterno") FROM stdin;
-43393c65-c4b1-4b6d-9df1-dcbe568cde72	admin@odontos.com	$2b$10$pVswvK0NisFz5DZcAma7muCV12ncCgTpoTSTjlhcNkXYjTlcG6eFK	Administrador	ADMIN	2025-04-30 19:52:02.296	2025-05-03 19:30:43.866	\N	\N	\N	t	\N	\N
-55e7a281-cab1-4155-9db2-71167deeb665	anavrcd@hotmail.com	$2b$10$TJZpnerEDo.IDmg7zkqnVuICBRep5dqtwk93.NMra/qYaXf0X/flu	C.D Ana Isabel	DENTIST	2025-05-03 19:59:41.735	2025-05-03 19:59:41.735	\N	\N	\N	t	Rabasa	Valades
+55e7a281-cab1-4155-9db2-71167deeb665	anavrcd@hotmail.com	$2b$10$TJZpnerEDo.IDmg7zkqnVuICBRep5dqtwk93.NMra/qYaXf0X/flu	C.D Ana Isabel	ADMIN	2025-05-03 19:59:41.735	2025-05-09 23:25:07.622	\N	\N	\N	t	Rabasa	Valades
+43393c65-c4b1-4b6d-9df1-dcbe568cde72	admin@odontos.com	$2b$10$pVswvK0NisFz5DZcAma7muCV12ncCgTpoTSTjlhcNkXYjTlcG6eFK	Ivan	ADMIN	2025-04-30 19:52:02.296	2025-05-09 23:26:01.978	\N	\N	\N	t	Admin	Anaya
 \.
 
 
 --
--- Data for Name: _prisma_migrations; Type: TABLE DATA; Schema: public; Owner: jorgeivananaya
+-- Data for Name: UserPermission; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public."UserPermission" (id, "userId", "permissionId", "createdAt", "updatedAt") FROM stdin;
+57bc65b2-8d6b-4e97-84e5-a5505127b960	55e7a281-cab1-4155-9db2-71167deeb665	inicio	2025-05-09 23:25:07.632	2025-05-09 23:25:07.632
+3da5658b-477c-407f-9dee-7cbc30a01a66	55e7a281-cab1-4155-9db2-71167deeb665	pacientes	2025-05-09 23:25:07.632	2025-05-09 23:25:07.632
+cecdb434-6451-40cd-a1c3-40c8bcf1775f	55e7a281-cab1-4155-9db2-71167deeb665	citas	2025-05-09 23:25:07.632	2025-05-09 23:25:07.632
+4ab8948b-bf4f-478a-97f6-0a8f5e428dda	55e7a281-cab1-4155-9db2-71167deeb665	pagos	2025-05-09 23:25:07.632	2025-05-09 23:25:07.632
+256db404-ae99-4470-a0de-a0954788e3de	55e7a281-cab1-4155-9db2-71167deeb665	consentimientos	2025-05-09 23:25:07.632	2025-05-09 23:25:07.632
+0d915c72-2d4a-44cc-88e9-2538c958ac55	55e7a281-cab1-4155-9db2-71167deeb665	servicios	2025-05-09 23:25:07.632	2025-05-09 23:25:07.632
+8ab2c20a-59c4-42f0-9570-62fae89f5aa2	55e7a281-cab1-4155-9db2-71167deeb665	reportes	2025-05-09 23:25:07.632	2025-05-09 23:25:07.632
+9a6ad916-248f-4951-80ea-5db1bb91db9a	55e7a281-cab1-4155-9db2-71167deeb665	comunicacion	2025-05-09 23:25:07.632	2025-05-09 23:25:07.632
+26fa6c96-d2c2-41dd-b96c-41c0132da66e	55e7a281-cab1-4155-9db2-71167deeb665	portal_paciente	2025-05-09 23:25:07.632	2025-05-09 23:25:07.632
+77bbe84c-f32b-4645-a7d5-af9e7c698e9b	55e7a281-cab1-4155-9db2-71167deeb665	pagos_odontologos	2025-05-09 23:25:07.632	2025-05-09 23:25:07.632
+b07d16da-d2c3-4e3d-8fec-58c287c7ba77	55e7a281-cab1-4155-9db2-71167deeb665	configuracion	2025-05-09 23:25:07.632	2025-05-09 23:25:07.632
+8f138dee-fe56-4828-b220-521f504e5efa	43393c65-c4b1-4b6d-9df1-dcbe568cde72	inicio	2025-05-09 23:26:01.984	2025-05-09 23:26:01.984
+dabbc676-a6f0-4a0f-b4e8-2aeed7210746	43393c65-c4b1-4b6d-9df1-dcbe568cde72	pacientes	2025-05-09 23:26:01.984	2025-05-09 23:26:01.984
+a88a9e03-43d3-4c89-99e5-2aea4fd4e923	43393c65-c4b1-4b6d-9df1-dcbe568cde72	citas	2025-05-09 23:26:01.984	2025-05-09 23:26:01.984
+c3b7a964-5237-4fce-b637-18e6daa0d9ff	43393c65-c4b1-4b6d-9df1-dcbe568cde72	pagos	2025-05-09 23:26:01.984	2025-05-09 23:26:01.984
+f6d8ab84-98d5-4c3b-87c4-6ea6d0f924b2	43393c65-c4b1-4b6d-9df1-dcbe568cde72	consentimientos	2025-05-09 23:26:01.984	2025-05-09 23:26:01.984
+b4674187-4625-48d5-b7fd-6f3938d23c99	43393c65-c4b1-4b6d-9df1-dcbe568cde72	servicios	2025-05-09 23:26:01.984	2025-05-09 23:26:01.984
+4d1f197e-4773-4ac2-9e0c-3807e86aeb11	43393c65-c4b1-4b6d-9df1-dcbe568cde72	reportes	2025-05-09 23:26:01.984	2025-05-09 23:26:01.984
+b6288c4a-bf77-479b-8aa9-d3d76abaf78f	43393c65-c4b1-4b6d-9df1-dcbe568cde72	comunicacion	2025-05-09 23:26:01.984	2025-05-09 23:26:01.984
+c78b975b-ce5c-4229-a04a-be47e3c71998	43393c65-c4b1-4b6d-9df1-dcbe568cde72	portal_paciente	2025-05-09 23:26:01.984	2025-05-09 23:26:01.984
+58b8ecbe-3e8e-416f-858d-477287e0098a	43393c65-c4b1-4b6d-9df1-dcbe568cde72	pagos_odontologos	2025-05-09 23:26:01.984	2025-05-09 23:26:01.984
+481b8215-008f-4f1b-8a5d-1c86ed19ed90	43393c65-c4b1-4b6d-9df1-dcbe568cde72	configuracion	2025-05-09 23:26:01.984	2025-05-09 23:26:01.984
+\.
+
+
+--
+-- Data for Name: _prisma_migrations; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public._prisma_migrations (id, checksum, finished_at, migration_name, logs, rolled_back_at, started_at, applied_steps_count) FROM stdin;
-2c47fe60-0ca8-4d37-a9fa-e8dbd5b7b0ed	d009879280f64b5e8e031722cc1cb04325e21691d38459d74464194d6726744e	2025-04-30 13:51:56.957439-06	20250430195156_init	\N	\N	2025-04-30 13:51:56.940812-06	1
-f0824fa2-9526-4206-8145-8dbf599d7e75	a0a44826e52243617fadc323ccc426c428285748928d69045315538567d830a6	2025-04-30 15:15:57.249687-06	20250430211556_add_clinic_config	\N	\N	2025-04-30 15:15:57.247079-06	1
-a521081e-6a02-4f33-a878-de503b1a0030	28a73b57583e80758b32deb6931f79ad87feb81817727f7daa9a75db02177210	2025-05-02 11:25:58.500348-06	20250502172558_add_duration_and_end_date_to_appointment	\N	\N	2025-05-02 11:25:58.498153-06	1
-654521a1-1a22-4f80-a8e7-20238dd4d7bd	b7bc6a39fdceffc34b9f12ca1e142343ad15b6cff314426f20e1ef8905c69f62	2025-05-02 20:42:13.996979-06	20250503024213_patient_without_user_required	\N	\N	2025-05-02 20:42:13.995801-06	1
-44bf1faf-9b2c-49f2-848a-d3edc8cb690f	80ac2740ece7ac674dc83d5550e20434d3350f022133c5549b9059870ca0d42c	2025-05-03 12:58:31.282156-06	20250503185830_add_service_model	\N	\N	2025-05-03 12:58:31.277114-06	1
-121743d1-b888-44b7-94ee-19be09ec93d7	58112a80ddfa154a8dbc691470ffd5bb070e6d3a86a47fad0240f03e9a90c2a1	2025-05-03 13:50:09.671703-06	20250503195009_add_user_apellidos	\N	\N	2025-05-03 13:50:09.669956-06	1
-fde17a8c-79d7-4036-8763-8a4605c8aec1	220e4b0ebeea2ea3a9aa1b0513464c7aec9b1737dbec385ce2da71cfe896d786	2025-05-03 14:19:41.846949-06	20250503201941_add_dentist_payment	\N	\N	2025-05-03 14:19:41.843378-06	1
-768d215e-25cf-4c75-a940-7c76d8105e3c	8269c216caebb351d345f0e448a12fe86098b874b5926c7d14213e4554202e32	2025-05-03 15:04:21.969151-06	20250503210421_add_campos_historial_clinico	\N	\N	2025-05-03 15:04:21.965546-06	1
-0f2cb58e-fd9a-42d1-aa7c-bf5705f8a17b	213f86e1d9b63115e2158438ac4b509d8dc7a95ebdef7f0450370dcab4bc2697	2025-05-03 15:51:42.172775-06	20250503215141_add_campos_historial_clinico	\N	\N	2025-05-03 15:51:42.168574-06	1
-ffe96983-10ce-49f3-887b-10c1a0465b13	59f3b000ae5e28844425e725f99fdea9f5d8708df31a9c67600c6005e2c2b10a	2025-05-03 16:42:29.211214-06	20250503224228_add_service_to_appointment	\N	\N	2025-05-03 16:42:29.207564-06	1
-59dc6af3-e79a-4700-a7bb-39a207f9d222	a459f8d775ec70ad3013a225b4bfd85fb1a7bb0300aa0f351b5334f434c5c874	2025-05-03 16:51:48.580016-06	20250503225148_remove_assigned_schedules_from_service	\N	\N	2025-05-03 16:51:48.578143-06	1
-1f210499-0399-4b3d-a1eb-3094322b0852	99b38bd5e82df7f1db2f9127454ac888841d61a4e0ca59929197d6bf2a1b35bb	2025-05-03 19:23:47.114409-06	20250504012346_add_color_to_service	\N	\N	2025-05-03 19:23:47.112305-06	1
+2c47fe60-0ca8-4d37-a9fa-e8dbd5b7b0ed	d009879280f64b5e8e031722cc1cb04325e21691d38459d74464194d6726744e	2025-04-30 19:51:56.957439+00	20250430195156_init	\N	\N	2025-04-30 19:51:56.940812+00	1
+f0824fa2-9526-4206-8145-8dbf599d7e75	a0a44826e52243617fadc323ccc426c428285748928d69045315538567d830a6	2025-04-30 21:15:57.249687+00	20250430211556_add_clinic_config	\N	\N	2025-04-30 21:15:57.247079+00	1
+a521081e-6a02-4f33-a878-de503b1a0030	28a73b57583e80758b32deb6931f79ad87feb81817727f7daa9a75db02177210	2025-05-02 17:25:58.500348+00	20250502172558_add_duration_and_end_date_to_appointment	\N	\N	2025-05-02 17:25:58.498153+00	1
+654521a1-1a22-4f80-a8e7-20238dd4d7bd	b7bc6a39fdceffc34b9f12ca1e142343ad15b6cff314426f20e1ef8905c69f62	2025-05-03 02:42:13.996979+00	20250503024213_patient_without_user_required	\N	\N	2025-05-03 02:42:13.995801+00	1
+44bf1faf-9b2c-49f2-848a-d3edc8cb690f	80ac2740ece7ac674dc83d5550e20434d3350f022133c5549b9059870ca0d42c	2025-05-03 18:58:31.282156+00	20250503185830_add_service_model	\N	\N	2025-05-03 18:58:31.277114+00	1
+121743d1-b888-44b7-94ee-19be09ec93d7	58112a80ddfa154a8dbc691470ffd5bb070e6d3a86a47fad0240f03e9a90c2a1	2025-05-03 19:50:09.671703+00	20250503195009_add_user_apellidos	\N	\N	2025-05-03 19:50:09.669956+00	1
+fde17a8c-79d7-4036-8763-8a4605c8aec1	220e4b0ebeea2ea3a9aa1b0513464c7aec9b1737dbec385ce2da71cfe896d786	2025-05-03 20:19:41.846949+00	20250503201941_add_dentist_payment	\N	\N	2025-05-03 20:19:41.843378+00	1
+768d215e-25cf-4c75-a940-7c76d8105e3c	8269c216caebb351d345f0e448a12fe86098b874b5926c7d14213e4554202e32	2025-05-03 21:04:21.969151+00	20250503210421_add_campos_historial_clinico	\N	\N	2025-05-03 21:04:21.965546+00	1
+0f2cb58e-fd9a-42d1-aa7c-bf5705f8a17b	213f86e1d9b63115e2158438ac4b509d8dc7a95ebdef7f0450370dcab4bc2697	2025-05-03 21:51:42.172775+00	20250503215141_add_campos_historial_clinico	\N	\N	2025-05-03 21:51:42.168574+00	1
+ffe96983-10ce-49f3-887b-10c1a0465b13	59f3b000ae5e28844425e725f99fdea9f5d8708df31a9c67600c6005e2c2b10a	2025-05-03 22:42:29.211214+00	20250503224228_add_service_to_appointment	\N	\N	2025-05-03 22:42:29.207564+00	1
+59dc6af3-e79a-4700-a7bb-39a207f9d222	a459f8d775ec70ad3013a225b4bfd85fb1a7bb0300aa0f351b5334f434c5c874	2025-05-03 22:51:48.580016+00	20250503225148_remove_assigned_schedules_from_service	\N	\N	2025-05-03 22:51:48.578143+00	1
+1f210499-0399-4b3d-a1eb-3094322b0852	99b38bd5e82df7f1db2f9127454ac888841d61a4e0ca59929197d6bf2a1b35bb	2025-05-04 01:23:47.114409+00	20250504012346_add_color_to_service	\N	\N	2025-05-04 01:23:47.112305+00	1
+16de37cc-7c34-499f-90c6-f9a870addb98	e53412abdd475e36566c6c3c62265ab742c2c631c816d6e1274a4c4e68b9f2b2	2025-05-09 23:13:45.387954+00	20250508230246_add_permissions	\N	\N	2025-05-09 23:13:43.842201+00	1
+07488fd4-efa1-45b4-9b4c-d903568a69f3	4eb9afa75ad19e51a66ffea8b10e09370d37efa8326c611f7a96d835fe4afc2b	2025-05-09 23:13:45.400005+00	20250508230247_add_new_permissions	\N	\N	2025-05-09 23:13:45.390904+00	1
+e7803743-fe7a-44bd-bca4-2ac01784a52a	cb24396fdca1440869a8efb425625e86ca3a8b9d639bc20217f5786cf30f5003	\N	20250508230248_add_permissions_and_roles	A migration failed to apply. New migrations cannot be applied before the error is recovered from. Read more about how to resolve migration issues in a production database: https://pris.ly/d/migrate-resolve\n\nMigration name: 20250508230248_add_permissions_and_roles\n\nDatabase error code: 42710\n\nDatabase error:\nERROR: constraint "UserPermission_userId_fkey" for relation "UserPermission" already exists\n\nDbError { severity: "ERROR", parsed_severity: Some(Error), code: SqlState(E42710), message: "constraint \\"UserPermission_userId_fkey\\" for relation \\"UserPermission\\" already exists", detail: None, hint: None, position: None, where_: None, schema: None, table: None, column: None, datatype: None, constraint: None, file: Some("tablecmds.c"), line: Some(8978), routine: Some("ATExecAddConstraint") }\n\n   0: sql_schema_connector::apply_migration::apply_script\n           with migration_name="20250508230248_add_permissions_and_roles"\n             at schema-engine/connectors/sql-schema-connector/src/apply_migration.rs:113\n   1: schema_commands::commands::apply_migrations::Applying migration\n           with migration_name="20250508230248_add_permissions_and_roles"\n             at schema-engine/commands/src/commands/apply_migrations.rs:91\n   2: schema_core::state::ApplyMigrations\n             at schema-engine/core/src/state.rs:225	\N	2025-05-09 23:13:45.403149+00	0
 \.
 
 
 --
--- Data for Name: odontogram; Type: TABLE DATA; Schema: public; Owner: jorgeivananaya
+-- Data for Name: odontogram; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.odontogram (id, "patientId", data, "updatedAt", "createdAt") FROM stdin;
-b85d0261-0f3a-4fe5-9627-4c16210ffff8	e2b4cfb8-307c-42d8-869a-412583f4d6d2	{"11": {"note": "", "state": ""}, "12": {"note": "", "state": ""}, "13": {"note": "", "state": ""}, "14": {"note": "", "state": ""}, "15": {"note": "", "state": ""}, "16": {"note": "", "state": ""}, "17": {"note": "", "state": ""}, "18": {"note": "", "state": ""}, "21": {"note": "", "state": ""}, "22": {"note": "", "state": ""}, "23": {"note": "", "state": ""}, "24": {"note": "", "state": ""}, "25": {"note": "", "state": "sano"}, "26": {"note": "nsdhbfhsdf", "state": "sano"}, "27": {"note": "", "state": ""}, "28": {"note": "", "state": ""}, "31": {"note": "", "state": ""}, "32": {"note": "", "state": ""}, "33": {"note": "", "state": ""}, "34": {"note": "", "state": ""}, "35": {"note": "", "state": ""}, "36": {"note": "", "state": ""}, "37": {"note": "", "state": ""}, "38": {"note": "", "state": ""}, "41": {"note": "", "state": ""}, "42": {"note": "", "state": ""}, "43": {"note": "", "state": ""}, "44": {"note": "", "state": ""}, "45": {"note": "", "state": ""}, "46": {"note": "", "state": ""}, "47": {"note": "", "state": ""}, "48": {"note": "", "state": ""}, "51": {"note": "", "state": ""}, "52": {"note": "", "state": ""}, "53": {"note": "", "state": ""}, "54": {"note": "", "state": ""}, "55": {"note": "", "state": ""}, "61": {"note": "", "state": ""}, "62": {"note": "", "state": ""}, "63": {"note": "", "state": ""}, "64": {"note": "", "state": ""}, "65": {"note": "", "state": ""}, "71": {"note": "", "state": ""}, "72": {"note": "", "state": ""}, "73": {"note": "", "state": ""}, "74": {"note": "", "state": ""}, "75": {"note": "", "state": ""}, "81": {"note": "", "state": ""}, "82": {"note": "", "state": ""}, "83": {"note": "", "state": ""}, "84": {"note": "", "state": ""}, "85": {"note": "", "state": ""}}	2025-05-03 22:32:58.484	2025-05-03 22:25:59.899
+b85d0261-0f3a-4fe5-9627-4c16210ffff8	e2b4cfb8-307c-42d8-869a-412583f4d6d2	{"11": {"note": "", "state": ""}, "12": {"note": "", "state": ""}, "13": {"note": "", "state": ""}, "14": {"note": "", "state": ""}, "15": {"note": "", "state": ""}, "16": {"note": "", "state": ""}, "17": {"note": "", "state": ""}, "18": {"note": "", "state": ""}, "21": {"note": "", "state": ""}, "22": {"note": "", "state": ""}, "23": {"note": "", "state": ""}, "24": {"note": "", "state": "sano"}, "25": {"note": "", "state": "sano"}, "26": {"note": "", "state": "sano"}, "27": {"note": "", "state": ""}, "28": {"note": "", "state": ""}, "31": {"note": "", "state": ""}, "32": {"note": "", "state": ""}, "33": {"note": "", "state": ""}, "34": {"note": "", "state": ""}, "35": {"note": "", "state": ""}, "36": {"note": "", "state": ""}, "37": {"note": "", "state": ""}, "38": {"note": "", "state": ""}, "41": {"note": "", "state": ""}, "42": {"note": "", "state": ""}, "43": {"note": "", "state": ""}, "44": {"note": "", "state": ""}, "45": {"note": "", "state": ""}, "46": {"note": "", "state": ""}, "47": {"note": "", "state": ""}, "48": {"note": "", "state": ""}, "51": {"note": "", "state": ""}, "52": {"note": "", "state": ""}, "53": {"note": "", "state": ""}, "54": {"note": "", "state": ""}, "55": {"note": "", "state": ""}, "61": {"note": "", "state": ""}, "62": {"note": "", "state": ""}, "63": {"note": "", "state": ""}, "64": {"note": "", "state": ""}, "65": {"note": "", "state": ""}, "71": {"note": "", "state": ""}, "72": {"note": "", "state": ""}, "73": {"note": "", "state": ""}, "74": {"note": "", "state": ""}, "75": {"note": "", "state": ""}, "81": {"note": "", "state": ""}, "82": {"note": "", "state": ""}, "83": {"note": "", "state": ""}, "84": {"note": "", "state": ""}, "85": {"note": "", "state": ""}}	2025-05-06 00:51:18.818	2025-05-03 22:25:59.899
 \.
 
 
 --
--- Name: Appointment Appointment_pkey; Type: CONSTRAINT; Schema: public; Owner: jorgeivananaya
+-- Name: Appointment Appointment_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public."Appointment"
@@ -5141,7 +5252,7 @@ ALTER TABLE ONLY public."Appointment"
 
 
 --
--- Name: ClinicConfig ClinicConfig_pkey; Type: CONSTRAINT; Schema: public; Owner: jorgeivananaya
+-- Name: ClinicConfig ClinicConfig_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public."ClinicConfig"
@@ -5149,7 +5260,7 @@ ALTER TABLE ONLY public."ClinicConfig"
 
 
 --
--- Name: Consultation Consultation_pkey; Type: CONSTRAINT; Schema: public; Owner: jorgeivananaya
+-- Name: Consultation Consultation_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public."Consultation"
@@ -5157,7 +5268,7 @@ ALTER TABLE ONLY public."Consultation"
 
 
 --
--- Name: DentistPayment DentistPayment_pkey; Type: CONSTRAINT; Schema: public; Owner: jorgeivananaya
+-- Name: DentistPayment DentistPayment_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public."DentistPayment"
@@ -5165,7 +5276,7 @@ ALTER TABLE ONLY public."DentistPayment"
 
 
 --
--- Name: DentistSchedule DentistSchedule_pkey; Type: CONSTRAINT; Schema: public; Owner: jorgeivananaya
+-- Name: DentistSchedule DentistSchedule_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public."DentistSchedule"
@@ -5173,7 +5284,7 @@ ALTER TABLE ONLY public."DentistSchedule"
 
 
 --
--- Name: MedicalHistory MedicalHistory_pkey; Type: CONSTRAINT; Schema: public; Owner: jorgeivananaya
+-- Name: MedicalHistory MedicalHistory_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public."MedicalHistory"
@@ -5181,7 +5292,7 @@ ALTER TABLE ONLY public."MedicalHistory"
 
 
 --
--- Name: Patient Patient_pkey; Type: CONSTRAINT; Schema: public; Owner: jorgeivananaya
+-- Name: Patient Patient_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public."Patient"
@@ -5189,7 +5300,7 @@ ALTER TABLE ONLY public."Patient"
 
 
 --
--- Name: Payment Payment_pkey; Type: CONSTRAINT; Schema: public; Owner: jorgeivananaya
+-- Name: Payment Payment_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public."Payment"
@@ -5197,7 +5308,15 @@ ALTER TABLE ONLY public."Payment"
 
 
 --
--- Name: Service Service_pkey; Type: CONSTRAINT; Schema: public; Owner: jorgeivananaya
+-- Name: Permission Permission_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Permission"
+    ADD CONSTRAINT "Permission_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: Service Service_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public."Service"
@@ -5205,7 +5324,15 @@ ALTER TABLE ONLY public."Service"
 
 
 --
--- Name: User User_pkey; Type: CONSTRAINT; Schema: public; Owner: jorgeivananaya
+-- Name: UserPermission UserPermission_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."UserPermission"
+    ADD CONSTRAINT "UserPermission_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: User User_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public."User"
@@ -5213,7 +5340,7 @@ ALTER TABLE ONLY public."User"
 
 
 --
--- Name: _prisma_migrations _prisma_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: jorgeivananaya
+-- Name: _prisma_migrations _prisma_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public._prisma_migrations
@@ -5221,7 +5348,7 @@ ALTER TABLE ONLY public._prisma_migrations
 
 
 --
--- Name: odontogram odontogram_pkey; Type: CONSTRAINT; Schema: public; Owner: jorgeivananaya
+-- Name: odontogram odontogram_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.odontogram
@@ -5229,42 +5356,56 @@ ALTER TABLE ONLY public.odontogram
 
 
 --
--- Name: DentistSchedule_userId_key; Type: INDEX; Schema: public; Owner: jorgeivananaya
+-- Name: DentistSchedule_userId_key; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "DentistSchedule_userId_key" ON public."DentistSchedule" USING btree ("userId");
 
 
 --
--- Name: MedicalHistory_patientId_key; Type: INDEX; Schema: public; Owner: jorgeivananaya
+-- Name: MedicalHistory_patientId_key; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "MedicalHistory_patientId_key" ON public."MedicalHistory" USING btree ("patientId");
 
 
 --
--- Name: Patient_userId_key; Type: INDEX; Schema: public; Owner: jorgeivananaya
+-- Name: Patient_userId_key; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "Patient_userId_key" ON public."Patient" USING btree ("userId");
 
 
 --
--- Name: User_email_key; Type: INDEX; Schema: public; Owner: jorgeivananaya
+-- Name: Permission_name_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "Permission_name_key" ON public."Permission" USING btree (name);
+
+
+--
+-- Name: UserPermission_userId_permissionId_key; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX "UserPermission_userId_permissionId_key" ON public."UserPermission" USING btree ("userId", "permissionId");
+
+
+--
+-- Name: User_email_key; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "User_email_key" ON public."User" USING btree (email);
 
 
 --
--- Name: odontogram_patientId_key; Type: INDEX; Schema: public; Owner: jorgeivananaya
+-- Name: odontogram_patientId_key; Type: INDEX; Schema: public; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "odontogram_patientId_key" ON public.odontogram USING btree ("patientId");
 
 
 --
--- Name: Appointment Appointment_patientId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: jorgeivananaya
+-- Name: Appointment Appointment_patientId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public."Appointment"
@@ -5272,7 +5413,7 @@ ALTER TABLE ONLY public."Appointment"
 
 
 --
--- Name: Appointment Appointment_serviceId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: jorgeivananaya
+-- Name: Appointment Appointment_serviceId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public."Appointment"
@@ -5280,7 +5421,7 @@ ALTER TABLE ONLY public."Appointment"
 
 
 --
--- Name: Appointment Appointment_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: jorgeivananaya
+-- Name: Appointment Appointment_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public."Appointment"
@@ -5288,7 +5429,7 @@ ALTER TABLE ONLY public."Appointment"
 
 
 --
--- Name: Consultation Consultation_patientId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: jorgeivananaya
+-- Name: Consultation Consultation_patientId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public."Consultation"
@@ -5296,7 +5437,7 @@ ALTER TABLE ONLY public."Consultation"
 
 
 --
--- Name: DentistPayment DentistPayment_dentistId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: jorgeivananaya
+-- Name: DentistPayment DentistPayment_dentistId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public."DentistPayment"
@@ -5304,7 +5445,7 @@ ALTER TABLE ONLY public."DentistPayment"
 
 
 --
--- Name: DentistSchedule DentistSchedule_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: jorgeivananaya
+-- Name: DentistSchedule DentistSchedule_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public."DentistSchedule"
@@ -5312,7 +5453,7 @@ ALTER TABLE ONLY public."DentistSchedule"
 
 
 --
--- Name: MedicalHistory MedicalHistory_patientId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: jorgeivananaya
+-- Name: MedicalHistory MedicalHistory_patientId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public."MedicalHistory"
@@ -5320,7 +5461,7 @@ ALTER TABLE ONLY public."MedicalHistory"
 
 
 --
--- Name: Patient Patient_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: jorgeivananaya
+-- Name: Patient Patient_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public."Patient"
@@ -5328,7 +5469,7 @@ ALTER TABLE ONLY public."Patient"
 
 
 --
--- Name: Payment Payment_patientId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: jorgeivananaya
+-- Name: Payment Payment_patientId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public."Payment"
@@ -5336,7 +5477,23 @@ ALTER TABLE ONLY public."Payment"
 
 
 --
--- Name: odontogram odontogram_patientId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: jorgeivananaya
+-- Name: UserPermission UserPermission_permissionId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."UserPermission"
+    ADD CONSTRAINT "UserPermission_permissionId_fkey" FOREIGN KEY ("permissionId") REFERENCES public."Permission"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: UserPermission UserPermission_userId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."UserPermission"
+    ADD CONSTRAINT "UserPermission_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: odontogram odontogram_patientId_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.odontogram
@@ -5344,7 +5501,7 @@ ALTER TABLE ONLY public.odontogram
 
 
 --
--- Name: SCHEMA public; Type: ACL; Schema: -; Owner: jorgeivananaya
+-- Name: SCHEMA public; Type: ACL; Schema: -; Owner: pg_database_owner
 --
 
 REVOKE USAGE ON SCHEMA public FROM PUBLIC;
