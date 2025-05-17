@@ -26,11 +26,31 @@ interface Patient {
 }
 
 const Patients: React.FC = () => {
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [profileModal, setProfileModal] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [deleteModal, setDeleteModal] = useState<{ open: boolean, patient: Patient | null }>({ open: false, patient: null });
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [confirmInput, setConfirmInput] = useState('');
+  const debounceRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  // Cargar pacientes al montar y cuando cambia la búsqueda
   useEffect(() => {
-    api.get('/patients')
-      .then(res => setPatients(res.data))
-      .finally(() => setLoading(false));
-  }, []);
+    setLoading(true);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      api.get(`/patients${search ? `?search=${encodeURIComponent(search)}` : ''}`)
+        .then(res => setPatients(res.data))
+        .catch(() => setPatients([]))
+        .finally(() => setLoading(false));
+    }, 400);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [search]);
 
   useEffect(() => {
     window.closePatientProfileModal = function() {
@@ -43,16 +63,6 @@ const Patients: React.FC = () => {
       delete window.closePatientProfileModal;
     };
   }, []);
-
-  const [patients, setPatients] = useState<Patient[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [profileModal, setProfileModal] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
-  const [deleteModal, setDeleteModal] = useState<{ open: boolean, patient: Patient | null }>({ open: false, patient: null });
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [confirmInput, setConfirmInput] = useState('');
 
   const handlePatientAdded = () => {
     setShowModal(false);
@@ -80,25 +90,6 @@ const Patients: React.FC = () => {
       setLoading(false);
     }
   };
-
-  // Función para normalizar texto (eliminar acentos y convertir a minúsculas)
-  const normalizeText = (text: string) => {
-    return text.toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '');
-  };
-
-  // Filter patients by search
-  const filteredPatients = patients.filter(p => {
-    const q = normalizeText(search);
-    return (
-      normalizeText(p.name).includes(q) ||
-      normalizeText(p.lastNamePaterno || '').includes(q) ||
-      normalizeText(p.lastNameMaterno || '').includes(q) ||
-      (p.email && normalizeText(p.email).includes(q)) ||
-      (p.phone && normalizeText(p.phone).includes(q))
-    );
-  });
 
   useEffect(() => {
     if (errorMsg) {
@@ -166,7 +157,7 @@ const Patients: React.FC = () => {
           <UserCircle size={64} weight="duotone" className="mx-auto mb-2" />
           <div className="text-lg font-semibold mb-2">Cargando pacientes...</div>
         </div>
-      ) : filteredPatients.length === 0 ? (
+      ) : patients.length === 0 ? (
         <div className="bg-white rounded-2xl shadow-xl p-8 text-center text-gray-400">
           <UserCircle size={64} weight="duotone" className="mx-auto mb-2" />
           <div className="text-lg font-semibold mb-2">No se encontraron pacientes</div>
@@ -202,7 +193,7 @@ const Patients: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredPatients.map(p => (
+              {patients.map(p => (
                 <tr key={p.id} className="hover:bg-red-50 transition-all border-b border-gray-100 last:border-0 group">
                   <td className="px-6 py-4 flex items-center gap-3 font-medium text-gray-900">
                     <div className="bg-red-100 rounded-full h-10 w-10 flex items-center justify-center text-red-600 font-bold text-lg shadow-sm">
