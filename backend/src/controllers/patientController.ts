@@ -37,24 +37,35 @@ export const createPatient = async (req: Request, res: Response) => {
 
 export const getPatients = async (req: Request, res: Response) => {
   try {
+    const { search, take } = req.query;
     let patients;
-    if (req.user?.role === 'ADMIN') {
-      // El admin ve todos los pacientes
-      patients = await prisma.patient.findMany({
-        include: {
-          medicalHistory: true,
-          appointments: true
-        }
-      });
+    const takeNum = take ? Math.min(Number(take), 50) : 20;
+    if (search && typeof search === 'string' && search.trim().length > 0) {
+      const searchTerm = search.trim();
+      // Búsqueda avanzada con unaccent (requiere extensión en PostgreSQL)
+      patients = await prisma.$queryRaw`
+        SELECT id, name, "lastNamePaterno", "lastNameMaterno", email, phone
+        FROM "Patient"
+        WHERE
+          unaccent(name) ILIKE unaccent(${`%${searchTerm}%`})
+          OR unaccent("lastNamePaterno") ILIKE unaccent(${`%${searchTerm}%`})
+          OR unaccent("lastNameMaterno") ILIKE unaccent(${`%${searchTerm}%`})
+          OR unaccent(email) ILIKE unaccent(${`%${searchTerm}%`})
+          OR unaccent(phone) ILIKE unaccent(${`%${searchTerm}%`})
+        ORDER BY name ASC
+        LIMIT ${takeNum}
+      ` as any[];
     } else {
-      // Los demás solo ven los suyos
       patients = await prisma.patient.findMany({
-        where: {
-          userId: req.user!.id
-        },
-        include: {
-          medicalHistory: true,
-          appointments: true
+        take: takeNum,
+        orderBy: { name: 'asc' },
+        select: {
+          id: true,
+          name: true,
+          lastNamePaterno: true,
+          lastNameMaterno: true,
+          email: true,
+          phone: true
         }
       });
     }

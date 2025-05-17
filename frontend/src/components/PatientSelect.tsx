@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { User, MagnifyingGlass, Plus } from 'phosphor-react';
 import AddPatient from '../pages/AddPatient';
 import { createPortal } from 'react-dom';
@@ -21,50 +21,94 @@ interface PatientSelectProps {
   onPatientAdded?: (newPatient: Patient) => void;
 }
 
-const PatientSelect: React.FC<PatientSelectProps> = ({ value, onChange, patients, disabled, onPatientAdded }) => {
+const DEFAULT_LIMIT = 15;
+
+const PatientSelect: React.FC<PatientSelectProps> = ({ value, onChange, disabled, onPatientAdded }) => {
   const [search, setSearch] = useState('');
   const [showAddPatient, setShowAddPatient] = useState(false);
+  const [options, setOptions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedLabel, setSelectedLabel] = useState<string>('');
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const loadedInitial = useRef(false);
 
-  // Función para normalizar texto (eliminar acentos y convertir a minúsculas)
-  const normalizeText = (text: string) => {
-    return text.toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '');
-  };
+  // Cargar el label del paciente seleccionado si no está en options
+  useEffect(() => {
+    if (value && !options.find(opt => opt.value === value)) {
+      api.get(`/patients/${value}`)
+        .then(res => {
+          const p = res.data;
+          setSelectedLabel(`${p.name} ${p.lastNamePaterno || ''} ${p.lastNameMaterno || ''}`.trim());
+        })
+        .catch(() => setSelectedLabel(''));
+    }
+  }, [value]);
 
-  const filtered = useMemo(
-    () => patients.filter(p => {
-      const q = normalizeText(search);
-      return (
-        normalizeText(p.name).includes(q) ||
-        normalizeText(p.lastNamePaterno || '').includes(q) ||
-        normalizeText(p.lastNameMaterno || '').includes(q)
-      );
-    }),
-    [patients, search]
-  );
-
-  const options = filtered.map(p => ({
-    label: `${p.name} ${p.lastNamePaterno || ''} ${p.lastNameMaterno || ''}`.trim(),
-    value: p.id,
-  }));
-
-  const handlePatientAdded = async () => {
-    setShowAddPatient(false);
-    try {
-      // Obtener la lista actualizada de pacientes
-      const response = await api.get('/patients');
-      const newPatients = response.data;
-      
-      // Si hay un callback, llamarlo con el último paciente agregado
-      if (onPatientAdded && newPatients.length > 0) {
-        const lastPatient = newPatients[newPatients.length - 1];
-        onPatientAdded(lastPatient);
-      }
-    } catch (error) {
-      console.error('Error al actualizar la lista de pacientes:', error);
+  // Cargar pacientes recientes al abrir el selector
+  const handleDropdownVisibleChange = (open: boolean) => {
+    if (open && !loadedInitial.current) {
+      setLoading(true);
+      api.get(`/patients?take=${DEFAULT_LIMIT}`)
+        .then(res => {
+          setOptions((res.data || []).map((p: any) => ({
+            label: `${p.name} ${p.lastNamePaterno || ''} ${p.lastNameMaterno || ''}`.trim(),
+            value: p.id,
+          })));
+          loadedInitial.current = true;
+        })
+        .catch(() => setOptions([]))
+        .finally(() => setLoading(false));
+    }
+    if (!open) {
+      setOptions([]);
+      setSearch('');
+      loadedInitial.current = false;
     }
   };
+
+  // Búsqueda remota con debounce y normalización
+  const handleSearch = (val: string) => {
+    setSearch(val);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!val || val.trim().length === 0) {
+      // Si no hay búsqueda, recarga los recientes
+      handleDropdownVisibleChange(true);
+      return;
+    }
+    setLoading(true);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await api.get(`/patients?search=${encodeURIComponent(val)}`);
+        setOptions(
+          (res.data || []).map((p: any) => ({
+            label: `${p.name} ${p.lastNamePaterno || ''} ${p.lastNameMaterno || ''}`.trim(),
+            value: p.id,
+          }))
+        );
+      } catch {
+        setOptions([]);
+      } finally {
+        setLoading(false);
+      }
+    }, 500);
+  };
+
+  const handleChange = (id: string) => {
+    onChange(id);
+  };
+
+  const handlePatientAdded = async (newPatient?: any) => {
+    setShowAddPatient(false);
+    if (newPatient && newPatient.id) {
+      onChange(newPatient.id);
+    }
+    // Opcional: podrías recargar la búsqueda actual si quieres
+  };
+
+  // Opciones combinadas: si el paciente seleccionado no está en options, lo agrego
+  const mergedOptions = value && selectedLabel && !options.find(opt => opt.value === value)
+    ? [{ value, label: selectedLabel }, ...options]
+    : options;
 
   return (
     <>
@@ -73,14 +117,15 @@ const PatientSelect: React.FC<PatientSelectProps> = ({ value, onChange, patients
         value={value || undefined}
         placeholder="Selecciona un paciente"
         optionFilterProp="label"
-        onChange={onChange}
-        onSearch={setSearch}
+        onChange={handleChange}
+        onSearch={handleSearch}
         filterOption={false}
         disabled={disabled}
         style={{ width: '100%', borderRadius: 12 }}
         dropdownStyle={{ borderRadius: 12, boxShadow: '0 4px 24px 0 rgba(0,0,0,0.10)' }}
         popupClassName="z-50"
-        options={options}
+        options={mergedOptions}
+        notFoundContent={loading ? 'Buscando...' : 'No hay resultados'}
         dropdownRender={menu => (
           <>
             {menu}
@@ -96,6 +141,7 @@ const PatientSelect: React.FC<PatientSelectProps> = ({ value, onChange, patients
             </div>
           </>
         )}
+        onDropdownVisibleChange={handleDropdownVisibleChange}
       />
       {showAddPatient && createPortal(
         <AddPatient onSuccess={handlePatientAdded} />, document.body
