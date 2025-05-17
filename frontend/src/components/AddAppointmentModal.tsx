@@ -204,152 +204,168 @@ const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({ onClose, onSu
           </button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4 px-8 py-7">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Paciente</label>
-            <PatientSelect
-              value={form.patientId}
-              onChange={patientId => setForm(f => ({ ...f, patientId }))}
-              patients={patients}
-              disabled={loading}
-              onPatientAdded={handlePatientAdded}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Fecha</label>
-            {(!form.patientId || loading) ? (
-              <div className="w-full border border-gray-200 rounded-xl px-4 py-2 bg-gray-100 text-gray-400 cursor-not-allowed select-none">Selecciona un paciente</div>
-            ) : (
-              <ModernDatePicker
-                value={form.date}
-                onChange={date => setForm(f => ({ ...f, date }))}
-              />
-            )}
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1 mt-2">Duración</label>
-            <Select
-              className="w-full"
-              popupClassName="z-50"
-              value={duration}
-              onChange={value => setDuration(value)}
-              disabled={loading || !form.patientId}
-              optionLabelProp="label"
-              dropdownStyle={{ borderRadius: 12, boxShadow: '0 4px 24px 0 rgba(0,0,0,0.10)' }}
-              style={{ width: '100%', borderRadius: 12 }}
-            >
-              {durationOptions.map(opt => (
-                <Select.Option key={opt.value} value={opt.value} label={
-                  <span className="flex items-center gap-2">
-                    <Timer size={18} className="text-red-400" weight="duotone" />
-                    {opt.label}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Columna Izquierda */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Paciente</label>
+                <PatientSelect
+                  value={form.patientId}
+                  onChange={patientId => setForm(f => ({ ...f, patientId }))}
+                  patients={patients}
+                  disabled={loading}
+                  onPatientAdded={handlePatientAdded}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Fecha</label>
+                {(!form.patientId || loading) ? (
+                  <div className="w-full border border-gray-200 rounded-xl px-4 py-2 bg-gray-100 text-gray-400 cursor-not-allowed select-none">Selecciona un paciente</div>
+                ) : (
+                  <ModernDatePicker
+                    value={form.date}
+                    onChange={date => setForm(f => ({ ...f, date }))}
+                  />
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1 mt-2">Duración</label>
+                <Select
+                  className="w-full"
+                  popupClassName="z-50"
+                  value={duration}
+                  onChange={value => setDuration(value)}
+                  disabled={loading || !form.patientId}
+                  optionLabelProp="label"
+                  dropdownStyle={{ borderRadius: 12, boxShadow: '0 4px 24px 0 rgba(0,0,0,0.10)' }}
+                  style={{ width: '100%', borderRadius: 12 }}
+                >
+                  {durationOptions.map(opt => (
+                    <Select.Option key={opt.value} value={opt.value} label={
+                      <span className="flex items-center gap-2">
+                        <Timer size={18} className="text-red-400" weight="duotone" />
+                        {opt.label}
+                      </span>
+                    }>
+                      <span className="flex items-center gap-2">
+                        <Timer size={18} className="text-red-400" weight="duotone" />
+                        {opt.label}
+                      </span>
+                    </Select.Option>
+                  ))}
+                </Select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1 mt-2">Hora</label>
+                <Select
+                  className="w-full"
+                  popupClassName="z-50"
+                  value={hour || undefined}
+                  onChange={value => setHour(value)}
+                  disabled={loading || !form.date || !form.patientId}
+                  optionLabelProp="label"
+                  dropdownStyle={{ borderRadius: 12, boxShadow: '0 4px 24px 0 rgba(0,0,0,0.10)' }}
+                  style={{ width: '100%', borderRadius: 12 }}
+                >
+                  <Select.Option value="" label={<span className="flex items-center gap-2"><Clock size={18} className="text-red-400" weight="duotone" />Selecciona hora</span>}>
+                    <span className="flex items-center gap-2"><Clock size={18} className="text-red-400" weight="duotone" />Selecciona hora</span>
+                  </Select.Option>
+                  {getAvailableTimeOptions().map(opt => (
+                    <Select.Option key={opt} value={opt} label={
+                      <span className="flex items-center gap-2">
+                        <Clock size={18} className="text-red-400" weight="duotone" />
+                        {opt}
+                      </span>
+                    }>
+                      <span className="flex items-center gap-2">
+                        <Clock size={18} className="text-red-400" weight="duotone" />
+                        {opt}
+                      </span>
+                    </Select.Option>
+                  ))}
+                </Select>
+              </div>
+            </div>
+
+            {/* Columna Derecha */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Servicio</label>
+                <Select
+                  className="w-full"
+                  popupClassName="z-50"
+                  value={form.serviceId || undefined}
+                  onChange={value => setForm(f => ({ ...f, serviceId: value }))}
+                  disabled={loading}
+                  optionLabelProp="label"
+                  dropdownStyle={{ borderRadius: 12, boxShadow: '0 4px 24px 0 rgba(0,0,0,0.10)' }}
+                  style={{ width: '100%', borderRadius: 12 }}
+                  showSearch
+                  placeholder="Selecciona un servicio"
+                  filterOption={(input, option) =>
+                    (option?.label as string).toLowerCase().includes(input.toLowerCase())
+                  }
+                >
+                  {services.map(service => (
+                    <Select.Option key={service.id} value={service.id} label={service.name}>
+                      <span className="flex items-center gap-2">
+                        {service.name} <span className="text-gray-400 text-xs">({service.type})</span>
+                      </span>
+                    </Select.Option>
+                  ))}
+                </Select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Dentista</label>
+                <Select
+                  value={form.dentistId}
+                  onChange={dentistId => setForm(f => ({ ...f, dentistId }))}
+                  style={{ width: '100%' }}
+                  placeholder="Selecciona un dentista"
+                  disabled={loading}
+                >
+                  {dentists.map(d => (
+                    <Select.Option key={d.id} value={d.id}>
+                      {d.name} {d.lastNamePaterno || ''} {d.lastNameMaterno || ''}
+                    </Select.Option>
+                  ))}
+                </Select>
+                {(!form.dentistId && error) && <div className="text-red-500 text-xs mt-1">Selecciona un dentista</div>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Estado</label>
+                <StatusSelect
+                  value={form.status}
+                  onChange={status => setForm(f => ({ ...f, status }))}
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="relative">
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Notas</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-3 text-red-300">
+                    <NotePencil size={20} weight="duotone" className="drop-shadow-sm" />
                   </span>
-                }>
-                  <span className="flex items-center gap-2">
-                    <Timer size={18} className="text-red-400" weight="duotone" />
-                    {opt.label}
-                  </span>
-                </Select.Option>
-              ))}
-            </Select>
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1 mt-2">Hora</label>
-            <Select
-              className="w-full"
-              popupClassName="z-50"
-              value={hour || undefined}
-              onChange={value => setHour(value)}
-              disabled={loading || !form.date || !form.patientId}
-              optionLabelProp="label"
-              dropdownStyle={{ borderRadius: 12, boxShadow: '0 4px 24px 0 rgba(0,0,0,0.10)' }}
-              style={{ width: '100%', borderRadius: 12 }}
-            >
-              <Select.Option value="" label={<span className="flex items-center gap-2"><Clock size={18} className="text-red-400" weight="duotone" />Selecciona hora</span>}>
-                <span className="flex items-center gap-2"><Clock size={18} className="text-red-400" weight="duotone" />Selecciona hora</span>
-              </Select.Option>
-              {getAvailableTimeOptions().map(opt => (
-                <Select.Option key={opt} value={opt} label={
-                  <span className="flex items-center gap-2">
-                    <Clock size={18} className="text-red-400" weight="duotone" />
-                    {opt}
-                  </span>
-                }>
-                  <span className="flex items-center gap-2">
-                    <Clock size={18} className="text-red-400" weight="duotone" />
-                    {opt}
-                  </span>
-                </Select.Option>
-              ))}
-            </Select>
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Servicio</label>
-            <Select
-              className="w-full"
-              popupClassName="z-50"
-              value={form.serviceId || undefined}
-              onChange={value => setForm(f => ({ ...f, serviceId: value }))}
-              disabled={loading}
-              optionLabelProp="label"
-              dropdownStyle={{ borderRadius: 12, boxShadow: '0 4px 24px 0 rgba(0,0,0,0.10)' }}
-              style={{ width: '100%', borderRadius: 12 }}
-              showSearch
-              placeholder="Selecciona un servicio"
-              filterOption={(input, option) =>
-                (option?.label as string).toLowerCase().includes(input.toLowerCase())
-              }
-            >
-              {services.map(service => (
-                <Select.Option key={service.id} value={service.id} label={service.name}>
-                  <span className="flex items-center gap-2">
-                    {service.name} <span className="text-gray-400 text-xs">({service.type})</span>
-                  </span>
-                </Select.Option>
-              ))}
-            </Select>
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Dentista</label>
-            <Select
-              value={form.dentistId}
-              onChange={dentistId => setForm(f => ({ ...f, dentistId }))}
-              style={{ width: '100%' }}
-              placeholder="Selecciona un dentista"
-              disabled={loading}
-            >
-              {dentists.map(d => (
-                <Select.Option key={d.id} value={d.id}>
-                  {d.name} {d.lastNamePaterno || ''} {d.lastNameMaterno || ''}
-                </Select.Option>
-              ))}
-            </Select>
-            {(!form.dentistId && error) && <div className="text-red-500 text-xs mt-1">Selecciona un dentista</div>}
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Estado</label>
-            <StatusSelect
-              value={form.status}
-              onChange={status => setForm(f => ({ ...f, status }))}
-              disabled={loading}
-            />
-          </div>
-          <div className="relative">
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Notas</label>
-            <div className="relative">
-              <span className="absolute left-3 top-3 text-red-300">
-                <NotePencil size={20} weight="duotone" className="drop-shadow-sm" />
-              </span>
-              <textarea
-                name="notes"
-                value={form.notes}
-                onChange={handleChange}
-                className="w-full border-gray-200 rounded-xl pl-10 pr-3 py-2 focus:border-red-400 focus:ring-2 focus:ring-red-100 bg-white text-gray-700 resize-none"
-                rows={2}
-                placeholder="Opcional"
-                disabled={loading}
-              />
+                  <textarea
+                    name="notes"
+                    value={form.notes}
+                    onChange={handleChange}
+                    className="w-full border-gray-200 rounded-xl pl-10 pr-3 py-2 focus:border-red-400 focus:ring-2 focus:ring-red-100 bg-white text-gray-700 resize-none"
+                    rows={2}
+                    placeholder="Opcional"
+                    disabled={loading}
+                  />
+                </div>
+              </div>
             </div>
           </div>
+
           <div className="flex items-center gap-2 mb-2">
             <input
               type="checkbox"
@@ -363,6 +379,7 @@ const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({ onClose, onSu
               Enviar mensaje de confirmación al paciente
             </label>
           </div>
+
           {error && <div className="text-red-500 text-sm font-medium mt-2">{error}</div>}
           <button
             type="submit"
