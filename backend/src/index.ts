@@ -12,7 +12,6 @@ import twilioTestRoutes from './routes/twilioTestRoutes';
 import clinicConfigRoutes from './routes/clinicConfigRoutes';
 import shortenerRoutes from './routes/shortenerRoutes';
 import serviceRoutes from './routes/serviceRoutes';
-import uploadRoutes from './routes/uploadRoutes';
 import path from 'path';
 import fs from 'fs';
 
@@ -68,7 +67,6 @@ app.use('/api/twilio-test', twilioTestRoutes);
 app.use('/api/config', clinicConfigRoutes);
 app.use('/api/shortener', shortenerRoutes);
 app.use('/api/services', serviceRoutes);
-app.use('/api/upload', uploadRoutes);
 
 // Servir archivos estáticos del frontend
 const publicPath = process.env.NODE_ENV === 'production' 
