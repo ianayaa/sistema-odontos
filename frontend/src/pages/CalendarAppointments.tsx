@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect, useContext } from 'react';
+import { toCDMXISOString } from '../utils/timezone';
 import FullCalendar from '@fullcalendar/react';
 import { DatesSetArg, EventClickArg, EventDropArg, EventInput } from '@fullcalendar/core';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -570,8 +571,10 @@ const CalendarAppointments: React.FC = () => {
     setNotifyModal({ visible: false });
     try {
       // Actualiza la cita en el backend con la nueva fecha
-      await api.put(`/appointments/${arg.id}`, {
-        date: format(notifyModal.newDate, "yyyy-MM-dd'T'HH:mm"),
+
+// ...
+await api.put(`/appointments/${arg.id}`, {
+        date: toCDMXISOString(notifyModal.newDate),
         enviarMensaje: shouldNotify
       });
       if (shouldNotify) {
