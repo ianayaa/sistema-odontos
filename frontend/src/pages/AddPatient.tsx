@@ -48,7 +48,7 @@ const AddPatient: React.FC<AddPatientProps> = ({ onSuccess }) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    if (!validateEmail(form.email)) {
+    if (form.email && !validateEmail(form.email)) {
       setError('El correo no es válido.');
       setLoading(false);
       return;
@@ -111,7 +111,7 @@ const AddPatient: React.FC<AddPatientProps> = ({ onSuccess }) => {
             </div>
             <div>
               <label className="block text-xs font-semibold mb-1 text-gray-600">Apellido materno</label>
-              <input type="text" name="lastNameMaterno" value={form.lastNameMaterno} onChange={handleChange} required className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 bg-gray-50" />
+              <input type="text" name="lastNameMaterno" value={form.lastNameMaterno} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 bg-gray-50" />
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -123,7 +123,7 @@ const AddPatient: React.FC<AddPatientProps> = ({ onSuccess }) => {
                 value={form.email}
                 onChange={handleChange}
                 onBlur={() => setEmailTouched(true)}
-                required
+
                 className={`w-full border ${emailTouched && !validateEmail(form.email) ? 'border-red-400' : 'border-gray-300'} rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 bg-gray-50`}
                 placeholder="correo@ejemplo.com"
               />
