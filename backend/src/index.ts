@@ -12,7 +12,9 @@ import twilioTestRoutes from './routes/twilioTestRoutes';
 import clinicConfigRoutes from './routes/clinicConfigRoutes';
 import shortenerRoutes from './routes/shortenerRoutes';
 import serviceRoutes from './routes/serviceRoutes';
+import uploadRoutes from './routes/uploadRoutes';
 import path from 'path';
+import fs from 'fs';
 
 dotenv.config();
 
@@ -48,6 +50,13 @@ if (process.env.NODE_ENV === 'production') {
 
 app.use(express.json());
 
+// Configurar el directorio de uploads para servir archivos estáticos
+const uploadsDir = path.join(__dirname, '..', 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+app.use('/uploads', express.static(uploadsDir));
+
 // Rutas
 app.use('/api/users', userRoutes);
 app.use('/api/patients', patientRoutes);
@@ -59,6 +68,7 @@ app.use('/api/twilio-test', twilioTestRoutes);
 app.use('/api/config', clinicConfigRoutes);
 app.use('/api/shortener', shortenerRoutes);
 app.use('/api/services', serviceRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Servir archivos estáticos del frontend
 const publicPath = process.env.NODE_ENV === 'production' 

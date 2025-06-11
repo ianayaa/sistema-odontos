@@ -3,7 +3,8 @@ import DashboardLayout from '../components/DashboardLayout';
 import { GearSix, Users, Image, Upload } from 'phosphor-react';
 import UserManagement from './UserManagement';
 import PatientUserSupport from '../components/PatientUserSupport';
-import { getClinicConfig, updateClinicConfig } from '../services/api';
+import api, { getClinicConfig, updateClinicConfig } from '../services/api';
+import Notification from '../components/Notification';
 
 const Configuracion: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'general' | 'usuarios' | 'pacientes' | 'creditos'>('general');
@@ -13,13 +14,17 @@ const Configuracion: React.FC = () => {
     direccion: '',
     correo: '',
     horario: '',
-    colorPrincipal: '#b91c1c',
-    logo: null as File | null,
-    logoPreview: '',
+    colorPrincipal: '#b91c1c'
   });
   const [guardando, setGuardando] = useState(false);
   const [loadingConfig, setLoadingConfig] = useState(true);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [notification, setNotification] = useState<{message: string; type: 'success' | 'error'} | null>(null);
+
+
+  const showNotification = (message: string, type: 'success' | 'error') => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 5000);
+  };
 
   useEffect(() => {
     // Cargar la configuración al montar
@@ -30,9 +35,7 @@ const Configuracion: React.FC = () => {
         direccion: config.direccion || '',
         correo: config.correo || '',
         horario: config.horario || '',
-        colorPrincipal: config.colorPrincipal || '#b91c1c',
-        logo: null,
-        logoPreview: config.logoUrl || ''
+        colorPrincipal: config.colorPrincipal || '#b91c1c'
       });
       setLoadingConfig(false);
     });
@@ -42,31 +45,46 @@ const Configuracion: React.FC = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setForm({
-        ...form,
-        logo: file,
-        logoPreview: URL.createObjectURL(file)
-      });
-    }
-  };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setGuardando(true);
+    
     try {
-      // Si tienes manejo de logo, súbelo primero y obtén la URL
-      // Por ahora solo guarda el preview
-      await updateClinicConfig({
-        ...form,
-        logoUrl: form.logoPreview // o la URL real si subiste el archivo
+      // Preparar los datos para enviar al servidor
+      const dataToSend = {
+        nombreClinica: form.nombreClinica,
+        telefono: form.telefono,
+        direccion: form.direccion,
+        correo: form.correo,
+        horario: form.horario,
+        colorPrincipal: form.colorPrincipal
+      };
+
+      // Actualizar la configuración
+      await updateClinicConfig(dataToSend);
+      showNotification('La configuración se ha guardado correctamente', 'success');
+      
+      // Recargar la configuración para asegurar que todo esté sincronizado
+      const config = await getClinicConfig();
+      setForm({
+        nombreClinica: config.nombreClinica || '',
+        telefono: config.telefono || '',
+        direccion: config.direccion || '',
+        correo: config.correo || '',
+        horario: config.horario || '',
+        colorPrincipal: config.colorPrincipal || '#b91c1c'
       });
-      setTimeout(() => setGuardando(false), 1200);
-    } catch (error) {
+      
+    } catch (error: any) {
+      console.error('Error al guardar la configuración:', error);
+      const errorMessage = error?.response?.data?.error || 
+                          error?.response?.data?.message || 
+                          'Ocurrió un error al guardar la configuración. Por favor, inténtalo de nuevo.';
+      showNotification(errorMessage, 'error');
+    } finally {
       setGuardando(false);
-      alert('Error al guardar la configuración');
     }
   };
 
@@ -137,44 +155,6 @@ const Configuracion: React.FC = () => {
           ) : (
             <form className="space-y-7 bg-white p-10 rounded-2xl shadow-xl border border-gray-100" onSubmit={handleSubmit}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Logo Upload Section */}
-                <div className="md:col-span-2">
-                  <label className="block font-semibold mb-1 text-gray-700">Logo de la Clínica</label>
-                  <div className="flex items-center gap-4">
-                    <div className="relative w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
-                      {form.logoPreview ? (
-                        <img 
-                          src={form.logoPreview} 
-                          alt="Logo preview" 
-                          className="w-full h-full object-contain rounded-lg"
-                        />
-                      ) : (
-                        <Image size={32} className="text-gray-400" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
-                      >
-                        <Upload size={20} />
-                        {form.logo ? 'Cambiar Logo' : 'Subir Logo'}
-                      </button>
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleLogoChange}
-                        accept="image/*"
-                        className="hidden"
-                      />
-                      <p className="mt-2 text-sm text-gray-500">
-                        Formatos aceptados: PNG, JPG, SVG. Tamaño máximo: 2MB
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
                 <div>
                   <label className="block font-semibold mb-1 text-gray-700">Nombre de la clínica</label>
                   <input type="text" name="nombreClinica" value={form.nombreClinica} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:border-red-400 focus:ring-2 focus:ring-red-100" />
@@ -235,6 +215,13 @@ const Configuracion: React.FC = () => {
           </div>
         )}
       </div>
+      {notification && (
+        <Notification
+          message={notification.message}
+          type={notification.type}
+          onClose={() => setNotification(null)}
+        />
+      )}
     </DashboardLayout>
   );
 };
