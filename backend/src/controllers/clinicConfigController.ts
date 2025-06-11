@@ -3,7 +3,9 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export const getClinicConfig = async (req: Request, res: Response) => {
+import type { RequestHandler } from 'express';
+
+export const getClinicConfig: RequestHandler = async (req, res) => {
   try {
     // Buscar configuración existente
     let config = await prisma.clinicConfig.findFirst();
@@ -38,7 +40,7 @@ export const getClinicConfig = async (req: Request, res: Response) => {
   }
 };
 
-export const updateClinicConfig = async (req: Request, res: Response) => {
+export const updateClinicConfig: RequestHandler = async (req, res) => {
   try {
     const { 
       nombreClinica, 
@@ -52,10 +54,11 @@ export const updateClinicConfig = async (req: Request, res: Response) => {
 
     // Validar campos requeridos
     if (!nombreClinica || !telefono || !direccion || !correo || !horario || !colorPrincipal) {
-      return res.status(400).json({ 
+      res.status(400).json({ 
         error: 'Faltan campos requeridos',
         requiredFields: ['nombreClinica', 'telefono', 'direccion', 'correo', 'horario', 'colorPrincipal']
       });
+      return;
     }
 
     // Preparar datos para actualizar
