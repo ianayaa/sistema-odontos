@@ -6,8 +6,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import esLocale from '@fullcalendar/core/locales/es';
-import { Calendar, User, Phone, X, Check, WarningCircle, CalendarBlank, Clock } from 'phosphor-react';
-import CalendarToolbar from '../components/calendar/CalendarToolbar';
+import { Calendar, Clock, User, Phone, X, Check, WarningCircle, CalendarBlank } from 'phosphor-react';
 import { Appointment, AppointmentStatus } from '../types/appointment';
 import { Calendar as ModernCalendar, utils } from 'react-modern-calendar-datepicker';
 import ModernDatePicker from '../components/ModernDatePicker';
@@ -1217,13 +1216,77 @@ await api.put(`/appointments/${arg.id}`, {
 
       {/* Calendario grande */}
       <div ref={calendarContainerRef} className="flex-1 bg-white rounded-xl shadow-sm overflow-hidden h-full">
-        <CalendarToolbar
-          view={view}
-          onViewChange={handleViewChange}
-          onNavigate={handleNavigate}
-          onToday={handleToday}
-          title={formatDateTitle()}
-        />
+        <div className="p-4 border-b border-gray-200 bg-fef2f2 shadow-md rounded-t-xl">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handleNavigate('prev')}
+                className="p-2 rounded-full text-red-500 bg-white border border-red-100 shadow hover:bg-red-50 hover:scale-110 transition-all"
+                title="Anterior"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              </button>
+              <h2 className="text-xl font-extrabold text-gray-800 min-w-[200px] text-center drop-shadow-sm tracking-tight">
+                {formatDateTitle()}
+              </h2>
+              <button
+                onClick={() => handleNavigate('next')}
+                className="p-2 rounded-full text-red-500 bg-white border border-red-100 shadow hover:bg-red-50 hover:scale-110 transition-all"
+                title="Siguiente"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </div>
+            <div className="flex items-center gap-2 bg-white/70 px-2 py-1 rounded-xl shadow-sm border border-gray-100">
+              <button
+                onClick={() => handleViewChange('dayGridMonth')}
+                className={`px-3 py-1 rounded-lg text-sm font-bold flex items-center gap-1 transition-all ${
+                  view === 'dayGridMonth' 
+                    ? 'bg-red-200 text-red-700 shadow' 
+                    : 'bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-700'
+                }`}
+                title="Vista mensual"
+              >
+                <Calendar className="inline-block" size={18} /> Mes
+              </button>
+              <button
+                onClick={() => handleViewChange('timeGridWeek')}
+                className={`px-3 py-1 rounded-lg text-sm font-bold flex items-center gap-1 transition-all ${
+                  view === 'timeGridWeek' 
+                    ? 'bg-red-200 text-red-700 shadow' 
+                    : 'bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-700'
+                }`}
+                title="Vista semanal"
+              >
+                <Clock className="inline-block" size={18} /> Semana
+              </button>
+              <button
+                onClick={() => handleViewChange('timeGridDay')}
+                className={`px-3 py-1 rounded-lg text-sm font-bold flex items-center gap-1 transition-all ${
+                  view === 'timeGridDay' 
+                    ? 'bg-red-200 text-red-700 shadow' 
+                    : 'bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-700'
+                }`}
+                title="Vista diaria"
+              >
+                <CalendarBlank className="inline-block" size={18} /> Día
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleToday}
+                className="px-4 py-2 rounded-lg bg-red-500 text-white text-sm font-bold shadow hover:bg-red-600 transition-all"
+                title="Ir a hoy"
+              >
+                Hoy
+              </button>
+            </div>
+          </div>
+        </div>
 
         <FullCalendar
           ref={calendarRef}
