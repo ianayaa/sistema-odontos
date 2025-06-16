@@ -28,6 +28,9 @@ import { message, Modal, ConfigProvider, TimePicker } from 'antd';
 import dayjs from 'dayjs';
 import esES from 'antd/lib/locale/es_ES';
 import EditAppointmentModal from '../components/EditAppointmentModal';
+import CalendarSidebar from '../components/calendar/CalendarSidebar';
+import AppointmentDetailsModal from '../components/calendar/AppointmentDetailsModal';
+import RescheduleNotifyModal from '../components/calendar/RescheduleNotifyModal';
 registerLocale('es', es);
 
 const dayOptions = [
@@ -904,315 +907,20 @@ await api.put(`/appointments/${arg.id}`, {
       )}
       {/* Calendario lateral */}
       {sidebarOpen && (
-        <div className="w-80 h-full bg-white rounded-xl shadow-sm p-4 hidden md:block border border-gray-100 relative mr-6 overflow-y-auto" style={{ zIndex: 10, maxHeight: 'calc(100vh - 120px)' }}>
-          <h3 className="text-xl font-bold text-gray-800 mb-2 flex items-center gap-2">
-            <Clock size={22} className="text-red-500" /> Configuración
-          </h3>
-          <p className="text-xs text-gray-500 mb-4">Ajusta los parámetros de tu agenda y bloquea horarios no disponibles.</p>
-          {/* Mini calendario mensual */}
-          <div className="mb-4">
-            <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
-              <DateCalendar
-                value={currentDate}
-                referenceDate={currentDate}
-                onChange={(date) => {
-                  if (date) {
-                    setCurrentDate(date);
-                    setView('timeGridDay');
-                    if (calendarRef.current) {
-                      calendarRef.current.getApi().changeView('timeGridDay', date);
-                    }
-                  }
-                }}
-                showDaysOutsideCurrentMonth={false}
-                displayWeekNumber={false}
-                disableHighlightToday={true}
-                views={['day']}
-                sx={{
-                  borderRadius: 3,
-                  boxShadow: 3,
-                  bgcolor: '#fff',
-                  width: '100%',
-                  minWidth: 0,
-                  maxWidth: '100%',
-                  p: 0,
-                  margin: 0,
-                  overflow: 'hidden',
-                  '& .MuiPickersDay-root': {
-                    fontWeight: 400,
-                    fontSize: '1rem',
-                    minWidth: '2.2rem',
-                    height: '2.5rem',
-                    borderRadius: 12,
-                    position: 'relative',
-                  },
-                  '& .Mui-selected': {
-                    background: 'linear-gradient(135deg, #2563eb 60%, #60a5fa 100%)',
-                    color: '#fff',
-                    zIndex: 2,
-                  },
-                  '& .MuiPickersDay-root.week-highlight': {
-                    background: 'rgba(37,99,235,0.10)',
-                    borderRadius: 10,
-                  },
-                  '& .MuiPickersDay-root.week-highlight.first-in-row': {
-                    borderTopLeftRadius: 10,
-                    borderBottomLeftRadius: 10,
-                  },
-                  '& .MuiPickersDay-root.week-highlight.last-in-row': {
-                    borderTopRightRadius: 10,
-                    borderBottomRightRadius: 10,
-                  },
-                  '& .MuiDayCalendar-weekContainer': {
-                    justifyContent: 'flex-start',
-                    display: 'flex',
-                  },
-                }}
-                dayOfWeekFormatter={(date) => {
-                  const label = date.toLocaleDateString('es-MX', { weekday: 'short' });
-                  return label.charAt(0).toUpperCase() + label.slice(1);
-                }}
-                slots={{
-                  day: (props: any) => {
-                    const { day, selected, ...rest } = props;
-                    const today = new Date();
-                    const isToday =
-                      day.getDate() === today.getDate() &&
-                      day.getMonth() === today.getMonth() &&
-                      day.getFullYear() === today.getFullYear();
-                    const selectedDate = currentDate;
-                    const startOfWeek = new Date(selectedDate);
-                    startOfWeek.setDate(selectedDate.getDate() - ((selectedDate.getDay() + 6) % 7));
-                    const endOfWeek = new Date(startOfWeek);
-                    endOfWeek.setDate(startOfWeek.getDate() + 6);
-                    const isInWeek = day >= startOfWeek && day <= endOfWeek;
-                    const isFirst = day.getDay() === 1;
-                    const isLast = day.getDay() === 0;
-                    let className = '';
-                    if (isInWeek) className += ' week-highlight';
-                    if (isInWeek && isFirst) className += ' first-in-row';
-                    if (isInWeek && isLast) className += ' last-in-row';
-                    return (
-                      <PickersDay
-                        {...rest}
-                        day={day}
-                        selected={selected}
-                        className={className}
-                        sx={isToday ? {
-                          background: '#2563eb !important',
-                          color: '#fff !important',
-                          border: 'none',
-                          fontWeight: 700,
-                        } : {}}
-                      />
-                    );
-                  }
-                }}
-              />
-            </LocalizationProvider>
-          </div>
-          <div className="space-y-6">
-            {/* Horario de trabajo */}
-            <div className="p-3 rounded-lg bg-red-50 border border-red-100">
-              <h4 className="text-sm font-semibold text-red-700 mb-2">Horario de trabajo</h4>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">Apertura</label>
-                  <DatePicker
-                    selected={businessHours.startTime ? new Date(`1970-01-01T${businessHours.startTime}:00`) : null}
-                    onChange={(date: Date | null) => {
-                      const newTime = date ? format(date, 'HH:mm') : '';
-                      setBusinessHours(prev => {
-                        const updated = { ...prev, startTime: newTime };
-                        saveDentistSchedule({
-                          startTime: updated.startTime,
-                          endTime: updated.endTime,
-                          workingDays: updated.workingDays,
-                          blockedHours: updated.blockedHours
-                        }).catch(error => {
-                          console.error('Error al guardar horario:', error);
-                          alert('Error al guardar el horario. Por favor intenta nuevamente.');
-                      });
-                      return updated;
-                    });
-                    setCalendarKey(k => k + 1);
-                  }}
-                    showTimeSelect
-                    showTimeSelectOnly
-                    timeIntervals={15}
-                    timeCaption="Hora"
-                    dateFormat="h:mm aa"
-                    className="w-full border-2 border-blue-200 rounded-xl px-3 py-2 bg-blue-50 text-gray-700 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
-                    placeholderText="Selecciona hora"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">Cierre</label>
-                  <DatePicker
-                    selected={businessHours.endTime ? new Date(`1970-01-01T${businessHours.endTime}:00`) : null}
-                    onChange={(date: Date | null) => {
-                      const newTime = date ? format(date, 'HH:mm') : '';
-                      setBusinessHours(prev => {
-                        const updated = { ...prev, endTime: newTime };
-                        saveDentistSchedule({
-                          startTime: updated.startTime,
-                          endTime: updated.endTime,
-                          workingDays: updated.workingDays,
-                          blockedHours: updated.blockedHours
-                        }).catch(error => {
-                          console.error('Error al guardar horario:', error);
-                          alert('Error al guardar el horario. Intenta de nuevo.');
-                      });
-                      return updated;
-                    });
-                    setCalendarKey(k => k + 1);
-                  }}
-                    showTimeSelect
-                    showTimeSelectOnly
-                    timeIntervals={15}
-                    timeCaption="Hora"
-                    dateFormat="h:mm aa"
-                    className="w-full border-2 border-blue-200 rounded-xl px-3 py-2 bg-blue-50 text-gray-700"
-                    placeholderText="Selecciona hora"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Días laborables */}
-            <div className="p-3 rounded-lg bg-gray-50 border border-gray-100">
-              <h4 className="text-sm font-semibold text-gray-700 mb-2">Días laborables</h4>
-              <p className="text-xs text-gray-500 mb-2">Haz clic para activar o desactivar un día.</p>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { label: 'Lun', value: 1 },
-                  { label: 'Mar', value: 2 },
-                  { label: 'Mié', value: 3 },
-                  { label: 'Jue', value: 4 },
-                  { label: 'Vie', value: 5 },
-                  { label: 'Sáb', value: 6 },
-                  { label: 'Dom', value: 0 }
-                ].map(({ label, value }) => (
-                  <button
-                    key={value}
-                    onClick={() => handleWorkingDaysChange(value)}
-                    className={`px-3 py-2 rounded-lg text-sm font-semibold border transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-red-200 ${
-                      isDaySelected(value)
-                        ? 'bg-red-500 text-white border-red-500 shadow-sm scale-105'
-                        : 'bg-white text-gray-600 border-gray-200 hover:bg-red-50 hover:border-red-300'
-                    }`}
-                    aria-pressed={isDaySelected(value)}
-                    aria-label={`Día ${label} ${isDaySelected(value) ? 'activo' : 'inactivo'}`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Bloquear horario */}
-            <div className="p-3 rounded-lg bg-yellow-50 border border-yellow-100">
-              <h4 className="text-sm font-semibold text-yellow-700 mb-2">Bloquear horario</h4>
-              <p className="text-xs text-gray-500 mb-2">Selecciona un día y un rango de horas para bloquear.</p>
-              <form
-                className="flex flex-col gap-3"
-                onSubmit={e => {
-                  e.preventDefault();
-                  if (!blockModal.date) return;
-                  handleAddBlockedHour(blockModal.date, blockModal.start, blockModal.end);
-                }}
-              >
-                <div className="flex flex-col w-full">
-                  {/* Usar ModernDatePicker para el día, igual que en nueva cita */}
-                  <ModernDatePicker
-                    value={blockModal.date}
-                    onChange={(date: Date | null) => setBlockModal(prev => ({ ...prev, date }))}
-                    label="Fecha"
-                  />
-                </div>
-                <div className="flex flex-col w-full">
-                  <label className="text-xs text-gray-600 mb-1">Hora inicio</label>
-                  {/* Usar TimePicker de Ant Design para la hora */}
-                  <ConfigProvider locale={esES}>
-                    <TimePicker
-                      value={blockModal.start ? dayjs(`1970-01-01T${blockModal.start}:00`) : null}
-                      onChange={time => setBlockModal(prev => ({ ...prev, start: time ? time.format('HH:mm') : '' }))}
-                      format="HH:mm"
-                      minuteStep={15}
-                      className="w-full !rounded-xl !py-2 !px-3 !border-gray-200 focus:!border-red-400 focus:!ring-2 focus:!ring-red-100 bg-white text-gray-700 shadow-sm hover:!border-red-300"
-                      placeholder="Selecciona hora"
-                      popupClassName="z-[1100]"
-                      style={{ width: '100%' }}
-                    />
-                  </ConfigProvider>
-                </div>
-                <span className="text-center text-gray-400 text-xs">a</span>
-                <div className="flex flex-col w-full">
-                  <label className="text-xs text-gray-600 mb-1">Hora fin</label>
-                  <ConfigProvider locale={esES}>
-                    <TimePicker
-                      value={blockModal.end ? dayjs(`1970-01-01T${blockModal.end}:00`) : null}
-                      onChange={time => setBlockModal(prev => ({ ...prev, end: time ? time.format('HH:mm') : '' }))}
-                      format="HH:mm"
-                      minuteStep={15}
-                      className="w-full !rounded-xl !py-2 !px-3 !border-gray-200 focus:!border-red-400 focus:!ring-2 focus:!ring-red-100 bg-white text-gray-700 shadow-sm hover:!border-red-300"
-                      placeholder="Selecciona hora"
-                      popupClassName="z-[1100]"
-                      style={{ width: '100%' }}
-                    />
-                  </ConfigProvider>
-                </div>
-                <button
-                  type="submit"
-                  className="w-full mt-2 bg-gradient-to-r from-yellow-400 to-yellow-300 hover:from-yellow-500 hover:to-yellow-400 text-yellow-900 font-bold py-2 px-4 rounded-xl transition-all duration-200 shadow-md text-base"
-                >
-                  Bloquear horario
-                </button>
-              </form>
-              <div className="mt-3">
-                <h5 className="text-xs font-semibold text-gray-700 mb-1">Horarios bloqueados</h5>
-                {businessHours.blockedHours.length === 0 ? (
-                  <div className="text-xs text-gray-400">No hay horarios bloqueados.</div>
-                ) : (
-                  <ul className="space-y-1">
-                    {businessHours.blockedHours.map((block, index) => (
-                      <li key={index} className="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-2 py-1 text-xs">
-                        <span>
-                          <b>{block.date}</b>: {block.start} - {block.end}
-                        </span>
-                        <button
-                          onClick={() => handleRemoveBlockedHour(index)}
-                          className="ml-2 text-red-500 hover:text-red-700"
-                          title="Eliminar bloqueo"
-                          aria-label="Eliminar bloqueo"
-                        >
-                          <X size={14} />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
-
-            {/* Leyenda */}
-            <div className="p-3 rounded-lg bg-gray-50 border border-gray-100">
-              <h4 className="text-sm font-semibold text-gray-700 mb-2">Leyenda</h4>
-              <div className="space-y-2">
-                {Object.entries(statusStyles).map(([status, style]) => (
-                  <div key={status} className="flex items-center gap-2">
-                    <div className={`w-4 h-4 rounded-full ${style.bg} ${style.border}`} />
-                    <span className="text-xs capitalize">{status}</span>
-                  </div>
-                ))}
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full bg-gray-100 border border-gray-200" />
-                  <span className="text-xs">Horario bloqueado</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <CalendarSidebar
+          businessHours={businessHours}
+          setBusinessHours={setBusinessHours}
+          blockModal={blockModal}
+          setBlockModal={setBlockModal}
+          handleAddBlockedHour={handleAddBlockedHour}
+          handleRemoveBlockedHour={handleRemoveBlockedHour}
+          handleWorkingDaysChange={handleWorkingDaysChange}
+          isDaySelected={isDaySelected}
+          currentDate={currentDate}
+          setCurrentDate={setCurrentDate}
+          statusStyles={statusStyles}
+          calendarRef={calendarRef}
+        />
       )}
 
       {/* Calendario grande */}
@@ -1318,187 +1026,34 @@ await api.put(`/appointments/${arg.id}`, {
       </div>
 
       {/* Modal de detalles de cita */}
-      {modalInfo && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-0 relative overflow-hidden animate-fadeInUp">
-            <div className="flex items-center gap-3 bg-gradient-to-r from-red-100 to-red-50 px-8 py-6 border-b border-red-100">
-              <div className="bg-red-200 text-red-600 rounded-full p-3">
-                <Clock size={30} weight="duotone" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-xl font-bold text-gray-800">Detalles de la cita</h3>
-                <div className="text-gray-400 text-sm">Puedes reagendar, cancelar o eliminar la cita</div>
-              </div>
-              <button
-                className="ml-auto text-gray-400 hover:text-red-600 text-2xl font-bold p-1 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-red-200"
-                onClick={() => setModalInfo(null)}
-                aria-label="Cerrar"
-                type="button"
-              >
-                <svg width="28" height="28" fill="none" stroke="#e11d48" strokeWidth="2.2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
-              </button>
-            </div>
-            <div className="space-y-3 px-8 py-7">
-              {/* Nueva estructura de datos principales */}
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-2">
-                  <User size={20} weight="bold" className="text-red-600" />
-                  <span className="font-medium">
-                    {modalInfo.patient?.name}
-                    {modalInfo.patient?.lastNamePaterno ? ' ' + modalInfo.patient.lastNamePaterno : ''}
-                    {modalInfo.patient?.lastNameMaterno ? ' ' + modalInfo.patient.lastNameMaterno : ''}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Phone size={20} weight="bold" className="text-red-600" />
-                  <span>{modalInfo.patient?.phone || 'No registrado'}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CalendarBlank size={20} weight="bold" className="text-red-600" />
-                  <span>{modalInfo.date ? new Date(modalInfo.date).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' }) : '-'}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock size={20} weight="bold" className="text-red-600" />
-                  <span>
-                    {modalInfo.date ? new Date(modalInfo.date).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : '-'}
-                    {modalInfo.endDate && (
-                      <>
-                        {' - '}
-                        {new Date(modalInfo.endDate).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
-                        {' '}
-                        <span className="text-gray-500 text-xs">(
-                          {modalInfo.duration ? `${modalInfo.duration} min` : (() => {
-                            if (modalInfo.date && modalInfo.endDate) {
-                              const start = new Date(modalInfo.date);
-                              const end = new Date(modalInfo.endDate);
-                              const diff = Math.round((end.getTime() - start.getTime()) / 60000);
-                              return `${diff} min`;
-                            }
-                            return '';
-                          })()}
-                        )</span>
-                      </>
-                    )}
-                  </span>
-                </div>
-              </div>
-              {/* Lo demás igual */
-              /* Doctor, Tratamiento, Notas, Botones */}
-              <div className="pt-2">
-                <span className="font-medium">Doctor:</span>
-                <p className="text-gray-600">{modalInfo.doctor || 'No asignado'}</p>
-              </div>
-              <div className="pt-2">
-                <span className="font-medium">Tratamiento:</span>
-                <div className="flex items-center gap-2">
-                  {modalInfo.service?.color && (
-                    <span className="inline-block w-4 h-4 rounded-full border border-gray-200" style={{ background: modalInfo.service.color }}></span>
-                  )}
-                  <span className="text-gray-800 break-words whitespace-pre-line">
-                    {modalInfo.service?.name || 'No especificado'}
-                  </span>
-                </div>
-                {modalInfo.treatment && (
-                  <p className="text-gray-600 text-xs mt-1">{modalInfo.treatment}</p>
-                )}
-              </div>
-              <div className="pt-2">
-                <span className="font-medium">Notas:</span>
-                <p className="text-gray-600">{modalInfo.notes || 'Sin notas'}</p>
-              </div>
-              <div className="flex flex-col gap-2 mt-4">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <button
-                    onClick={() => {
-                      setEditAppointment(modalInfo);
-                      setShowEditModal(true);
-                    }}
-                    className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-blue-100 text-blue-700 rounded-lg shadow-sm hover:bg-blue-200 transition-all font-medium text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
-                  >
-                    <Clock size={16} weight='bold' /> Reagendar
-                  </button>
-                  <button
-                    onClick={async () => {
-                      await api.delete(`/appointments/${modalInfo.id}`);
-                      setModalInfo(null);
-                      setRefresh(r => !r);
-                    }}
-                    className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-red-500 text-white rounded-lg shadow-sm hover:bg-red-600 transition-all font-medium text-sm focus:outline-none focus:ring-2 focus:ring-red-200"
-                  >
-                    <X size={16} weight='bold' /> Eliminar
-                  </button>
-                  <button
-                    onClick={async () => {
-                      await api.put(`/appointments/${modalInfo.id}`, { ...modalInfo, status: 'cancelada' });
-                      setModalInfo(null);
-                      setRefresh(r => !r);
-                    }}
-                    className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-yellow-400 text-yellow-900 rounded-lg shadow-sm hover:bg-yellow-500 transition-all font-medium text-sm focus:outline-none focus:ring-2 focus:ring-yellow-200"
-                  >
-                    <WarningCircle size={16} weight='bold' /> Cancelar cita
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <AppointmentDetailsModal
+        visible={!!modalInfo}
+        appointment={modalInfo}
+        onClose={() => setModalInfo(null)}
+        onDelete={async () => {
+          await api.delete(`/appointments/${modalInfo.id}`);
+          setModalInfo(null);
+          setRefresh(r => !r);
+        }}
+        onCancel={async () => {
+          await api.put(`/appointments/${modalInfo.id}`, { ...modalInfo, status: 'cancelada' });
+          setModalInfo(null);
+          setRefresh(r => !r);
+        }}
+        onReschedule={() => {
+          setEditAppointment(modalInfo);
+          setShowEditModal(true);
+        }}
+      />
 
       {/* Modal personalizado para notificación de re-agenda */}
-      {notifyModal.visible && notifyModal.event && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-0 relative overflow-hidden animate-fadeInUp">
-            <div className="flex items-center gap-3 bg-gradient-to-r from-red-100 to-red-50 px-8 py-6 border-b border-red-100">
-              <div className="bg-red-200 text-red-600 rounded-full p-3">
-                <Clock size={30} weight="duotone" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-xl font-bold text-gray-800">Cita reagendada</h3>
-                <div className="text-gray-400 text-sm">¿Desea notificar al paciente sobre el cambio?</div>
-              </div>
-              <button
-                className="ml-auto text-gray-400 hover:text-red-600 text-2xl font-bold p-1 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-red-200"
-                onClick={() => setNotifyModal({ visible: false, event: null })}
-                aria-label="Cerrar"
-                type="button"
-              >
-                <svg width="28" height="28" fill="none" stroke="#e11d48" strokeWidth="2.2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
-              </button>
-            </div>
-            <div className="px-8 py-7">
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-3 mb-4">
-                  {notifyModal.event.service?.color && (
-                    <span className="inline-block w-6 h-6 rounded-full border-2 border-gray-200" style={{ background: notifyModal.event.service.color }}></span>
-                  )}
-                  <span className="font-semibold text-gray-700 text-base">{notifyModal.event.service?.name || 'Sin servicio'}</span>
-                </div>
-                <div className="text-gray-700 text-sm mb-2">
-                  <b>Paciente:</b> {notifyModal.event.patient?.name} {notifyModal.event.patient?.lastNamePaterno || ''} {notifyModal.event.patient?.lastNameMaterno || ''}
-                </div>
-                <div className="text-gray-700 text-sm mb-2">
-                  <b>Fecha:</b> {notifyModal.newDate ? new Date(notifyModal.newDate).toLocaleString('es-MX') : (notifyModal.event.date ? new Date(notifyModal.event.date).toLocaleString('es-MX') : '-')}
-                </div>
-                <div className="text-gray-700 text-sm mb-2">
-                  <b>Doctor:</b> {notifyModal.event.doctor || 'No asignado'}
-                </div>
-                <button
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-red-600 text-white font-bold text-base shadow hover:bg-red-700 transition-all focus:outline-none focus:ring-2 focus:ring-red-200"
-                  onClick={() => handleNotifyModal(true)}
-                >
-                  <span>Notificar paciente</span>
-                </button>
-                <button
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-gray-100 text-gray-700 font-bold text-base shadow hover:bg-gray-200 transition-all focus:outline-none focus:ring-2 focus:ring-gray-200"
-                  onClick={() => handleNotifyModal(false)}
-                >
-                  <span>No notificar</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <RescheduleNotifyModal
+        visible={notifyModal.visible}
+        event={notifyModal.event}
+        newDate={notifyModal.newDate}
+        onNotify={handleNotifyModal}
+        onClose={() => setNotifyModal({ visible: false, event: null })}
+      />
       {showModal && (
         <AddAppointmentModal
           onClose={() => setShowModal(false)}
