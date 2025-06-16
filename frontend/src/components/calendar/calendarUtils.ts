@@ -71,4 +71,31 @@ export function isSlotSelectable(start: Date, end: Date, blockedHours: { date: s
     }
   }
   return true;
+}
+
+/**
+ * Formatea el título de la fecha según la vista del calendario.
+ * @param view Vista actual ('timeGridWeek' | 'timeGridDay' | 'dayGridMonth')
+ * @param currentDate Fecha base
+ */
+export function formatDateTitle(view: 'timeGridWeek' | 'timeGridDay' | 'dayGridMonth', currentDate: Date): string {
+  if (view === 'timeGridWeek') {
+    const start = new Date(currentDate);
+    const day = start.getDay();
+    const diffToMonday = (day === 0 ? -6 : 1) - day;
+    const weekStart = new Date(start);
+    weekStart.setDate(start.getDate() + diffToMonday);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    const optionsDay = { day: 'numeric' as const };
+    const optionsMonthYear = { month: 'long' as const, year: 'numeric' as const };
+    const startDay = weekStart.toLocaleDateString('es-ES', optionsDay);
+    const endDay = weekEnd.toLocaleDateString('es-ES', optionsDay);
+    const monthYear = weekEnd.toLocaleDateString('es-ES', optionsMonthYear);
+    return `${startDay}–${endDay} de ${monthYear}`;
+  } else if (view === 'timeGridDay') {
+    return currentDate.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
+  } else {
+    return currentDate.toLocaleDateString('es-ES', { year: 'numeric', month: 'long' });
+  }
 } 

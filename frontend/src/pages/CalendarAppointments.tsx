@@ -11,6 +11,7 @@ import CalendarToolbar from '../components/calendar/CalendarToolbar';
 import { Appointment, AppointmentStatus } from '../types/appointment';
 import { Calendar as ModernCalendar, utils } from 'react-modern-calendar-datepicker';
 import ModernDatePicker from '../components/ModernDatePicker';
+import DaySelect, { dayOptions } from '../components/calendar/DaySelect';
 import '../styles/mini-calendar-custom.css';
 import { format, parseISO } from 'date-fns';
 import AddAppointmentModal from '../components/AddAppointmentModal';
@@ -32,60 +33,12 @@ import CalendarSidebar from '../components/calendar/CalendarSidebar';
 import AppointmentDetailsModal from '../components/calendar/AppointmentDetailsModal';
 import RescheduleNotifyModal from '../components/calendar/RescheduleNotifyModal';
 import CalendarEventContent from '../components/calendar/CalendarEventContent';
-import { getContrastTextColor, isTimeBlocked, hasAppointmentOverlap, isSlotSelectable } from '../components/calendar/calendarUtils';
+import { getContrastTextColor, isTimeBlocked, hasAppointmentOverlap, isSlotSelectable, formatDateTitle } from '../components/calendar/calendarUtils';
 import { useAppointments } from '../hooks/useAppointments';
 import { useBusinessHours, BusinessHours } from '../hooks/useBusinessHours';
 import { useAppointmentTooltip } from '../hooks/useAppointmentTooltip';
+import { useCalendarModals } from '../hooks/useCalendarModals';
 registerLocale('es', es);
-
-const dayOptions = [
-  { value: 0, label: 'Domingo' },
-  { value: 1, label: 'Lunes' },
-  { value: 2, label: 'Martes' },
-  { value: 3, label: 'Miércoles' },
-  { value: 4, label: 'Jueves' },
-  { value: 5, label: 'Viernes' },
-  { value: 6, label: 'Sábado' },
-];
-
-const DaySelect = ({ value, onChange }: { value: number; onChange: (v: number) => void }) => {
-  const [open, setOpen] = useState(false);
-  const selected = dayOptions.find(d => d.value === value);
-  return (
-    <div className="relative">
-      <button
-        type="button"
-        className="w-full flex items-center gap-2 border border-gray-200 rounded-xl px-3 pr-10 py-2 bg-white text-gray-700 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-100 shadow-sm transition-all hover:border-yellow-300 cursor-pointer"
-        onClick={() => setOpen(o => !o)}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-      >
-        <Calendar size={18} className="text-yellow-400" />
-        <span className={`flex-1 text-left ${selected ? '' : 'text-gray-400'}`}>{selected ? selected.label : 'Selecciona un día'}</span>
-        <svg className="absolute right-3 top-1/2 -translate-y-1/2 text-yellow-300" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" /></svg>
-      </button>
-      {open && (
-        <ul className="absolute z-30 mt-2 w-full bg-white rounded-xl shadow-xl border border-gray-100 max-h-56 overflow-y-auto animate-fadeInUp" tabIndex={-1} role="listbox">
-          {dayOptions.map(opt => (
-            <li
-              key={opt.value}
-              className={`px-4 py-2 hover:bg-yellow-50 cursor-pointer flex items-center gap-2 ${opt.value === value ? 'bg-yellow-100 font-semibold text-yellow-700' : ''}`}
-              onClick={() => {
-                onChange(opt.value);
-                setOpen(false);
-              }}
-              role="option"
-              aria-selected={opt.value === value}
-            >
-              <Calendar size={16} className="text-yellow-400" />
-              {opt.label}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-};
 
 const spanish = {
   months: [
@@ -146,30 +99,12 @@ function forceHideAppointmentTooltip(inmediato = false) {
 const CalendarAppointments: React.FC = () => {
   const calendarRef = useRef<FullCalendar | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [showModal, setShowModal] = useState(false);
-  const [newDate, setNewDate] = useState<string | null>(null);
-  const [modalInfo, setModalInfo] = useState<any>(null);
   const [view, setView] = useState<'timeGridWeek' | 'timeGridDay' | 'dayGridMonth'>(() => {
     return (localStorage.getItem('calendarView') as 'timeGridWeek' | 'timeGridDay' | 'dayGridMonth') || 'timeGridWeek';
   });
   const [currentDate, setCurrentDate] = useState(() => new Date());
-  const [blockModal, setBlockModal] = useState<{
-    show: boolean;
-    date: Date | null;
-    start: string;
-    end: string;
-  }>({
-    show: false,
-    date: null,
-    start: '',
-    end: ''
-  });
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editAppointment, setEditAppointment] = useState<any>(null);
   const { user } = useAuth();
   const { appointments, loading: loadingAppointments, reload: reloadAppointments } = useAppointments(user);
-  const [newDuration, setNewDuration] = useState<number | undefined>(undefined);
-  const [newHour, setNewHour] = useState<string | undefined>(undefined);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [calendarKey, setCalendarKey] = useState(0);
   const { isCollapsed } = useContext(SidebarCollapsedContext);
@@ -183,8 +118,11 @@ const CalendarAppointments: React.FC = () => {
     isDaySelected,
   } = useBusinessHours();
   const { showTooltip, hideTooltip, forceHideAppointmentTooltip } = useAppointmentTooltip();
+  const modals = useCalendarModals();
 
-  // Configuración de horarios de trabajo
+  /**
+   * Maneja el cambio de horarios de trabajo
+   */
   const handleBusinessHoursChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     const updated = { ...businessHours, [name]: value };
@@ -196,21 +134,22 @@ const CalendarAppointments: React.FC = () => {
       blockedHours: updated.blockedHours
     }).catch(error => {
       console.error('Error al guardar horario:', error);
-      alert('Error al guardar el horario. Por favor intenta nuevamente.');
+      message.error('Error al guardar el horario. Por favor intenta nuevamente.');
     });
     setCalendarKey(k => k + 1);
   };
 
-  // Maneja el click en una cita
+  /**
+   * Maneja el click en una cita para mostrar detalles
+   */
   const handleEventClick = (arg: EventClickArg) => {
-    const cita = arg.event.extendedProps;
-    setModalInfo(cita);
+    const cita = arg.event.extendedProps as Appointment;
+    modals.openDetailsModal(cita);
   };
 
-  // Estado para mostrar modal de confirmación de notificación
-  const [notifyModal, setNotifyModal] = useState<{ visible: boolean; event?: any; newDate?: Date | null }>({ visible: false });
-
-  // Maneja el drag & drop
+  /**
+   * Maneja el drag & drop de eventos (citas)
+   */
   const handleEventDrop = async (arg: EventDropArg) => {
     const start = arg.event.start;
     if (!start) return;
@@ -219,36 +158,39 @@ const CalendarAppointments: React.FC = () => {
       arg.revert();
       return;
     }
-    setNotifyModal({ visible: true, event: arg.event.extendedProps, newDate: start });
+    modals.openNotifyModal(arg.event.extendedProps as Appointment, start);
     forceHideAppointmentTooltip();
   };
 
-  // Función para manejar la acción del modal de notificación
-  const handleNotifyModal = async (shouldNotify: boolean) => {
-    if (!notifyModal.event || !notifyModal.newDate) return;
-    const arg = notifyModal.event;
-    setNotifyModal({ visible: false });
-    try {
-      // Actualiza la cita en el backend con la nueva fecha
-
-// ...
-await api.put(`/appointments/${arg.id}`, {
-        date: toCDMXISOString(notifyModal.newDate),
-        enviarMensaje: shouldNotify
-      });
-      if (shouldNotify) {
-        // Enviar notificación (ajusta la ruta según tu backend)
-        await api.post(`/appointments/${arg.id}/notify`, { type: 'reschedule' });
-        message.success('Notificación enviada.');
-      } else {
-        message.success('Cita re agendada sin notificación.');
-      }
-      reloadAppointments();
-    } catch (error) {
-      console.error('Error al actualizar la cita o notificar:', error);
-      // No revertir si solo fue error de notificación
-      message.error('Error al actualizar o notificar.');
+  /**
+   * Maneja la selección de slots en el calendario
+   */
+  const handleSelect = (selectInfo: any) => {
+    const start = new Date(selectInfo.startStr);
+    const end = new Date(selectInfo.endStr);
+    const day = start.getDay();
+    if (!businessHours.workingDays.includes(day)) {
+      message.warning('Este día no está disponible para agendar citas. Por favor selecciona un día laborable.');
+      return;
     }
+    if (view === 'dayGridMonth') {
+      const soloFecha = selectInfo.startStr.split('T')[0];
+      modals.openAddModal(soloFecha);
+      return;
+    }
+    if (hasAppointmentOverlap(start, end, appointments)) {
+      message.warning('Ya existe una cita en ese horario.');
+      return;
+    }
+    if (isTimeBlocked(start, businessHours.blockedHours)) {
+      message.warning('No se puede agendar en un horario bloqueado para esa fecha.');
+      return;
+    }
+    modals.openAddModal(
+      format(start, 'yyyy-MM-dd'),
+      Math.round((end.getTime() - start.getTime()) / 60000),
+      start.toTimeString().slice(0, 5)
+    );
   };
 
   // Renderiza el contenido de los eventos
@@ -496,6 +438,31 @@ await api.put(`/appointments/${arg.id}`, {
     if (!info) forceHideAppointmentTooltip();
   };
 
+  /**
+   * Maneja la acción del modal de notificación de reagendado
+   */
+  const handleNotifyModal = async (shouldNotify: boolean) => {
+    if (!modals.notifyModal.event || !modals.notifyModal.newDate) return;
+    const arg = modals.notifyModal.event;
+    modals.closeNotifyModal();
+    try {
+      await api.put(`/appointments/${arg.id}`, {
+        date: toCDMXISOString(modals.notifyModal.newDate),
+        enviarMensaje: shouldNotify
+      });
+      if (shouldNotify) {
+        await api.post(`/appointments/${arg.id}/notify`, { type: 'reschedule' });
+        message.success('Notificación enviada.');
+      } else {
+        message.success('Cita re agendada sin notificación.');
+      }
+      reloadAppointments();
+    } catch (error) {
+      console.error('Error al actualizar la cita o notificar:', error);
+      message.error('Error al actualizar o notificar.');
+    }
+  };
+
   // Definir statusStyles antes del return:
   const statusStyles: Record<AppointmentStatus, { bg: string, border: string, text: string, icon: JSX.Element }> = {
     confirmada: {
@@ -599,56 +566,6 @@ await api.put(`/appointments/${arg.id}`, {
     }
     forceHideAppointmentTooltip();
   };
-  const formatDateTitle = () => {
-    if (view === 'timeGridWeek') {
-      const start = new Date(currentDate);
-      const day = start.getDay();
-      const diffToMonday = (day === 0 ? -6 : 1) - day;
-      const weekStart = new Date(start);
-      weekStart.setDate(start.getDate() + diffToMonday);
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekStart.getDate() + 6);
-      const optionsDay = { day: 'numeric' as const };
-      const optionsMonthYear = { month: 'long' as const, year: 'numeric' as const };
-      const startDay = weekStart.toLocaleDateString('es-ES', optionsDay);
-      const endDay = weekEnd.toLocaleDateString('es-ES', optionsDay);
-      const monthYear = weekEnd.toLocaleDateString('es-ES', optionsMonthYear);
-      return `${startDay}–${endDay} de ${monthYear}`;
-    } else if (view === 'timeGridDay') {
-      return currentDate.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
-    } else {
-      return currentDate.toLocaleDateString('es-ES', { year: 'numeric', month: 'long' });
-    }
-  };
-  const handleSelect = (selectInfo: any) => {
-    const start = new Date(selectInfo.startStr);
-    const end = new Date(selectInfo.endStr);
-    const day = start.getDay();
-    if (!businessHours.workingDays.includes(day)) {
-      message.warning('Este día no está disponible para agendar citas. Por favor selecciona un día laborable.');
-      return;
-    }
-    if (view === 'dayGridMonth') {
-      const soloFecha = selectInfo.startStr.split('T')[0];
-      setNewDate(soloFecha);
-      setNewDuration(undefined);
-      setNewHour(undefined);
-      setShowModal(true);
-      return;
-    }
-    if (hasAppointmentOverlap(start, end, appointments)) {
-      alert('Ya existe una cita en ese horario.');
-      return;
-    }
-    if (isTimeBlocked(start, businessHours.blockedHours)) {
-      message.warning('No se puede agendar en un horario bloqueado para esa fecha.');
-      return;
-    }
-    setNewDate(format(start, 'yyyy-MM-dd'));
-    setNewDuration(Math.round((end.getTime() - start.getTime()) / 60000));
-    setNewHour(start.toTimeString().slice(0, 5));
-    setShowModal(true);
-  };
 
   // Ahora el return principal:
   return (
@@ -667,8 +584,8 @@ await api.put(`/appointments/${arg.id}`, {
       {sidebarOpen && (
         <CalendarSidebar
           businessHours={businessHours}
-          blockModal={blockModal}
-          setBlockModal={setBlockModal}
+          blockModal={modals.blockModal}
+          setBlockModal={modals.setBlockModal}
           addBlockedHour={(date, start, end) => {
             // Validaciones locales antes de llamar al hook
             if (!date || !start || !end) return;
@@ -700,7 +617,7 @@ await api.put(`/appointments/${arg.id}`, {
               return;
             }
             addBlockedHour(date, start, end);
-            setBlockModal({ show: false, date: null, start: '', end: '' });
+            modals.setBlockModal({ show: false, date: null, start: '', end: '' });
           }}
           removeBlockedHour={removeBlockedHour}
           toggleWorkingDay={toggleWorkingDay}
@@ -719,7 +636,7 @@ await api.put(`/appointments/${arg.id}`, {
           onViewChange={handleViewChange}
           onNavigate={handleNavigate}
           onToday={handleToday}
-          title={formatDateTitle()}
+          title={formatDateTitle(view, currentDate)}
         />
 
         <FullCalendar
@@ -795,58 +712,56 @@ await api.put(`/appointments/${arg.id}`, {
 
       {/* Modales */}
       <AppointmentDetailsModal
-        visible={!!modalInfo}
-        appointment={modalInfo}
-        onClose={() => setModalInfo(null)}
+        visible={!!modals.modalInfo}
+        appointment={modals.modalInfo ?? undefined}
+        onClose={modals.closeDetailsModal}
         onDelete={async () => {
-          await api.delete(`/appointments/${modalInfo.id}`);
-          setModalInfo(null);
+          if (!modals.modalInfo) return;
+          await api.delete(`/appointments/${modals.modalInfo.id}`);
+          modals.closeDetailsModal();
           reloadAppointments();
         }}
         onCancel={async () => {
-          await api.put(`/appointments/${modalInfo.id}`, { ...modalInfo, status: 'cancelada' });
-          setModalInfo(null);
+          if (!modals.modalInfo) return;
+          await api.put(`/appointments/${modals.modalInfo.id}`, { ...modals.modalInfo, status: 'cancelada' });
+          modals.closeDetailsModal();
           reloadAppointments();
         }}
         onReschedule={() => {
-          setEditAppointment(modalInfo);
-          setShowEditModal(true);
+          if (!modals.modalInfo) return;
+          modals.openEditModal(modals.modalInfo);
         }}
       />
       <RescheduleNotifyModal
-        visible={notifyModal.visible}
-        event={notifyModal.event}
-        newDate={notifyModal.newDate}
+        visible={modals.notifyModal.visible}
+        event={modals.notifyModal.event}
+        newDate={modals.notifyModal.newDate}
         onNotify={handleNotifyModal}
-        onClose={() => setNotifyModal({ visible: false, event: null })}
+        onClose={modals.closeNotifyModal}
       />
-      {showModal && (
+      {modals.showModal && (
         <AddAppointmentModal
-          onClose={() => setShowModal(false)}
+          onClose={modals.closeAddModal}
           onSuccess={() => {
-            setShowModal(false);
+            modals.closeAddModal();
             reloadAppointments();
           }}
-          initialDate={newDate}
-          initialDuration={newDuration}
-          initialHour={newHour}
+          initialDate={modals.newDate}
+          initialDuration={modals.newDuration}
+          initialHour={modals.newHour}
           appointments={appointments}
           blockedHours={businessHours.blockedHours}
         />
       )}
-      {showEditModal && editAppointment && (
+      {modals.showEditModal && modals.editAppointment && (
         <EditAppointmentModal
-          onClose={() => {
-            setShowEditModal(false);
-            setEditAppointment(null);
-          }}
+          onClose={modals.closeEditModal}
           onSuccess={() => {
-            setShowEditModal(false);
-            setEditAppointment(null);
-            setModalInfo(null);
+            modals.closeEditModal();
+            modals.closeDetailsModal();
             reloadAppointments();
           }}
-          appointment={editAppointment}
+          appointment={modals.editAppointment ?? undefined}
           appointments={appointments}
           blockedHours={businessHours.blockedHours}
         />
