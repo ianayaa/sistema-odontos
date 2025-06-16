@@ -31,6 +31,7 @@ import EditAppointmentModal from '../components/EditAppointmentModal';
 import CalendarSidebar from '../components/calendar/CalendarSidebar';
 import AppointmentDetailsModal from '../components/calendar/AppointmentDetailsModal';
 import RescheduleNotifyModal from '../components/calendar/RescheduleNotifyModal';
+import CalendarEventContent from '../components/calendar/CalendarEventContent';
 registerLocale('es', es);
 
 const dayOptions = [
@@ -978,7 +979,7 @@ await api.put(`/appointments/${arg.id}`, {
           eventClick={handleEventClick}
           editable={true}
           eventDrop={handleEventDrop}
-          eventContent={renderEventContent}
+          eventContent={(eventInfo) => <CalendarEventContent {...eventInfo} />}
           eventDidMount={handleEventDidMount}
           datesSet={(dateInfo) => {
             const today = new Date();
