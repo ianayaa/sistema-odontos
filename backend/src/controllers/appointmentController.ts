@@ -45,6 +45,7 @@ export const createAppointment = async (req: Request, res: Response) => {
     console.log('=== INICIO DE CREACIÓN DE CITA ===');
     console.log('BODY:', req.body);
     const { patientId, date, endDate, duration, notes, status, serviceId, dentistId, enviarMensaje } = req.body;
+    console.log('dentistId recibido en el body:', dentistId, 'typeof:', typeof dentistId);
     const data: any = {
       patientId,
       userId: dentistId,
@@ -55,17 +56,11 @@ export const createAppointment = async (req: Request, res: Response) => {
     if (endDate) data.endDate = new Date(endDate);
     if (duration !== undefined) data.duration = duration;
     if (serviceId) data.serviceId = serviceId;
+    console.log('userId que se va a guardar en la cita:', data.userId, 'dentistId recibido:', dentistId, 'usuario autenticado:', req.user?.id);
 
-    console.log('dentistId recibido:', dentistId);
-    console.log('userId en data:', data.userId);
-    console.log('Datos de la cita a crear:', data);
-
-    // Validar traslape de citas (dos pasos para evitar errores de linter)
-    const start = new Date(date);
-    const end = endDate ? new Date(endDate) : new Date(start.getTime() + (duration || 60) * 60000);
     console.log('Verificando traslape de citas:', {
-      inicio: start.toLocaleString('es-MX'),
-      fin: end.toLocaleString('es-MX')
+      inicio: data.date.toLocaleString('es-MX'),
+      fin: data.endDate ? data.endDate.toLocaleString('es-MX') : 'Sin fecha de finalización'
     });
 
     // Validar límite de estaciones
@@ -75,15 +70,15 @@ export const createAppointment = async (req: Request, res: Response) => {
     const overlappingAppointments = await prisma.appointment.count({
       where: {
         status: { not: 'CANCELLED' },
-        date: { lt: end },
+        date: { lt: data.endDate },
         OR: [
-          { endDate: { gt: start } },
+          { endDate: { gt: data.date } },
           { endDate: null }
         ]
       }
     });
     if (overlappingAppointments >= totalEstaciones) {
-      return res.status(400).json({ error: 'No hay espacios disponibles' });
+      return res.status(400).json({ error: 'No hay espacios disponibles en la clínica para ese horario.' });
     }
 
     // Validar traslape de citas para el dentista seleccionado
@@ -92,25 +87,27 @@ export const createAppointment = async (req: Request, res: Response) => {
         userId: dentistId,
         status: { not: 'CANCELLED' },
         endDate: { not: null },
-        date: { lt: end },
+        date: { lt: data.endDate },
         AND: [
-          { endDate: { gt: start } }
+          { endDate: { gt: data.date } }
         ]
       }
     });
     if (overlapWithEnd) {
       console.log('Traslape con cita (con endDate):', overlapWithEnd);
+      return res.status(400).json({ error: 'El dentista ya tiene una cita en ese horario.' });
     }
     const overlapWithoutEnd = await prisma.appointment.findFirst({
       where: {
         userId: dentistId,
         status: { not: 'CANCELLED' },
         endDate: null,
-        date: { lt: end }
+        date: { lt: data.endDate }
       }
     });
     if (overlapWithoutEnd) {
       console.log('Traslape con cita (sin endDate):', overlapWithoutEnd);
+      return res.status(400).json({ error: 'El dentista ya tiene una cita en ese horario.' });
     }
 
     console.log('No hay traslape, procediendo a crear la cita...');
