@@ -32,6 +32,7 @@ import CalendarSidebar from '../components/calendar/CalendarSidebar';
 import AppointmentDetailsModal from '../components/calendar/AppointmentDetailsModal';
 import RescheduleNotifyModal from '../components/calendar/RescheduleNotifyModal';
 import CalendarEventContent from '../components/calendar/CalendarEventContent';
+import { getContrastTextColor } from '../components/calendar/calendarUtils';
 registerLocale('es', es);
 
 const dayOptions = [
@@ -178,52 +179,6 @@ const CalendarAppointments: React.FC = () => {
   const [calendarKey, setCalendarKey] = useState(0);
   const { isCollapsed } = useContext(SidebarCollapsedContext);
 
-  // Paleta de colores para tratamientos
-  const treatmentColors: Record<string, string> = {
-    'Limpieza': 'bg-teal-100',
-    'Ortodoncia': 'bg-purple-100',
-    'Extracción': 'bg-red-100',
-    'Resina': 'bg-yellow-100',
-    'Endodoncia': 'bg-blue-100',
-    'Corona': 'bg-green-100',
-    'Prótesis': 'bg-pink-100',
-    'Consulta': 'bg-gray-100',
-    // Agrega más tratamientos y colores aquí
-  };
-
-  // Función para obtener el color según el tratamiento
-  function getTreatmentColor(treatment?: string) {
-    if (!treatment) return 'bg-gray-50';
-    // Normaliza el nombre para evitar problemas de mayúsculas/minúsculas
-    const key = treatment.trim().toLowerCase();
-    const found = Object.entries(treatmentColors).find(([name]) => name.toLowerCase() === key);
-    return found ? found[1] : 'bg-orange-50'; // Color de respaldo
-  }
-
-  // Función para determinar el color de texto según el fondo
-  function getContrastTextColor(bgColor: string) {
-    // Si el color es en formato hex
-    let color = bgColor;
-    if (color.startsWith('rgb')) {
-      // Convertir rgb a hex
-      const rgb = color.match(/\d+/g);
-      if (rgb && rgb.length >= 3) {
-        color = '#' + rgb.slice(0, 3).map(x => (+x).toString(16).padStart(2, '0')).join('');
-      }
-    }
-    if (color.startsWith('#')) {
-      const hex = color.replace('#', '');
-      const r = parseInt(hex.substring(0, 2), 16);
-      const g = parseInt(hex.substring(2, 4), 16);
-      const b = parseInt(hex.substring(4, 6), 16);
-      // Luminancia relativa
-      const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-      return luminance > 0.6 ? '#222' : '#fff';
-    }
-    // Si no es hex, usar color oscuro por defecto
-    return '#222';
-  }
-
   // Configuración de horarios de trabajo
   const handleBusinessHoursChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -368,7 +323,8 @@ const CalendarAppointments: React.FC = () => {
 
   // Eventos para el calendario
   const events: EventInput[] = [
-    ...appointments.map(appt => {
+    ...appointments.map(apptRaw => {
+      const appt = apptRaw as Appointment & { service?: { color?: string } };
       const style = statusStyles[appt.status] || statusStyles.pendiente;
       let end;
       if (appt.endDate) {
@@ -378,7 +334,7 @@ const CalendarAppointments: React.FC = () => {
       } else {
         end = new Date(new Date(appt.date).getTime() + 30 * 60000);
       }
-      const bgColor = (appt as any).service?.color || '#f3f4f6';
+      const bgColor = appt.service?.color || '#f3f4f6';
       const textColor = getContrastTextColor(bgColor);
       return {
         id: appt.id,
