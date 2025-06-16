@@ -32,9 +32,10 @@ import CalendarSidebar from '../components/calendar/CalendarSidebar';
 import AppointmentDetailsModal from '../components/calendar/AppointmentDetailsModal';
 import RescheduleNotifyModal from '../components/calendar/RescheduleNotifyModal';
 import CalendarEventContent from '../components/calendar/CalendarEventContent';
-import { getContrastTextColor } from '../components/calendar/calendarUtils';
+import { getContrastTextColor, isTimeBlocked, hasAppointmentOverlap, isSlotSelectable } from '../components/calendar/calendarUtils';
 import { useAppointments } from '../hooks/useAppointments';
 import { useBusinessHours, BusinessHours } from '../hooks/useBusinessHours';
+import { useAppointmentTooltip } from '../hooks/useAppointmentTooltip';
 registerLocale('es', es);
 
 const dayOptions = [
@@ -181,6 +182,7 @@ const CalendarAppointments: React.FC = () => {
     toggleWorkingDay,
     isDaySelected,
   } = useBusinessHours();
+  const { showTooltip, hideTooltip, forceHideAppointmentTooltip } = useAppointmentTooltip();
 
   // Configuración de horarios de trabajo
   const handleBusinessHoursChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -210,25 +212,13 @@ const CalendarAppointments: React.FC = () => {
 
   // Maneja el drag & drop
   const handleEventDrop = async (arg: EventDropArg) => {
-    // Validar si el nuevo horario está bloqueado
     const start = arg.event.start;
     if (!start) return;
-    const dateStr = format(start, 'yyyy-MM-dd');
-    const horaActual = start.getHours() * 60 + start.getMinutes();
-    const bloqueosFecha = businessHours.blockedHours.filter(b => b.date === dateStr);
-    const bloqueadoPorHora = bloqueosFecha.some(b => {
-      const [hStart, mStart] = b.start.split(":").map(Number);
-      const [hEnd, mEnd] = b.end.split(":").map(Number);
-      const minStart = hStart * 60 + mStart;
-      const minEnd = hEnd * 60 + mEnd;
-      return horaActual >= minStart && horaActual < minEnd;
-    });
-    if (bloqueadoPorHora) {
+    if (isTimeBlocked(start, businessHours.blockedHours)) {
       message.warning("No se puede mover la cita a un horario bloqueado para esa fecha.");
       arg.revert();
       return;
     }
-    // Guardar la nueva fecha en el estado para usarla al confirmar
     setNotifyModal({ visible: true, event: arg.event.extendedProps, newDate: start });
     forceHideAppointmentTooltip();
   };
@@ -472,52 +462,22 @@ await api.put(`/appointments/${arg.id}`, {
     const tratamiento = info.event.extendedProps.treatment || '';
     const notas = info.event.extendedProps.notes || 'Sin notas';
 
-    const showTooltip = (e: MouseEvent) => {
-      // Oculta cualquier tooltip anterior antes de mostrar uno nuevo, de inmediato
-      forceHideAppointmentTooltip(true);
-      if (globalTooltipHideTimeout) clearTimeout(globalTooltipHideTimeout);
-      if (!globalTooltip) {
-        globalTooltip = document.createElement('div');
-        globalTooltip.innerHTML = `
-          <div style="font-family: inherit; min-width:220px; max-width:320px; background: white; border-radius: 1rem; box-shadow: 0 4px 24px 0 #0002; border: 1px solid #eee; padding: 1rem;">
-            <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-              <span style="display:inline-block; width:18px; height:18px; border-radius:50%; border:1px solid #eee; background:${color};"></span>
-              <span style="font-weight:600; color:#e11d48;">${paciente}</span>
-            </div>
-            <div style="font-size:15px; color:#222; margin-bottom:4px;"><b>Servicio:</b> ${servicio}</div>
-            ${tratamiento ? `<div style='font-size:14px; color:#2563eb; margin-bottom:4px;'><b>Tratamiento:</b> ${tratamiento}</div>` : ''}
-            <div style="font-size:14px; color:#444; margin-bottom:2px;"><b>Teléfono:</b> ${telefono}</div>
-            <div style="font-size:14px; color:#444; margin-bottom:2px;"><b>Doctor:</b> ${doctor}</div>
-            <div style="font-size:14px; color:#444; margin-bottom:2px;"><b>Notas:</b> ${notas}</div>
-          </div>
-        `;
-        globalTooltip.style.position = 'absolute';
-        globalTooltip.style.zIndex = '9999';
-        globalTooltip.style.pointerEvents = 'none';
-        globalTooltip.style.opacity = '0';
-        document.body.appendChild(globalTooltip);
-      }
-      const rect = (e.target as HTMLElement).getBoundingClientRect();
-      globalTooltip.style.top = `${rect.bottom + window.scrollY + 8}px`;
-      globalTooltip.style.left = `${rect.left + window.scrollX}px`;
-      globalTooltipShowTimeout = setTimeout(() => {
-        if (globalTooltip) globalTooltip.style.opacity = '1';
-      }, 60);
-    };
-    const hideTooltip = () => {
-      if (globalTooltipShowTimeout) clearTimeout(globalTooltipShowTimeout);
-      if (globalTooltip) {
-        globalTooltip.style.opacity = '0';
-        globalTooltipHideTimeout = setTimeout(() => {
-          if (globalTooltip) {
-            globalTooltip.remove();
-            globalTooltip = null;
-          }
-        }, 120);
-      }
-    };
-    info.el.addEventListener('mouseenter', showTooltip);
-    info.el.addEventListener('mousemove', showTooltip);
+    const tooltipContent = `
+      <div style="font-family: inherit; min-width:220px; max-width:320px; background: white; border-radius: 1rem; box-shadow: 0 4px 24px 0 #0002; border: 1px solid #eee; padding: 1rem;">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+          <span style="display:inline-block; width:18px; height:18px; border-radius:50%; border:1px solid #eee; background:${color};"></span>
+          <span style="font-weight:600; color:#e11d48;">${paciente}</span>
+        </div>
+        <div style="font-size:15px; color:#222; margin-bottom:4px;"><b>Servicio:</b> ${servicio}</div>
+        ${tratamiento ? `<div style='font-size:14px; color:#2563eb; margin-bottom:4px;'><b>Tratamiento:</b> ${tratamiento}</div>` : ''}
+        <div style="font-size:14px; color:#444; margin-bottom:2px;"><b>Teléfono:</b> ${telefono}</div>
+        <div style="font-size:14px; color:#444; margin-bottom:2px;"><b>Doctor:</b> ${doctor}</div>
+        <div style="font-size:14px; color:#444; margin-bottom:2px;"><b>Notas:</b> ${notas}</div>
+      </div>
+    `;
+
+    info.el.addEventListener('mouseenter', (e: MouseEvent) => showTooltip(e, tooltipContent));
+    info.el.addEventListener('mousemove', (e: MouseEvent) => showTooltip(e, tooltipContent));
     info.el.addEventListener('mouseleave', hideTooltip);
     info.el.addEventListener('mousedown', hideTooltip);
     info.el.addEventListener('click', hideTooltip);
@@ -676,25 +636,11 @@ await api.put(`/appointments/${arg.id}`, {
       setShowModal(true);
       return;
     }
-    const hayTraslape = appointments.some(appt => {
-      const apptStart = new Date(appt.date);
-      const apptEnd = appt.endDate ? new Date(appt.endDate) : new Date(apptStart.getTime() + (appt.duration || 60) * 60000);
-      return start < apptEnd && end > apptStart;
-    });
-    if (hayTraslape) {
+    if (hasAppointmentOverlap(start, end, appointments)) {
       alert('Ya existe una cita en ese horario.');
       return;
     }
-    const horaActual = start.getHours() * 60 + start.getMinutes();
-    const bloqueosFecha = businessHours.blockedHours.filter(b => b.date === format(start, 'yyyy-MM-dd'));
-    const bloqueadoPorHora = bloqueosFecha.some(b => {
-      const [hStart, mStart] = b.start.split(":").map(Number);
-      const [hEnd, mEnd] = b.end.split(":").map(Number);
-      const minStart = hStart * 60 + mStart;
-      const minEnd = hEnd * 60 + mEnd;
-      return horaActual >= minStart && horaActual < minEnd;
-    });
-    if (bloqueadoPorHora) {
+    if (isTimeBlocked(start, businessHours.blockedHours)) {
       message.warning('No se puede agendar en un horario bloqueado para esa fecha.');
       return;
     }
@@ -795,28 +741,7 @@ await api.put(`/appointments/${arg.id}`, {
           selectMirror={true}
           select={handleSelect}
           selectAllow={(selectInfo) => {
-            const start = selectInfo.start;
-            const end = selectInfo.end;
-            const dateStr = format(start, 'yyyy-MM-dd');
-            const bloqueosFecha = businessHours.blockedHours.filter(b => b.date === dateStr);
-
-            // Si estás en la vista de mes, solo bloquea si el día está completamente bloqueado
-            if (view === 'dayGridMonth') {
-              // Si hay al menos un bloqueo en ese día, no permitir seleccionar
-              return bloqueosFecha.length === 0;
-            }
-
-            // En otras vistas, usa la lógica de traslape por hora
-            const horaInicio = start.getHours() * 60 + start.getMinutes();
-            const horaFin = end.getHours() * 60 + end.getMinutes();
-            for (const block of bloqueosFecha) {
-              const blockStart = parseInt(block.start.split(':')[0]) * 60 + parseInt(block.start.split(':')[1]);
-              const blockEnd = parseInt(block.end.split(':')[0]) * 60 + parseInt(block.end.split(':')[1]);
-              if ((horaInicio < blockEnd && horaFin > blockStart)) {
-                return false;
-              }
-            }
-            return true;
+            return isSlotSelectable(selectInfo.start, selectInfo.end, businessHours.blockedHours, view);
           }}
           eventClick={handleEventClick}
           editable={true}
