@@ -33,6 +33,7 @@ import AppointmentDetailsModal from '../components/calendar/AppointmentDetailsMo
 import RescheduleNotifyModal from '../components/calendar/RescheduleNotifyModal';
 import CalendarEventContent from '../components/calendar/CalendarEventContent';
 import { getContrastTextColor } from '../components/calendar/calendarUtils';
+import { useAppointments } from '../hooks/useAppointments';
 registerLocale('es', es);
 
 const dayOptions = [
@@ -168,11 +169,10 @@ const CalendarAppointments: React.FC = () => {
     start: '',
     end: ''
   });
-  const [refresh, setRefresh] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editAppointment, setEditAppointment] = useState<any>(null);
   const { user } = useAuth();
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const { appointments, loading: loadingAppointments, reload: reloadAppointments } = useAppointments(user);
   const [newDuration, setNewDuration] = useState<number | undefined>(undefined);
   const [newHour, setNewHour] = useState<string | undefined>(undefined);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -545,7 +545,7 @@ await api.put(`/appointments/${arg.id}`, {
       } else {
         message.success('Cita re agendada sin notificación.');
       }
-      setRefresh(r => !r);
+      reloadAppointments();
     } catch (error) {
       console.error('Error al actualizar la cita o notificar:', error);
       // No revertir si solo fue error de notificación
@@ -699,28 +699,6 @@ await api.put(`/appointments/${arg.id}`, {
     if (isInWeek && isLast) className += ' last-in-row';
     return className;
   }
-
-  useEffect(() => {
-    if (!user) return;
-    let url = '/appointments';
-    if (user.role === 'DENTIST') {
-      url += `?dentistId=${user.id}`;
-    }
-    api.get(url)
-      .then(res => setAppointments(res.data));
-    // Cargar horarios/bloqueos del backend
-    getDentistSchedule().then(data => {
-      if (data) {
-        setBusinessHours(prev => ({
-          startTime: data.startTime || '08:00',
-          endTime: data.endTime || '20:00',
-          workingDays: data.workingDays || [1,2,3,4,5],
-          blockedHours: data.blockedHours || [],
-          daysOfWeek: prev.daysOfWeek || [0,1,2,3,4,5,6]
-        }));
-      }
-    });
-  }, [user, refresh, getDentistSchedule]);
 
   useEffect(() => {
     setCurrentDate(new Date());
@@ -990,12 +968,12 @@ await api.put(`/appointments/${arg.id}`, {
         onDelete={async () => {
           await api.delete(`/appointments/${modalInfo.id}`);
           setModalInfo(null);
-          setRefresh(r => !r);
+          reloadAppointments();
         }}
         onCancel={async () => {
           await api.put(`/appointments/${modalInfo.id}`, { ...modalInfo, status: 'cancelada' });
           setModalInfo(null);
-          setRefresh(r => !r);
+          reloadAppointments();
         }}
         onReschedule={() => {
           setEditAppointment(modalInfo);
@@ -1016,7 +994,7 @@ await api.put(`/appointments/${arg.id}`, {
           onClose={() => setShowModal(false)}
           onSuccess={() => {
             setShowModal(false);
-            setRefresh(r => !r);
+            reloadAppointments();
           }}
           initialDate={newDate}
           initialDuration={newDuration}
@@ -1035,7 +1013,7 @@ await api.put(`/appointments/${arg.id}`, {
             setShowEditModal(false);
             setEditAppointment(null);
             setModalInfo(null);
-            setRefresh(r => !r);
+            reloadAppointments();
           }}
           appointment={editAppointment}
           appointments={appointments}
