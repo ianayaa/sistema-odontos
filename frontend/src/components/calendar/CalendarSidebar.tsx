@@ -41,12 +41,11 @@ interface StatusStyle {
 
 interface CalendarSidebarProps {
   businessHours: BusinessHours;
-  setBusinessHours: React.Dispatch<React.SetStateAction<BusinessHours>>;
   blockModal: BlockModalState;
   setBlockModal: React.Dispatch<React.SetStateAction<BlockModalState>>;
-  handleAddBlockedHour: (date: Date, start: string, end: string) => void;
-  handleRemoveBlockedHour: (index: number) => void;
-  handleWorkingDaysChange: (day: number) => void;
+  addBlockedHour: (date: Date, start: string, end: string) => void;
+  removeBlockedHour: (index: number) => void;
+  toggleWorkingDay: (day: number) => void;
   isDaySelected: (day: number) => boolean;
   currentDate: Date;
   setCurrentDate: (date: Date) => void;
@@ -56,12 +55,11 @@ interface CalendarSidebarProps {
 
 const CalendarSidebar: React.FC<CalendarSidebarProps> = ({
   businessHours,
-  setBusinessHours,
   blockModal,
   setBlockModal,
-  handleAddBlockedHour,
-  handleRemoveBlockedHour,
-  handleWorkingDaysChange,
+  addBlockedHour,
+  removeBlockedHour,
+  toggleWorkingDay,
   isDaySelected,
   currentDate,
   setCurrentDate,
@@ -151,7 +149,7 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({
                 selected={businessHours.startTime ? new Date(`1970-01-01T${businessHours.startTime}:00`) : null}
                 onChange={(date: Date | null) => {
                   const newTime = date ? format(date, 'HH:mm') : '';
-                  setBusinessHours(prev => ({ ...prev, startTime: newTime }));
+                  // Aquí podrías llamar a una función para actualizar el horario si lo necesitas
                 }}
                 showTimeSelect
                 showTimeSelectOnly
@@ -168,7 +166,7 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({
                 selected={businessHours.endTime ? new Date(`1970-01-01T${businessHours.endTime}:00`) : null}
                 onChange={(date: Date | null) => {
                   const newTime = date ? format(date, 'HH:mm') : '';
-                  setBusinessHours(prev => ({ ...prev, endTime: newTime }));
+                  // Aquí podrías llamar a una función para actualizar el horario si lo necesitas
                 }}
                 showTimeSelect
                 showTimeSelectOnly
@@ -197,7 +195,7 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({
             ].map(({ label, value }) => (
               <button
                 key={value}
-                onClick={() => handleWorkingDaysChange(value)}
+                onClick={() => toggleWorkingDay(value)}
                 className={`px-3 py-2 rounded-lg text-sm font-semibold border transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-red-200 ${
                   isDaySelected(value)
                     ? 'bg-red-500 text-white border-red-500 shadow-sm scale-105'
@@ -220,7 +218,7 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({
             onSubmit={e => {
               e.preventDefault();
               if (!blockModal.date) return;
-              handleAddBlockedHour(blockModal.date, blockModal.start, blockModal.end);
+              addBlockedHour(blockModal.date, blockModal.start, blockModal.end);
             }}
           >
             <div className="flex flex-col w-full">
@@ -280,7 +278,7 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({
                       <b>{block.date}</b>: {block.start} - {block.end}
                     </span>
                     <button
-                      onClick={() => handleRemoveBlockedHour(index)}
+                      onClick={() => removeBlockedHour(index)}
                       className="ml-2 text-red-500 hover:text-red-700"
                       title="Eliminar bloqueo"
                       aria-label="Eliminar bloqueo"
