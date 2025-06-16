@@ -34,6 +34,7 @@ import RescheduleNotifyModal from '../components/calendar/RescheduleNotifyModal'
 import CalendarEventContent from '../components/calendar/CalendarEventContent';
 import { getContrastTextColor } from '../components/calendar/calendarUtils';
 import { useAppointments } from '../hooks/useAppointments';
+import { useBusinessHours, BusinessHours } from '../hooks/useBusinessHours';
 registerLocale('es', es);
 
 const dayOptions = [
@@ -150,13 +151,6 @@ const CalendarAppointments: React.FC = () => {
   const [view, setView] = useState<'timeGridWeek' | 'timeGridDay' | 'dayGridMonth'>(() => {
     return (localStorage.getItem('calendarView') as 'timeGridWeek' | 'timeGridDay' | 'dayGridMonth') || 'timeGridWeek';
   });
-  const [businessHours, setBusinessHours] = useState({
-    startTime: '08:00',
-    endTime: '20:00',
-    daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
-    blockedHours: [] as { date: string; start: string; end: string }[],
-    workingDays: [1, 2, 3, 4, 5] // Lunes a Viernes por defecto
-  });
   const [currentDate, setCurrentDate] = useState(() => new Date());
   const [blockModal, setBlockModal] = useState<{
     show: boolean;
@@ -178,317 +172,31 @@ const CalendarAppointments: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [calendarKey, setCalendarKey] = useState(0);
   const { isCollapsed } = useContext(SidebarCollapsedContext);
+  const {
+    businessHours,
+    setBusinessHours: updateBusinessHours,
+    loading: loadingBusinessHours,
+    addBlockedHour,
+    removeBlockedHour,
+    toggleWorkingDay,
+    isDaySelected,
+  } = useBusinessHours();
 
   // Configuración de horarios de trabajo
   const handleBusinessHoursChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setBusinessHours(prev => {
-      const updated = { ...prev, [name]: value };
-      saveDentistSchedule({
-        startTime: updated.startTime,
-        endTime: updated.endTime,
-        workingDays: updated.workingDays,
-        blockedHours: updated.blockedHours
-        }).catch(error => {
-          console.error('Error al guardar horario:', error);
-          alert('Error al guardar el horario. Por favor intenta nuevamente.');
-      });
-      return updated;
+    const updated = { ...businessHours, [name]: value };
+    updateBusinessHours(updated);
+    saveDentistSchedule({
+      startTime: updated.startTime,
+      endTime: updated.endTime,
+      workingDays: updated.workingDays,
+      blockedHours: updated.blockedHours
+    }).catch(error => {
+      console.error('Error al guardar horario:', error);
+      alert('Error al guardar el horario. Por favor intenta nuevamente.');
     });
     setCalendarKey(k => k + 1);
-  };
-
-  // Manejar días laborables
-  const handleWorkingDaysChange = async (day: number) => {
-    setBusinessHours(prev => {
-      const newWorkingDays = prev.workingDays.includes(day)
-        ? prev.workingDays.filter(d => d !== day)
-        : [...prev.workingDays, day].sort((a, b) => a - b);
-      
-      const updated = {
-        ...prev,
-        workingDays: newWorkingDays
-      };
-      saveDentistSchedule({
-        startTime: updated.startTime,
-        endTime: updated.endTime,
-        workingDays: updated.workingDays,
-        blockedHours: updated.blockedHours
-        }).catch(error => {
-          console.error('Error al guardar días laborables:', error);
-          alert('Error al guardar los días laborables. Por favor intenta nuevamente.');
-      });
-      return updated;
-    });
-  };
-
-  // Verificar si un día está seleccionado
-  const isDaySelected = (day: number) => {
-    return businessHours.workingDays.includes(day);
-  };
-
-  // Agregar horario bloqueado
-  const handleAddBlockedHour = (date: Date, start: string, end: string) => {
-    if (!date || !start || !end) return;
-    const dateStr = format(date, 'yyyy-MM-dd');
-    // Validar formato de hora
-    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
-    if (!timeRegex.test(start) || !timeRegex.test(end)) {
-      message.error('Por favor ingresa un formato de hora válido (HH:MM)');
-      return;
-    }
-    // Convertir a minutos para comparación
-    const startMinutes = parseInt(start.split(':')[0]) * 60 + parseInt(start.split(':')[1]);
-    const endMinutes = parseInt(end.split(':')[0]) * 60 + parseInt(end.split(':')[1]);
-    if (startMinutes >= endMinutes) {
-      message.error('La hora de inicio debe ser menor que la hora de fin');
-      return;
-    }
-    // Validar que no se solape con otros horarios bloqueados en la misma fecha
-    const hasOverlap = businessHours.blockedHours.some(block => {
-      if (block.date !== dateStr) return false;
-      const blockStart = parseInt(block.start.split(':')[0]) * 60 + parseInt(block.start.split(':')[1]);
-      const blockEnd = parseInt(block.end.split(':')[0]) * 60 + parseInt(block.end.split(':')[1]);
-      return (startMinutes >= blockStart && startMinutes < blockEnd) ||
-             (endMinutes > blockStart && endMinutes <= blockEnd) ||
-             (startMinutes <= blockStart && endMinutes >= blockEnd);
-    });
-    if (hasOverlap) {
-      message.error('Este horario se solapa con otro horario bloqueado para esa fecha');
-      return;
-    }
-    setBusinessHours(prev => {
-      const updated = {
-        ...prev,
-        blockedHours: [...prev.blockedHours, { date: dateStr, start, end }].sort((a, b) => {
-          if (a.date !== b.date) return a.date.localeCompare(b.date);
-          return a.start.localeCompare(b.start);
-        })
-      };
-      saveDentistSchedule({
-        startTime: updated.startTime,
-        endTime: updated.endTime,
-        workingDays: updated.workingDays,
-        blockedHours: updated.blockedHours
-      });
-      return updated;
-    });
-    setBlockModal({ show: false, date: null, start: '', end: '' });
-  };
-
-  // Eliminar horario bloqueado
-  const handleRemoveBlockedHour = (index: number) => {
-    setBusinessHours(prev => {
-      const updated = {
-        ...prev,
-        blockedHours: prev.blockedHours.filter((_, i) => i !== index)
-      };
-      saveDentistSchedule({
-        startTime: updated.startTime,
-        endTime: updated.endTime,
-        workingDays: updated.workingDays,
-        blockedHours: updated.blockedHours
-      });
-      return updated;
-    });
-  };
-
-  // Colores y estilos por estado
-  const statusStyles: Record<AppointmentStatus, { bg: string, border: string, text: string, icon: JSX.Element }> = {
-    confirmada: { 
-      bg: 'bg-green-50', 
-      border: 'border-green-200', 
-      text: 'text-green-700',
-      icon: <Check size={16} weight="bold" className="text-green-600" />
-    },
-    cancelada: { 
-      bg: 'bg-red-50', 
-      border: 'border-red-200', 
-      text: 'text-red-700',
-      icon: <X size={16} weight="bold" className="text-red-600" />
-    },
-    pendiente: { 
-      bg: 'bg-yellow-50', 
-      border: 'border-yellow-200', 
-      text: 'text-yellow-700',
-      icon: <WarningCircle size={16} weight="bold" className="text-yellow-600" />
-    },
-    reagendada: { 
-      bg: 'bg-blue-50', 
-      border: 'border-blue-200', 
-      text: 'text-blue-700',
-      icon: <Clock size={16} weight="bold" className="text-blue-600" />
-    }
-  };
-
-  // Eventos para el calendario
-  const events: EventInput[] = [
-    ...appointments.map(apptRaw => {
-      const appt = apptRaw as Appointment & { service?: { color?: string } };
-      const style = statusStyles[appt.status] || statusStyles.pendiente;
-      let end;
-      if (appt.endDate) {
-        end = appt.endDate;
-      } else if (appt.duration) {
-        end = new Date(new Date(appt.date).getTime() + appt.duration * 60000);
-      } else {
-        end = new Date(new Date(appt.date).getTime() + 30 * 60000);
-      }
-      const bgColor = appt.service?.color || '#f3f4f6';
-      const textColor = getContrastTextColor(bgColor);
-      return {
-        id: appt.id,
-        title: '',
-        start: appt.date,
-        end,
-        backgroundColor: bgColor,
-        borderColor: 'transparent',
-        textColor: textColor,
-        extendedProps: appt,
-        classNames: [
-          style.border,
-          style.text,
-          'shadow-sm',
-          'hover:shadow-md',
-          'transition-all',
-          'cursor-pointer'
-        ]
-      };
-    }),
-    ...businessHours.blockedHours.map((block, index) => ({
-      id: `blocked-${index}`,
-      title: 'Horario bloqueado',
-      start: `${block.date}T${block.start}`,
-      end: `${block.date}T${block.end}`,
-      backgroundColor: 'rgba(0, 0, 0, 0.1)',
-      borderColor: 'transparent',
-      textColor: 'rgba(0, 0, 0, 0.5)',
-      classNames: ['opacity-50', 'cursor-not-allowed'],
-      extendedProps: { isBlocked: true }
-    }))
-  ];
-
-  // Maneja el cambio de vista
-  const handleViewChange = (newView: 'timeGridWeek' | 'timeGridDay' | 'dayGridMonth') => {
-    setView(newView);
-    localStorage.setItem('calendarView', newView);
-    if (calendarRef.current) {
-      calendarRef.current.getApi().changeView(newView);
-    }
-    forceHideAppointmentTooltip();
-  };
-
-  // Maneja la navegación a hoy
-  const handleToday = () => {
-    if (calendarRef.current) {
-      calendarRef.current.getApi().today();
-      setCurrentDate(new Date());
-    }
-    forceHideAppointmentTooltip();
-  };
-
-  // Maneja la navegación anterior/siguiente
-  const handleNavigate = (direction: 'prev' | 'next') => {
-    if (calendarRef.current) {
-      const api = calendarRef.current.getApi();
-      if (direction === 'prev') {
-        api.prev();
-      } else {
-        api.next();
-      }
-      setCurrentDate(api.getDate());
-    }
-    forceHideAppointmentTooltip();
-  };
-
-  // Formatea la fecha según la vista actual
-  const formatDateTitle = () => {
-    if (view === 'timeGridWeek') {
-      // Obtener el primer y último día de la semana
-      const start = new Date(currentDate);
-      const day = start.getDay();
-      // Ajustar para que el lunes sea el primer día (ISO)
-      const diffToMonday = (day === 0 ? -6 : 1) - day;
-      const weekStart = new Date(start);
-      weekStart.setDate(start.getDate() + diffToMonday);
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekStart.getDate() + 6);
-      // Formatear rango
-      const optionsDay = { day: 'numeric' as const };
-      const optionsMonthYear = { month: 'long' as const, year: 'numeric' as const };
-      const startDay = weekStart.toLocaleDateString('es-ES', optionsDay);
-      const endDay = weekEnd.toLocaleDateString('es-ES', optionsDay);
-      const monthYear = weekEnd.toLocaleDateString('es-ES', optionsMonthYear);
-      return `${startDay}–${endDay} de ${monthYear}`;
-    } else if (view === 'timeGridDay') {
-      return currentDate.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
-    } else {
-      return currentDate.toLocaleDateString('es-ES', { year: 'numeric', month: 'long' });
-    }
-  };
-
-  // Maneja la selección para agendar
-  const handleSelect = (selectInfo: any) => {
-    const start = new Date(selectInfo.startStr);
-    const end = new Date(selectInfo.endStr);
-    const day = start.getDay();
-
-    // No permitir seleccionar días no laborables
-    if (!businessHours.workingDays.includes(day)) {
-      message.warning('Este día no está disponible para agendar citas. Por favor selecciona un día laborable.');
-      return;
-    }
-
-    // Si la vista es de mes, permitir agendar sin validar traslape
-    if (view === 'dayGridMonth') {
-      // Extraer solo la fecha en formato YYYY-MM-DD
-      const soloFecha = selectInfo.startStr.split('T')[0];
-      setNewDate(soloFecha);
-      setNewDuration(undefined);
-      setNewHour(undefined);
-      setShowModal(true);
-      return;
-    }
-
-    // Validar traslape con citas existentes
-    const hayTraslape = appointments.some(appt => {
-      const apptStart = new Date(appt.date);
-      const apptEnd = appt.endDate ? new Date(appt.endDate) : new Date(apptStart.getTime() + (appt.duration || 60) * 60000);
-      // Traslape si el inicio de la nueva es antes del fin de la existente y el fin de la nueva es después del inicio de la existente
-      return start < apptEnd && end > apptStart;
-    });
-    if (hayTraslape) {
-      alert('Ya existe una cita en ese horario.');
-      return;
-    }
-    // Verificar si la hora seleccionada está dentro de algún rango bloqueado
-    const horaActual = start.getHours() * 60 + start.getMinutes();
-    const bloqueosFecha = businessHours.blockedHours.filter(b => b.date === format(start, 'yyyy-MM-dd'));
-    const bloqueadoPorHora = bloqueosFecha.some(b => {
-      const [hStart, mStart] = b.start.split(":").map(Number);
-      const [hEnd, mEnd] = b.end.split(":").map(Number);
-      const minStart = hStart * 60 + mStart;
-      const minEnd = hEnd * 60 + mEnd;
-      return horaActual >= minStart && horaActual < minEnd;
-    });
-    if (bloqueadoPorHora) {
-      message.warning("No se puede agendar una cita en un horario bloqueado para esa fecha.");
-      return;
-    }
-    setNewDate(selectInfo.startStr);
-    // Calcular duración en minutos si hay rango
-    if (selectInfo.endStr && selectInfo.startStr !== selectInfo.endStr) {
-      const diffMs = new Date(selectInfo.endStr).getTime() - new Date(selectInfo.startStr).getTime();
-      const diffMin = Math.max(Math.round(diffMs / 60000), 15); // mínimo 15 min
-      setNewDuration(diffMin);
-    } else {
-      setNewDuration(undefined);
-    }
-    // Calcular hora de inicio en formato HH:mm
-    const h = start.getHours().toString().padStart(2, '0');
-    const m = start.getMinutes().toString().padStart(2, '0');
-    setNewHour(`${h}:${m}`);
-    setShowModal(true);
   };
 
   // Maneja el click en una cita
@@ -828,6 +536,175 @@ await api.put(`/appointments/${arg.id}`, {
     if (!info) forceHideAppointmentTooltip();
   };
 
+  // Definir statusStyles antes del return:
+  const statusStyles: Record<AppointmentStatus, { bg: string, border: string, text: string, icon: JSX.Element }> = {
+    confirmada: {
+      bg: 'bg-green-50',
+      border: 'border-green-200',
+      text: 'text-green-700',
+      icon: <Check size={16} weight="bold" className="text-green-600" />
+    },
+    cancelada: {
+      bg: 'bg-red-50',
+      border: 'border-red-200',
+      text: 'text-red-700',
+      icon: <X size={16} weight="bold" className="text-red-600" />
+    },
+    pendiente: {
+      bg: 'bg-yellow-50',
+      border: 'border-yellow-200',
+      text: 'text-yellow-700',
+      icon: <WarningCircle size={16} weight="bold" className="text-yellow-600" />
+    },
+    reagendada: {
+      bg: 'bg-blue-50',
+      border: 'border-blue-200',
+      text: 'text-blue-700',
+      icon: <Clock size={16} weight="bold" className="text-blue-600" />
+    }
+  };
+
+  // Definir events antes del return:
+  const events: EventInput[] = [
+    ...appointments.map(apptRaw => {
+      const appt = apptRaw as Appointment & { service?: { color?: string } };
+      const style = statusStyles[appt.status] || statusStyles.pendiente;
+      let end;
+      if (appt.endDate) {
+        end = appt.endDate;
+      } else if (appt.duration) {
+        end = new Date(new Date(appt.date).getTime() + appt.duration * 60000);
+      } else {
+        end = new Date(new Date(appt.date).getTime() + 30 * 60000);
+      }
+      const bgColor = appt.service?.color || '#f3f4f6';
+      const textColor = getContrastTextColor(bgColor);
+      return {
+        id: appt.id,
+        title: '',
+        start: appt.date,
+        end,
+        backgroundColor: bgColor,
+        borderColor: 'transparent',
+        textColor: textColor,
+        extendedProps: appt,
+        classNames: [
+          style.border,
+          style.text,
+          'shadow-sm',
+          'hover:shadow-md',
+          'transition-all',
+          'cursor-pointer'
+        ]
+      };
+    }),
+    ...businessHours.blockedHours.map((block, index) => ({
+      id: `blocked-${index}`,
+      title: 'Horario bloqueado',
+      start: `${block.date}T${block.start}`,
+      end: `${block.date}T${block.end}`,
+      backgroundColor: 'rgba(0, 0, 0, 0.1)',
+      borderColor: 'transparent',
+      textColor: 'rgba(0, 0, 0, 0.5)',
+      classNames: ['opacity-50', 'cursor-not-allowed'],
+      extendedProps: { isBlocked: true }
+    }))
+  ];
+
+  // Definir funciones antes del return:
+  const handleViewChange = (newView: 'timeGridWeek' | 'timeGridDay' | 'dayGridMonth') => {
+    setView(newView);
+    localStorage.setItem('calendarView', newView);
+    if (calendarRef.current) {
+      calendarRef.current.getApi().changeView(newView);
+    }
+    forceHideAppointmentTooltip();
+  };
+  const handleToday = () => {
+    if (calendarRef.current) {
+      calendarRef.current.getApi().today();
+      setCurrentDate(new Date());
+    }
+    forceHideAppointmentTooltip();
+  };
+  const handleNavigate = (direction: 'prev' | 'next') => {
+    if (calendarRef.current) {
+      const api = calendarRef.current.getApi();
+      if (direction === 'prev') {
+        api.prev();
+      } else {
+        api.next();
+      }
+      setCurrentDate(api.getDate());
+    }
+    forceHideAppointmentTooltip();
+  };
+  const formatDateTitle = () => {
+    if (view === 'timeGridWeek') {
+      const start = new Date(currentDate);
+      const day = start.getDay();
+      const diffToMonday = (day === 0 ? -6 : 1) - day;
+      const weekStart = new Date(start);
+      weekStart.setDate(start.getDate() + diffToMonday);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+      const optionsDay = { day: 'numeric' as const };
+      const optionsMonthYear = { month: 'long' as const, year: 'numeric' as const };
+      const startDay = weekStart.toLocaleDateString('es-ES', optionsDay);
+      const endDay = weekEnd.toLocaleDateString('es-ES', optionsDay);
+      const monthYear = weekEnd.toLocaleDateString('es-ES', optionsMonthYear);
+      return `${startDay}–${endDay} de ${monthYear}`;
+    } else if (view === 'timeGridDay') {
+      return currentDate.toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' });
+    } else {
+      return currentDate.toLocaleDateString('es-ES', { year: 'numeric', month: 'long' });
+    }
+  };
+  const handleSelect = (selectInfo: any) => {
+    const start = new Date(selectInfo.startStr);
+    const end = new Date(selectInfo.endStr);
+    const day = start.getDay();
+    if (!businessHours.workingDays.includes(day)) {
+      message.warning('Este día no está disponible para agendar citas. Por favor selecciona un día laborable.');
+      return;
+    }
+    if (view === 'dayGridMonth') {
+      const soloFecha = selectInfo.startStr.split('T')[0];
+      setNewDate(soloFecha);
+      setNewDuration(undefined);
+      setNewHour(undefined);
+      setShowModal(true);
+      return;
+    }
+    const hayTraslape = appointments.some(appt => {
+      const apptStart = new Date(appt.date);
+      const apptEnd = appt.endDate ? new Date(appt.endDate) : new Date(apptStart.getTime() + (appt.duration || 60) * 60000);
+      return start < apptEnd && end > apptStart;
+    });
+    if (hayTraslape) {
+      alert('Ya existe una cita en ese horario.');
+      return;
+    }
+    const horaActual = start.getHours() * 60 + start.getMinutes();
+    const bloqueosFecha = businessHours.blockedHours.filter(b => b.date === format(start, 'yyyy-MM-dd'));
+    const bloqueadoPorHora = bloqueosFecha.some(b => {
+      const [hStart, mStart] = b.start.split(":").map(Number);
+      const [hEnd, mEnd] = b.end.split(":").map(Number);
+      const minStart = hStart * 60 + mStart;
+      const minEnd = hEnd * 60 + mEnd;
+      return horaActual >= minStart && horaActual < minEnd;
+    });
+    if (bloqueadoPorHora) {
+      message.warning('No se puede agendar en un horario bloqueado para esa fecha.');
+      return;
+    }
+    setNewDate(format(start, 'yyyy-MM-dd'));
+    setNewDuration(Math.round((end.getTime() - start.getTime()) / 60000));
+    setNewHour(start.toTimeString().slice(0, 5));
+    setShowModal(true);
+  };
+
+  // Ahora el return principal:
   return (
     <div className="flex gap-4 h-full" style={{ minHeight: 'calc(100vh - 120px)' }}>
       {/* Botón flotante para mostrar el menú lateral si está oculto */}
@@ -844,12 +721,43 @@ await api.put(`/appointments/${arg.id}`, {
       {sidebarOpen && (
         <CalendarSidebar
           businessHours={businessHours}
-          setBusinessHours={setBusinessHours}
           blockModal={blockModal}
           setBlockModal={setBlockModal}
-          handleAddBlockedHour={handleAddBlockedHour}
-          handleRemoveBlockedHour={handleRemoveBlockedHour}
-          handleWorkingDaysChange={handleWorkingDaysChange}
+          addBlockedHour={(date, start, end) => {
+            // Validaciones locales antes de llamar al hook
+            if (!date || !start || !end) return;
+            const dateStr = format(date, 'yyyy-MM-dd');
+            // Validar formato de hora
+            const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+            if (!timeRegex.test(start) || !timeRegex.test(end)) {
+              message.error('Por favor ingresa un formato de hora válido (HH:MM)');
+              return;
+            }
+            // Convertir a minutos para comparación
+            const startMinutes = parseInt(start.split(':')[0]) * 60 + parseInt(start.split(':')[1]);
+            const endMinutes = parseInt(end.split(':')[0]) * 60 + parseInt(end.split(':')[1]);
+            if (startMinutes >= endMinutes) {
+              message.error('La hora de inicio debe ser menor que la hora de fin');
+              return;
+            }
+            // Validar que no se solape con otros horarios bloqueados en la misma fecha
+            const hasOverlap = businessHours.blockedHours.some(block => {
+              if (block.date !== dateStr) return false;
+              const blockStart = parseInt(block.start.split(':')[0]) * 60 + parseInt(block.start.split(':')[1]);
+              const blockEnd = parseInt(block.end.split(':')[0]) * 60 + parseInt(block.end.split(':')[1]);
+              return (startMinutes >= blockStart && startMinutes < blockEnd) ||
+                     (endMinutes > blockStart && endMinutes <= blockEnd) ||
+                     (startMinutes <= blockStart && endMinutes >= blockEnd);
+            });
+            if (hasOverlap) {
+              message.error('Este horario se solapa con otro horario bloqueado para esa fecha');
+              return;
+            }
+            addBlockedHour(date, start, end);
+            setBlockModal({ show: false, date: null, start: '', end: '' });
+          }}
+          removeBlockedHour={removeBlockedHour}
+          toggleWorkingDay={toggleWorkingDay}
           isDaySelected={isDaySelected}
           currentDate={currentDate}
           setCurrentDate={setCurrentDate}
@@ -960,7 +868,7 @@ await api.put(`/appointments/${arg.id}`, {
         />
       </div>
 
-      {/* Modal de detalles de cita */}
+      {/* Modales */}
       <AppointmentDetailsModal
         visible={!!modalInfo}
         appointment={modalInfo}
@@ -980,8 +888,6 @@ await api.put(`/appointments/${arg.id}`, {
           setShowEditModal(true);
         }}
       />
-
-      {/* Modal personalizado para notificación de re-agenda */}
       <RescheduleNotifyModal
         visible={notifyModal.visible}
         event={notifyModal.event}
