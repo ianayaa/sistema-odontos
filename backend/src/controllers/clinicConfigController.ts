@@ -21,7 +21,8 @@ export const getClinicConfig: RequestHandler = async (req, res) => {
             correo: '',
             horario: 'Lunes a Viernes de 9:00 AM a 7:00 PM',
             colorPrincipal: '#b91c1c',
-            logoUrl: ''
+            logoUrl: '',
+            total_estaciones: 2
           }
         });
       } catch (createError: any) {
@@ -49,7 +50,8 @@ export const updateClinicConfig: RequestHandler = async (req, res) => {
       correo, 
       horario, 
       colorPrincipal, 
-      logoUrl 
+      logoUrl, 
+      total_estaciones
     } = req.body;
 
     // Validar campos requeridos
@@ -62,7 +64,7 @@ export const updateClinicConfig: RequestHandler = async (req, res) => {
     }
 
     // Preparar datos para actualizar
-    const updateData = {
+    const updateData: any = {
       nombreClinica,
       telefono,
       direccion,
@@ -71,6 +73,9 @@ export const updateClinicConfig: RequestHandler = async (req, res) => {
       colorPrincipal,
       logoUrl: logoUrl || null
     };
+    if (typeof total_estaciones === 'number') {
+      updateData.total_estaciones = total_estaciones;
+    }
 
     // Buscar configuración existente
     let config = await prisma.clinicConfig.findFirst();

@@ -44,10 +44,10 @@ export const createAppointment = async (req: Request, res: Response) => {
   try {
     console.log('=== INICIO DE CREACIÓN DE CITA ===');
     console.log('BODY:', req.body);
-    const { patientId, date, endDate, duration, notes, status, serviceId, enviarMensaje } = req.body;
+    const { patientId, date, endDate, duration, notes, status, serviceId, dentistId, enviarMensaje } = req.body;
     const data: any = {
       patientId,
-      userId: req.user!.id,
+      userId: dentistId,
       date: new Date(date),
       notes,
       status: status || 'SCHEDULED'
@@ -56,14 +56,9 @@ export const createAppointment = async (req: Request, res: Response) => {
     if (duration !== undefined) data.duration = duration;
     if (serviceId) data.serviceId = serviceId;
 
-    console.log('Datos de la cita a crear:', {
-      patientId,
-      userId: req.user!.id,
-      fecha: new Date(date).toLocaleString('es-MX'),
-      duracion: duration,
-      servicio: serviceId,
-      enviarMensaje
-    });
+    console.log('dentistId recibido:', dentistId);
+    console.log('userId en data:', data.userId);
+    console.log('Datos de la cita a crear:', data);
 
     // Validar traslape de citas (dos pasos para evitar errores de linter)
     const start = new Date(date);
@@ -73,9 +68,28 @@ export const createAppointment = async (req: Request, res: Response) => {
       fin: end.toLocaleString('es-MX')
     });
 
+    // Validar límite de estaciones
+    const clinicConfig = await prisma.clinicConfig.findFirst();
+    const totalEstaciones = clinicConfig?.total_estaciones || 2;
+    // Buscar citas que traslapan en ese rango de tiempo (todas las citas activas, no solo del usuario)
+    const overlappingAppointments = await prisma.appointment.count({
+      where: {
+        status: { not: 'CANCELLED' },
+        date: { lt: end },
+        OR: [
+          { endDate: { gt: start } },
+          { endDate: null }
+        ]
+      }
+    });
+    if (overlappingAppointments >= totalEstaciones) {
+      return res.status(400).json({ error: 'No hay espacios disponibles' });
+    }
+
+    // Validar traslape de citas para el dentista seleccionado
     const overlapWithEnd = await prisma.appointment.findFirst({
       where: {
-        userId: req.user!.id,
+        userId: dentistId,
         status: { not: 'CANCELLED' },
         endDate: { not: null },
         date: { lt: end },
@@ -84,18 +98,19 @@ export const createAppointment = async (req: Request, res: Response) => {
         ]
       }
     });
+    if (overlapWithEnd) {
+      console.log('Traslape con cita (con endDate):', overlapWithEnd);
+    }
     const overlapWithoutEnd = await prisma.appointment.findFirst({
       where: {
-        userId: req.user!.id,
+        userId: dentistId,
         status: { not: 'CANCELLED' },
         endDate: null,
         date: { lt: end }
       }
     });
-
-    if (overlapWithEnd || overlapWithoutEnd) {
-      console.log('Se encontró traslape de citas');
-      return res.status(400).json({ error: 'Ya existe una cita en ese horario.' });
+    if (overlapWithoutEnd) {
+      console.log('Traslape con cita (sin endDate):', overlapWithoutEnd);
     }
 
     console.log('No hay traslape, procediendo a crear la cita...');
@@ -163,14 +178,20 @@ export const getAppointments = async (req: Request, res: Response) => {
       endDateObj: endDateObj?.toISOString()
     });
 
+    // Lógica de filtro según rol
+    const where: any = {};
+    if (startDateObj || endDateObj) {
+      where.date = {};
+      if (startDateObj) where.date.gte = startDateObj;
+      if (endDateObj) where.date.lte = endDateObj;
+    }
+    if (req.user!.role === 'DENTIST') {
+      where.userId = req.user!.id;
+    }
+    // Si es ADMIN o ASSISTANT, no filtrar por userId
+
     const appointments = await prisma.appointment.findMany({
-      where: {
-        userId: req.user!.id,
-        date: {
-          gte: startDateObj,
-          lte: endDateObj
-        }
-      },
+      where,
       include: {
         patient: true,
         user: true,
@@ -308,9 +329,17 @@ export const getPatientAppointments = async (req: Request, res: Response) => {
 export const deleteAppointment = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    console.log('Intentando eliminar cita:', id, 'por usuario:', req.user?.id);
-    // Busca la cita y verifica que sea del usuario autenticado
-    const appointment = await prisma.appointment.findFirst({ where: { id, userId: req.user!.id } });
+    console.log('Intentando eliminar cita:', id, 'por usuario:', req.user?.id, 'rol:', req.user?.role);
+
+    // Si es ADMIN o ASSISTANT, puede eliminar cualquier cita
+    let appointment;
+    if (req.user?.role === 'ADMIN' || req.user?.role === 'ASSISTANT') {
+      appointment = await prisma.appointment.findUnique({ where: { id } });
+    } else {
+      // Si es dentista, solo puede eliminar sus propias citas
+      appointment = await prisma.appointment.findFirst({ where: { id, userId: req.user!.id } });
+    }
+
     if (!appointment) {
       return res.status(404).json({ error: 'Cita no encontrada o no tienes permiso para eliminarla' });
     }

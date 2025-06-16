@@ -207,6 +207,7 @@ model ClinicConfig {
   colorPrincipal String
   logoUrl        String?
   updatedAt      DateTime @updatedAt
+  total_estaciones Int    @default(2) // Número de estaciones disponibles
 }
 
 model Service {
