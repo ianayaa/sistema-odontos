@@ -41,6 +41,7 @@ interface StatusStyle {
 
 interface CalendarSidebarProps {
   businessHours: BusinessHours;
+  setBusinessHours: (updated: Partial<BusinessHours>) => void;
   blockModal: BlockModalState;
   setBlockModal: React.Dispatch<React.SetStateAction<BlockModalState>>;
   addBlockedHour: (date: Date, start: string, end: string) => void;
@@ -55,6 +56,7 @@ interface CalendarSidebarProps {
 
 const CalendarSidebar: React.FC<CalendarSidebarProps> = ({
   businessHours,
+  setBusinessHours,
   blockModal,
   setBlockModal,
   addBlockedHour,
@@ -149,7 +151,7 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({
                 selected={businessHours.startTime ? new Date(`1970-01-01T${businessHours.startTime}:00`) : null}
                 onChange={(date: Date | null) => {
                   const newTime = date ? format(date, 'HH:mm') : '';
-                  // Aquí podrías llamar a una función para actualizar el horario si lo necesitas
+                  setBusinessHours({ startTime: newTime });
                 }}
                 showTimeSelect
                 showTimeSelectOnly
@@ -166,7 +168,7 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({
                 selected={businessHours.endTime ? new Date(`1970-01-01T${businessHours.endTime}:00`) : null}
                 onChange={(date: Date | null) => {
                   const newTime = date ? format(date, 'HH:mm') : '';
-                  // Aquí podrías llamar a una función para actualizar el horario si lo necesitas
+                  setBusinessHours({ endTime: newTime });
                 }}
                 showTimeSelect
                 showTimeSelectOnly

@@ -14,7 +14,8 @@ const Configuracion: React.FC = () => {
     direccion: '',
     correo: '',
     horario: '',
-    colorPrincipal: '#b91c1c'
+    colorPrincipal: '#b91c1c',
+    total_estaciones: 2
   });
   const [guardando, setGuardando] = useState(false);
   const [loadingConfig, setLoadingConfig] = useState(true);
@@ -35,14 +36,15 @@ const Configuracion: React.FC = () => {
         direccion: config.direccion || '',
         correo: config.correo || '',
         horario: config.horario || '',
-        colorPrincipal: config.colorPrincipal || '#b91c1c'
+        colorPrincipal: config.colorPrincipal || '#b91c1c',
+        total_estaciones: config.total_estaciones || 2
       });
       setLoadingConfig(false);
     });
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    setForm({ ...form, [e.target.name]: e.target.type === 'number' ? Number(e.target.value) : e.target.value });
   };
 
 
@@ -59,7 +61,8 @@ const Configuracion: React.FC = () => {
         direccion: form.direccion,
         correo: form.correo,
         horario: form.horario,
-        colorPrincipal: form.colorPrincipal
+        colorPrincipal: form.colorPrincipal,
+        total_estaciones: form.total_estaciones
       };
 
       // Actualizar la configuración
@@ -74,7 +77,8 @@ const Configuracion: React.FC = () => {
         direccion: config.direccion || '',
         correo: config.correo || '',
         horario: config.horario || '',
-        colorPrincipal: config.colorPrincipal || '#b91c1c'
+        colorPrincipal: config.colorPrincipal || '#b91c1c',
+        total_estaciones: config.total_estaciones || 2
       });
       
     } catch (error: any) {
@@ -178,6 +182,17 @@ const Configuracion: React.FC = () => {
                 <div>
                   <label className="block font-semibold mb-1 text-gray-700">Color principal</label>
                   <input type="color" name="colorPrincipal" value={form.colorPrincipal} onChange={handleChange} className="w-16 h-10 p-0 border-none bg-transparent" />
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1 text-gray-700">Número de estaciones</label>
+                  <input
+                    type="number"
+                    name="total_estaciones"
+                    min={1}
+                    value={form.total_estaciones}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:border-red-400 focus:ring-2 focus:ring-red-100"
+                  />
                 </div>
               </div>
               <div className="flex justify-end pt-4">

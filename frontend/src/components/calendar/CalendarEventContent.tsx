@@ -1,4 +1,5 @@
 import React from 'react';
+import { useAuth } from '../../context/AuthContext';
 
 interface CalendarEventContentProps {
   event: { extendedProps: any };
@@ -6,7 +7,21 @@ interface CalendarEventContentProps {
 }
 
 const CalendarEventContent: React.FC<CalendarEventContentProps> = ({ event, timeText }) => {
+  const { user } = useAuth();
   const { extendedProps } = event;
+  console.log('USER EN EVENTO:', user, 'extendedProps:', extendedProps);
+  if (!extendedProps || Object.keys(extendedProps).length === 0) {
+    return <span className="text-xs font-semibold text-gray-400">Sin datos</span>;
+  }
+  const isAdmin = user && user.role === 'ADMIN';
+  const isAssistant = user && user.role === 'ASSISTANT';
+  const isDentistOwner = user && user.role === 'DENTIST' && user.id === extendedProps.userId;
+  const canViewDetails = isAdmin || isAssistant || isDentistOwner;
+
+  if (!canViewDetails) {
+    return <span className="text-xs font-semibold text-gray-400">Espacio ocupado</span>;
+  }
+
   if (extendedProps.isBlocked) {
     return <span className="text-xs font-semibold">Horario bloqueado</span>;
   }

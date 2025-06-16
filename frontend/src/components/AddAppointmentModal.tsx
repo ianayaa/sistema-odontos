@@ -140,7 +140,9 @@ const AddAppointmentModal: React.FC<AddAppointmentModalProps> = ({ onClose, onSu
       });
       onSuccess();
     } catch (err: any) {
-      if (err.response?.status === 500) {
+      if (err.response?.data?.error === 'No hay espacios disponibles') {
+        setError('No hay espacios disponibles para ese horario. Intenta con otra hora o día.');
+      } else if (err.response?.status === 500) {
         onSuccess();
       } else {
         setError('Ocurrió un error al agendar la cita.');

@@ -178,10 +178,6 @@ const CalendarAppointments: React.FC = () => {
       modals.openAddModal(soloFecha);
       return;
     }
-    if (hasAppointmentOverlap(start, end, appointments)) {
-      message.warning('Ya existe una cita en ese horario.');
-      return;
-    }
     if (isTimeBlocked(start, businessHours.blockedHours)) {
       message.warning('No se puede agendar en un horario bloqueado para esa fecha.');
       return;
@@ -584,6 +580,7 @@ const CalendarAppointments: React.FC = () => {
       {sidebarOpen && (
         <CalendarSidebar
           businessHours={businessHours}
+          setBusinessHours={updateBusinessHours}
           blockModal={modals.blockModal}
           setBlockModal={modals.setBlockModal}
           addBlockedHour={(date, start, end) => {
